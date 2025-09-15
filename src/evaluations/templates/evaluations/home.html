@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Strona główna</title>
+</head>
+<body>
+    <h1>Hello, {{ user.username }}!</h1>
+    <p>Twoja rola: {{ user.get_role_display }}</p>
+    <p>Dział: 
+        {% if user.department %}
+            {{ user.department.name }}
+        {% else %}
+            Brak
+        {% endif %}
+    </p>
+    <a href="{% url 'logout' %}">Wyloguj</a>
+</body>
+</html>
