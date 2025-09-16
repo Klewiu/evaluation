@@ -5,15 +5,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}System Oceny{% endblock %}</title>
+
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <!-- Ikony Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- HTMX (no extra JS helpers) -->
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.7/dist/htmx.min.js"></script>
+
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-
-{% comment %} NAVBAR {% endcomment %}
 <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
   <div class="container-fluid">
     <a class="navbar-brand fw-bold" href="{% url 'home' %}">
@@ -88,8 +92,11 @@
   </div>
 </div>
 
-<!-- Bootstrap JS -->
+<!-- Bootstrap JS (required for modals via data attributes) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+
+
 {% block extra_js %}{% endblock %}
 </body>
 </html>

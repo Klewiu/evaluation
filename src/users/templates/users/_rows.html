@@ -1,0 +1,27 @@
+{% for u in users %}
+<tr id="user-row-{{ u.pk }}">
+  <td>
+    <div class="fw-semibold">{{ u.username }}</div>
+    <div class="text-muted small">{{ u.email }}</div>
+  </td>
+  <td>{{ u.get_role_display|default:"—" }}</td>
+  <td>{{ u.department|default:"—" }}</td>
+  <td>{{ u.is_superuser|yesno:"Tak,Nie" }}</td>
+  <td class="text-end">
+    <button
+      type="button"
+      class="btn btn-outline-danger btn-sm"
+      data-bs-toggle="modal"
+      data-bs-target="#confirmDeleteModal"
+      hx-get="{% url 'user_confirm_delete' u.pk %}"
+      hx-target="#confirm-delete-modal-content"
+      hx-swap="innerHTML">
+      Usuń
+    </button>
+  </td>
+</tr>
+{% empty %}
+<tr>
+  <td colspan="5" class="text-center text-muted">Brak użytkowników.</td>
+</tr>
+{% endfor %}
