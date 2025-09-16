@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST
 from django.http import HttpResponse
 from django.contrib.auth import get_user_model
+from django.contrib import messages
 
 # helper to restrict access
 def is_admin_or_superuser(user):
@@ -43,10 +44,12 @@ def user_delete(request, pk):
     user_obj = get_object_or_404(User, pk=pk)
 
     if user_obj.pk == request.user.pk:
+        messages.error(request, "Nie możesz usunąć sam siebie.")
         return HttpResponse("Nie możesz usunąć samego siebie.", status=400)
     if user_obj.is_superuser and not request.user.is_superuser:
         return HttpResponse("Nie masz uprawnień do usunięcia superużytkownika.", status=403)
 
     user_obj.delete()
+    messages.success(request, "Użytkownik usunięty.")
 
     return HttpResponse("")  
