@@ -1,15 +1,29 @@
 {% extends "base.html" %}
 
 {% block content %}
-
 <div class="container py-4">
-  <h2 class="mb-4">Lista użytkowników</h2>
+  <h2 class="mb-4 d-flex align-items-center">
+    Lista użytkowników
+    <span class="ms-2">
+      <i class="bi bi-info-circle-fill text-warning"
+         role="img"
+         aria-label="Wskazówka"
+         data-bs-toggle="popover"
+         data-bs-placement="bottom"
+         data-bs-container="body"
+         data-bs-trigger="hover focus"
+         data-bs-html="true"
+         data-bs-title="Wskazówka"
+         data-bs-content="<div class='mb-1'><strong>Utwórz nowego użytkownika</strong>, zmodyfikuj lub usuń istniejącego użytkownika.</div>">
+      </i>
+    </span>
+  </h2>
 
   <div class="table-responsive">
     <table class="table align-middle">
       <thead class="table-light">
         <tr>
-          <th>Użytkownik</th>
+          <th>Użytkownik</th>   {# Imię + Nazwisko + Email + (username) #}
           <th>Rola</th>
           <th>Dział</th>
           <th>Superuser</th>
@@ -23,14 +37,32 @@
   </div>
 </div>
 
-<!-- Confirm Delete Modal -->
+<!-- EDIT Modal: auto-close on 'userUpdated' -->
+<div class="modal fade"
+     id="editUserModal"
+     tabindex="-1"
+     aria-hidden="true"
+     hx-on="userUpdated: bootstrap.Modal.getOrCreateInstance(this).hide()">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" id="edit-user-modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edytuj użytkownika</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-muted">Wybierz użytkownika do edycji…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE Modal (unchanged) -->
 <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" id="confirm-delete-modal-content">
-      <!-- htmx will inject _confirm_delete.html here -->
       <div class="modal-header">
         <h5 class="modal-title">Usuwanie użytkownika</h5>
-        <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
       </div>
       <div class="modal-body">
         <div class="text-muted">Wybierz użytkownika do usunięcia…</div>
@@ -39,6 +71,22 @@
   </div>
 </div>
 
+{% comment %} getting rid of modal backdrop afer success {% endcomment %}
+{% block extra_js %}
+<script>
+  document.body.addEventListener('userUpdated', function (evt) {
+    const modalElement = document.getElementById('editUserModal');
+    const modal = bootstrap.Modal.getInstance(modalElement);
+    if (modal) {
+      modal.hide();
+    }
+    // Also remove any remaining backdrops
+    const backdrops = document.getElementsByClassName('modal-backdrop');
+    for (let i = 0; i < backdrops.length; i++) {
+      backdrops[i].remove();
+    }
+  });
+</script>
+{% endblock %}
 
- 
 {% endblock %}

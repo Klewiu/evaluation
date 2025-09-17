@@ -1,5 +1,4 @@
-{% for u in users %}
-<tr id="user-row-{{ u.pk }}">
+<tr id="user-row-{{ u.pk }}" hx-swap-oob="outerHTML">
   <td>
     <div class="fw-semibold">
       {% if u.first_name or u.last_name %}
@@ -16,7 +15,6 @@
   <td>{{ u.is_superuser|yesno:"Tak,Nie" }}</td>
   <td class="text-end">
     <div class="btn-group btn-group-sm" role="group">
-      <!-- EDYTUJ -->
       <button
         type="button"
         class="btn btn-outline-primary"
@@ -27,7 +25,6 @@
         hx-swap="innerHTML">
         Edytuj
       </button>
-      <!-- USUŃ (jak było) -->
       <button
         type="button"
         class="btn btn-outline-danger"
@@ -41,8 +38,3 @@
     </div>
   </td>
 </tr>
-{% empty %}
-<tr>
-  <td colspan="5" class="text-center text-muted">Brak użytkowników.</td>
-</tr>
-{% endfor %}
