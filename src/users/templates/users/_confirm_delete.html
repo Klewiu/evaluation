@@ -1,0 +1,25 @@
+<div class="modal-header">
+  <h5 class="modal-title">Potwierdź usunięcie</h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+</div>
+
+<div class="modal-body">
+  <p>
+    Czy na pewno chcesz usunąć użytkownika
+    <strong>{{ user_obj.username }}</strong>?
+  </p>
+</div>
+
+<div class="modal-footer">
+  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+
+  <form
+    hx-post="{% url 'user_delete' user_obj.pk %}"
+    hx-target="#user-row-{{ user_obj.pk }}"
+    hx-swap="delete">   
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger" data-bs-dismiss="modal">
+      Usuń
+    </button>
+  </form>
+</div>

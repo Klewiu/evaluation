@@ -1,5 +1,44 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Lista użytkowników (tymczasowy widok)</h2>
+
+<div class="container py-4">
+  <h2 class="mb-4">Lista użytkowników</h2>
+
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Użytkownik</th>
+          <th>Rola</th>
+          <th>Dział</th>
+          <th>Superuser</th>
+          <th class="text-end">Akcje</th>
+        </tr>
+      </thead>
+      <tbody id="user-table-body">
+        {% include "users/_rows.html" with users=users %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" id="confirm-delete-modal-content">
+      <!-- htmx will inject _confirm_delete.html here -->
+      <div class="modal-header">
+        <h5 class="modal-title">Usuwanie użytkownika</h5>
+        <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-muted">Wybierz użytkownika do usunięcia…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+ 
 {% endblock %}
