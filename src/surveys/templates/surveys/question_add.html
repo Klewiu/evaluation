@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Dodaj pytanie{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Dodaj pytanie</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-2">{{ form.text.label_tag }} {{ form.text }}</div>
+        <div class="mb-2">{{ form.competency.label_tag }} {{ form.competency }}</div>
+        <div class="mb-2">{{ form.type.label_tag }} {{ form.type }}</div>
+        <div class="mb-2">{{ form.departments.label_tag }} {{ form.departments }}</div>
+        <small class="text-muted">Pozostaw puste dla wszystkich działów</small>
+        <button type="submit" class="btn btn-primary">Dodaj</button>
+        <a href="{% url 'questions_list' %}" class="btn btn-secondary">Anuluj</a>
+    </form>
+</div>
+{% endblock %}

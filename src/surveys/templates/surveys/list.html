@@ -1,5 +1,16 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Lista ankiet (tymczasowy widok )</h2>
+<div class="container mt-4">
+    <h2>Ankiety pracownicze</h2>
+    <p>Tworzenie ankiet pracowniczych i ich lista.</p>
+
+    <a href="{% url 'questions_list' %}" class="btn btn-primary">
+        Zarządzaj pytaniami
+    </a>
+
+    <a href="{% url 'competencies_list' %}" class="btn btn-secondary">
+        Zarządzaj kompetencjami
+    </a>
+</div>
 {% endblock %}

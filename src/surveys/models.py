@@ -1,34 +1,43 @@
 from django.db import models
 from django.conf import settings
+from users.models import Department
 
-#Słownik kompetencji dodawany przez HR
+# Słownik kompetencji dodawany przez HR
 class Competency(models.Model):
-  
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
+    departments = models.ManyToManyField(Department, blank=True, related_name="competencies")
+
 
     def __str__(self):
         return self.name
     
+
 # Pytania przypisane do kompetencji
 class Question(models.Model):
     SCALE = "scale"
     TEXT = "text"
     BOTH = "both"
     QUESTION_TYPES = [
-        (SCALE, "Skala 1–10"),
-        (TEXT, "Odpowiedź opisowa"),
+        (SCALE, "Skala"),
+        (TEXT, "Opisowe"),
         (BOTH, "Skala i opis"),
     ]
 
     text = models.CharField(max_length=255)
-    competency = models.ForeignKey("Competency", on_delete=models.CASCADE, related_name="questions")
+    competency = models.ForeignKey(
+        "Competency", on_delete=models.SET_NULL, blank=True, null=True, related_name="questions"
+    )
     type = models.CharField(max_length=10, choices=QUESTION_TYPES, default=SCALE)
+    departments = models.ManyToManyField(
+        Department, blank=True, help_text="Wybierz jeden lub więcej działów. Pozostaw puste dla wszystkich."
+    )
 
     def __str__(self):
         return f"{self.text} ({self.get_type_display()})"
 
-#   Definicja ankiety - np. ocena roczna dział sprzedaży 2025
+
+# Definicja ankiety - np. ocena roczna dział sprzedaży 2025
 class Survey(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
@@ -40,9 +49,9 @@ class Survey(models.Model):
     def __str__(self):
         return f"{self.title} ({self.year}, {self.department})"
 
-#Relacja ankieta–pytania (bo pytania mogą powtarzać się w różnych ankietach)
-class SurveyQuestion(models.Model):
 
+# Relacja ankieta–pytania (bo pytania mogą powtarzać się w różnych ankietach)
+class SurveyQuestion(models.Model):
     survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name="survey_questions")
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     order = models.PositiveIntegerField(default=0)  # kolejność pytań w ankiecie

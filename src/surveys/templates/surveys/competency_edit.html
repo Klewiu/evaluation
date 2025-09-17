@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Edytuj kompetencję{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Edytuj kompetencję: {{ competency.name }}</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-2">{{ form.name.label_tag }} {{ form.name }}</div>
+        <div class="mb-2">{{ form.description.label_tag }} {{ form.description }}</div>
+        <div class="mb-2">{{ form.departments.label_tag }} {{ form.departments }}</div>
+        <button type="submit" class="btn btn-primary">Zapisz</button>
+        <a href="{% url 'competencies_list' %}" class="btn btn-secondary">Anuluj</a>
+    </form>
+</div>
+{% endblock %}

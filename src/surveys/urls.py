@@ -3,4 +3,16 @@ from . import views
 
 urlpatterns = [
     path("", views.surveys_list, name="surveys_list"),
+
+    # ŚCIEŻKI PYTAŃ
+    path("questions/", views.questions_list, name="questions_list"),
+    path("questions/add/", views.question_add, name="question_add"),
+    path("questions/<int:pk>/edit/", views.question_edit, name="question_edit"),
+    path("questions/<int:pk>/delete/", views.question_delete, name="question_delete"),
+
+    # ŚCIEŻKI KOMPETENCJI
+    path("competencies/", views.competencies_list, name="competencies_list"),
+    path("competencies/add/", views.competency_add, name="competency_add"),
+    path("competencies/<int:pk>/edit/", views.competency_edit, name="competency_edit"),
+    path("competencies/<int:pk>/delete/", views.competency_delete, name="competency_delete"),
 ]
