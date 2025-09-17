@@ -3,19 +3,20 @@
 
 {% block content %}
 
-<div class="mb-3">
-    <a href="{% url 'questions_list' %}?department_id=all" class="btn btn-sm {% if selected_department == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">Wszystkie</a>
-    {% for department in departments %}
-        <a href="{% url 'questions_list' %}?department_id={{ department.id }}" 
-           class="btn btn-sm {% if selected_department|add:'' == department.id|stringformat:"s" %}btn-primary{% else %}btn-outline-primary{% endif %}">
-            {{ department.name }}
-        </a>
-    {% endfor %}
-</div>
-
-
 <div class="container">
     <h2 class="mb-4">Lista pytań</h2>
+
+    {% comment %} SEKCJA FILTRACJI {% endcomment %}
+    <div class="mb-3">
+        <p><small>Filtruj według działu:</small></p>
+        <a href="{% url 'questions_list' %}?department_id=all" class="btn btn-sm {% if selected_department == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">Wszystkie</a>
+        {% for department in departments %}
+            <a href="{% url 'questions_list' %}?department_id={{ department.id }}" 
+            class="btn btn-sm {% if selected_department|add:'' == department.id|stringformat:"s" %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                {{ department.name }}
+            </a>
+        {% endfor %}
+    </div>
 
     <a href="{% url 'question_add' %}" class="btn btn-primary mb-3">Dodaj pytanie</a>
 
