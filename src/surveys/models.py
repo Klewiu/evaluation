@@ -6,8 +6,6 @@ from users.models import Department
 class Competency(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
-    departments = models.ManyToManyField(Department, blank=True, related_name="competencies")
-
 
     def __str__(self):
         return self.name

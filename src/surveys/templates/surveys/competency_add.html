@@ -13,14 +13,19 @@
                 <div class="text-danger">{{ form.name.errors.0 }}</div>
             {% endif %}
         </div>
-        <div class="mb-2">{{ form.description.label_tag }} {{ form.description }}</div>
-        <div class="mb-2">{{ form.departments.label_tag }} {{ form.departments }}</div>
+        <div class="mb-2">
+            {{ form.description.label_tag }} {{ form.description }}
+            {% if form.description.errors %}
+                <div class="text-danger">{{ form.description.errors.0 }}</div>
+            {% endif %}
+        </div>
+
         <button type="submit" class="btn btn-primary">Dodaj</button>
         <a href="{% url 'competencies_list' %}" class="btn btn-secondary">Anuluj</a>
     </form>
 </div>
 
-<!-- Modal -->
+<!-- Modal błędu duplikatu -->
 <div class="modal fade" id="duplicateModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -29,9 +34,8 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        Taka kompetencja już istnieje!
-        Zmień nazwę kompetencji i spórbuj ponownie.
-        Jeżeli chcesz aby istniejąca kompetencja obejmowała więcej działów, otwórz listę kompetencji i edytuj wybaraną kompetencję.
+        Taka kompetencja już istnieje!<br>
+        Zmień nazwę kompetencji i spróbuj ponownie.
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">OK</button>

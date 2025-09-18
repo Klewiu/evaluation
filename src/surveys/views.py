@@ -16,30 +16,17 @@ def surveys_list(request):
 # KOMPETENCJE
 
 # Kompetencje
-# --- Wyświetlanie listy kompetencji pogrupowanych według działów ---
+# Lista kompetencji (wszystkie w jednym worku)
 @login_required
 def competencies_list(request):
-    # Pobieramy wszystkie działy
-    departments = Department.objects.all()
-
-    # Tworzymy słownik dział -> lista kompetencji
-    department_competencies = {}
-    for department in departments:
-        comps = Competency.objects.filter(departments=department)
-        if comps.exists():
-            department_competencies[department] = comps
-
-    # Pobieramy kompetencje nieprzypisane do żadnego działu
-    unassigned = Competency.objects.filter(departments__isnull=True)
-
+    competencies = Competency.objects.all()
     context = {
-        "department_competencies": department_competencies,
-        "unassigned_competencies": unassigned
+        "competencies": competencies,
     }
     return render(request, "surveys/competencies_list.html", context)
 
-# Kompetencje
-# --- Dodawanie, edycja, usuwanie kompetencji ---
+
+# Dodawanie kompetencji
 @login_required
 def competency_add(request):
     if request.method == "POST":
@@ -51,8 +38,8 @@ def competency_add(request):
         form = CompetencyForm()
     return render(request, "surveys/competency_add.html", {"form": form})
 
-# Kompetencje
-# --- Edycja kompetencji ---
+
+# Edycja kompetencji
 @login_required
 def competency_edit(request, pk):
     competency = get_object_or_404(Competency, pk=pk)
@@ -64,27 +51,20 @@ def competency_edit(request, pk):
     else:
         form = CompetencyForm(instance=competency)
 
-    return render(request, "surveys/competency_edit.html", {"form": form, "competency": competency})
+    return render(
+        request,
+        "surveys/competency_edit.html",
+        {"form": form, "competency": competency},
+    )
 
-# Kompetencje
-# --- Usuwanie kompetencji ---
+
+# Usuwanie kompetencji
+@login_required
 @require_POST
 def competency_delete(request, pk):
     competency = get_object_or_404(Competency, pk=pk)
-    scope = request.POST.get('scope')
-
-    if scope == 'all':
-        # Usuwamy całą kompetencję
-        competency.delete()
-    else:
-        # Usuwamy tylko przypisanie do wybranego działu
-        department_id = request.POST.get('department_id')
-        if department_id:
-            department = get_object_or_404(Department, pk=department_id)
-            competency.departments.remove(department)
-        # Jeśli kompetencja nie ma już żadnych działów, możesz opcjonalnie zostawić ją jako "bez działu"
-
-    return redirect('competencies_list')
+    competency.delete()
+    return redirect("competencies_list")
 
 # PYTANIA
 

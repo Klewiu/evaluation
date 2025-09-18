@@ -7,21 +7,22 @@
 
     <a href="{% url 'competency_add' %}" class="btn btn-primary mb-3">Dodaj kompetencję</a>
 
-    {% for department, competencies in department_competencies.items %}
-        <h4 class="mt-3">{{ department.name }}</h4>
-        <ul class="list-group mb-3">
+    {% if competencies %}
+        <ul class="list-group">
             {% for competency in competencies %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     <div>
-                        <strong>{{ competency.name }}</strong>{% if competency.description %} - <small>{{ competency.description }}</small>{% endif %}
+                        <strong>{{ competency.name }}</strong>
+                        {% if competency.description %}
+                            - <small>{{ competency.description }}</small>
+                        {% endif %}
                     </div>
                     <div class="btn-group">
                         <a href="{% url 'competency_edit' competency.id %}" class="btn btn-sm btn-warning">Edycja</a>
-                        <button class="btn btn-sm btn-danger" 
-                                data-bs-toggle="modal" 
-                                data-bs-target="#deleteModal" 
+                        <button class="btn btn-sm btn-danger"
+                                data-bs-toggle="modal"
+                                data-bs-target="#deleteModal"
                                 data-competency-id="{{ competency.id }}"
-                                data-department-id="{{ department.id }}"
                                 data-competency-name="{{ competency.name }}">
                             Usuń
                         </button>
@@ -29,30 +30,8 @@
                 </li>
             {% endfor %}
         </ul>
-    {% endfor %}
-
-    {% if unassigned_competencies %}
-        <h4 class="mt-3">Bez przypisanego działu</h4>
-        <ul class="list-group">
-            {% for competency in unassigned_competencies %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                        {{ competency.name }}{% if competency.description %} - {{ competency.description }}{% endif %}
-                    </div>
-                    <div class="btn-group">
-                        <a href="{% url 'competency_edit' competency.id %}" class="btn btn-sm btn-warning">Edycja</a>
-                        <button class="btn btn-sm btn-danger" 
-                                data-bs-toggle="modal" 
-                                data-bs-target="#deleteModal" 
-                                data-competency-id="{{ competency.id }}"
-                                data-department-id=""
-                                data-competency-name="{{ competency.name }}">
-                            Usuń
-                        </button>
-                    </div>
-                </li>
-            {% endfor %}
-        </ul>
+    {% else %}
+        <p class="text-muted">Brak dodanych kompetencji.</p>
     {% endif %}
 </div>
 
@@ -68,16 +47,6 @@
         </div>
         <div class="modal-body">
           <p>Czy na pewno chcesz usunąć kompetencję <strong id="competencyName"></strong>?</p>
-          <p>Wybierz zakres usunięcia:</p>
-          <div class="form-check">
-            <input class="form-check-input" type="radio" name="scope" id="deleteAll" value="all" checked>
-            <label class="form-check-label" for="deleteAll">Usuń ze wszystkich działów</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="radio" name="scope" id="deleteThisDept" value="department">
-            <label class="form-check-label" for="deleteThisDept">Usuń tylko z tego działu</label>
-          </div>
-          <input type="hidden" name="department_id" id="modalDepartmentId" value="">
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
@@ -93,19 +62,12 @@ const deleteModal = document.getElementById('deleteModal');
 deleteModal.addEventListener('show.bs.modal', event => {
     const button = event.relatedTarget;
     const competencyId = button.getAttribute('data-competency-id');
-    const departmentId = button.getAttribute('data-department-id');
     const competencyName = button.getAttribute('data-competency-name');
 
-    const modalTitle = deleteModal.querySelector('#competencyName');
-    modalTitle.textContent = competencyName;
-
-    const modalDepartmentInput = deleteModal.querySelector('#modalDepartmentId');
-    modalDepartmentInput.value = departmentId;
+    deleteModal.querySelector('#competencyName').textContent = competencyName;
 
     const form = deleteModal.querySelector('#deleteForm');
-    // użyj Django URL template tag
     form.action = `{% url 'competency_delete' 0 %}`.replace('0', competencyId);
 });
 </script>
-
 {% endblock %}
