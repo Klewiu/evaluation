@@ -46,7 +46,8 @@ INSTALLED_APPS = [
     'users',
     'evaluations',
     'surveys',
-    'htmx_messages'
+    'htmx_messages',
+    'widget_tweaks'
 ]
 
 MIDDLEWARE = [

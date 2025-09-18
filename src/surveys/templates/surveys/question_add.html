@@ -1,18 +1,78 @@
 {% extends "base.html" %}
-{% block title %}Dodaj pytanie{% endblock %}
+{% load widget_tweaks %}
+{% block title %}{% if edit %}Edytuj pytanie{% else %}Dodaj pytanie{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container">
-    <h2 class="mb-4">Dodaj pytanie</h2>
+    <h2 class="mb-4">{% if edit %}Edytuj pytanie{% else %}Dodaj pytanie{% endif %}</h2>
     <form method="post">
         {% csrf_token %}
-        <div class="mb-2">{{ form.text.label_tag }} {{ form.text }}</div>
-        <div class="mb-2">{{ form.competency.label_tag }} {{ form.competency }}</div>
-        <div class="mb-2">{{ form.type.label_tag }} {{ form.type }}</div>
-        <div class="mb-2">{{ form.departments.label_tag }} {{ form.departments }}</div>
+
+        <div class="mb-2">
+            {{ form.text.label_tag }} {{ form.text }}
+            {% for error in form.text.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="mb-2">
+            {{ form.competency.label_tag }} {{ form.competency }}
+            {% for error in form.competency.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="mb-2">
+            {{ form.type.label_tag }} {{ form.type }}
+            {% for error in form.type.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="mb-2">
+            {{ form.departments.label_tag }} {{ form.departments }}
+            {% for error in form.departments.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+
         <small class="text-muted">Pozostaw puste dla wszystkich działów</small>
-        <button type="submit" class="btn btn-primary">Dodaj</button>
+        <button type="submit" class="btn btn-primary">{% if edit %}Zapisz zmiany{% else %}Dodaj{% endif %}</button>
         <a href="{% url 'questions_list' %}" class="btn btn-secondary">Anuluj</a>
     </form>
 </div>
+
+<script>
+const competencySelect = document.getElementById('id_competency');
+const typeSelect = document.getElementById('id_type');
+
+// zapisujemy wszystkie opcje z początkowego select
+const allOptions = Array.from(typeSelect.options);
+
+function filterTypeOptions() {
+    const value = competencySelect.value;
+    typeSelect.innerHTML = '';
+    let filteredOptions = allOptions;
+
+    // jeśli wybrano kompetencję, zostaw tylko scale i both
+    if (value) {
+        filteredOptions = allOptions.filter(opt => opt.value === 'scale' || opt.value === 'both');
+    }
+
+    filteredOptions.forEach(opt => typeSelect.add(opt));
+
+    // zachowaj aktualnie wybraną wartość jeśli nadal istnieje
+    if (filteredOptions.some(opt => opt.value === typeSelect.value)) {
+        typeSelect.value = typeSelect.value;
+    } else if (value) {
+        typeSelect.selectedIndex = 0; // ustaw pierwszą dopuszczalną opcję
+    }
+}
+
+// filtr przy zmianie competency
+competencySelect.addEventListener('change', filterTypeOptions);
+
+// filtr przy ładowaniu strony
+window.addEventListener('load', filterTypeOptions);
+</script>
 {% endblock %}

@@ -7,11 +7,45 @@
 
     <form method="post">
         {% csrf_token %}
-        <div class="mb-2">{{ form.name.label_tag }} {{ form.name }}</div>
+        <div class="mb-2">
+            {{ form.name.label_tag }} {{ form.name }}
+            {% if form.name.errors %}
+                <div class="text-danger">{{ form.name.errors.0 }}</div>
+            {% endif %}
+        </div>
         <div class="mb-2">{{ form.description.label_tag }} {{ form.description }}</div>
         <div class="mb-2">{{ form.departments.label_tag }} {{ form.departments }}</div>
         <button type="submit" class="btn btn-primary">Dodaj</button>
         <a href="{% url 'competencies_list' %}" class="btn btn-secondary">Anuluj</a>
     </form>
 </div>
+
+<!-- Modal -->
+<div class="modal fade" id="duplicateModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">Błąd</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        Taka kompetencja już istnieje!
+        Zmień nazwę kompetencji i spórbuj ponownie.
+        Jeżeli chcesz aby istniejąca kompetencja obejmowała więcej działów, otwórz listę kompetencji i edytuj wybaraną kompetencję.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if form.name.errors %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var duplicateModal = new bootstrap.Modal(document.getElementById('duplicateModal'));
+    duplicateModal.show();
+});
+</script>
+{% endif %}
 {% endblock %}
