@@ -35,7 +35,7 @@
             {% endfor %}
         </div>
 
-        <small class="text-muted">Pozostaw puste dla wszystkich działów</small>
+        <small class="text-muted mt-1 mb-3">Pozostaw puste dla wszystkich działów</small>
         <button type="submit" class="btn btn-primary">{% if edit %}Zapisz zmiany{% else %}Dodaj{% endif %}</button>
         <a href="{% url 'questions_list' %}" class="btn btn-secondary">Anuluj</a>
     </form>

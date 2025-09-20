@@ -3,6 +3,7 @@
 
 {% block content %}
 <div class="container mt-4">
+    <button class="btn btn-secondary" onclick="window.location.href='{% url 'surveys_list' %}'; return false;">Wróć</button>
     <h2>{{ survey.name }} <small class="text-muted">({{ survey.department.name }})</small></h2>
     <p>Podgląd ankiety – możesz zmieniać kolejność pytań.</p>
 
