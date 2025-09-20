@@ -37,26 +37,23 @@ class Question(models.Model):
 
 # Definicja ankiety - np. ocena roczna dział sprzedaży 2025
 class Survey(models.Model):
-    title = models.CharField(max_length=200)
-    description = models.TextField(blank=True)
-    department = models.CharField(max_length=100)  # można zrobić model Department jeśli chcesz
-    year = models.PositiveIntegerField()  # np. 2025
+    name = models.CharField(max_length=200)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE)
+    questions = models.ManyToManyField(
+        Question,
+        through='SurveyQuestion',
+        related_name='surveys'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
-        return f"{self.title} ({self.year}, {self.department})"
+        return f"{self.name} ({self.department.name})"
 
-
-# Relacja ankieta–pytania (bo pytania mogą powtarzać się w różnych ankietach)
 class SurveyQuestion(models.Model):
-    survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name="survey_questions")
+    survey = models.ForeignKey(Survey, on_delete=models.CASCADE)
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
-    order = models.PositiveIntegerField(default=0)  # kolejność pytań w ankiecie
+    order = models.PositiveIntegerField(default=0)
 
     class Meta:
-        unique_together = ("survey", "question")
-        ordering = ["order"]
-
-    def __str__(self):
-        return f"{self.survey.title} -> {self.question.text}"
+        ordering = ['order']
+        unique_together = ('survey', 'question')

@@ -5,13 +5,8 @@ from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
 
 from users.models import Department
-from .models import Question, Competency
-from .forms import QuestionForm, CompetencyForm
-
-
-@login_required
-def surveys_list(request):
-    return render(request, "surveys/list.html")
+from .models import Question, Competency, Survey, SurveyQuestion
+from .forms import QuestionForm, CompetencyForm, SurveyForm
 
 # KOMPETENCJE
 
@@ -134,3 +129,86 @@ def question_edit(request, pk):
     else:
         form = QuestionForm(instance=question)
     return render(request, 'surveys/question_add.html', {'form': form, 'edit': True})
+
+
+# ANKIETY
+
+@login_required
+def surveys_home(request):
+    surveys = Survey.objects.all()
+    return render(request, "surveys/list.html", {"surveys": surveys})
+
+@login_required
+def surveys_list(request):
+    surveys = Survey.objects.all()
+    return render(request, "surveys/surveys_list.html", {"surveys": surveys})
+
+# Dodanie ankiety
+@login_required
+def survey_add(request):
+    if request.method == "POST":
+        form = SurveyForm(request.POST)
+        if form.is_valid():
+            survey = form.save()
+            
+            # Pobranie kolejności pytań z formularza
+            question_ids = request.POST.get("questions_order", "").split(",")
+            
+            if question_ids == [''] or not question_ids:
+                # Jeśli brak zaznaczonych pytań, dodaj wszystkie z działu ankiety
+                questions = Question.objects.filter(departments=survey.department)
+                for idx, q in enumerate(questions):
+                    SurveyQuestion.objects.create(survey=survey, question=q, order=idx)
+            else:
+                # Dodaj pytania wybrane przez użytkownika
+                for idx, qid in enumerate(question_ids):
+                    if qid.strip():
+                        q = Question.objects.get(pk=qid)
+                        SurveyQuestion.objects.create(survey=survey, question=q, order=idx)
+
+            return redirect("surveys_list")
+    else:
+        form = SurveyForm()
+
+    # Pobranie wszystkich pytań do wyświetlenia w formularzu (opcjonalnie)
+    questions = Question.objects.all()
+
+    return render(request, "surveys/survey_add.html", {"form": form, "questions": questions})
+
+
+# Pobieranie pytań dla wybranego działu (htmx)
+def load_questions(request):
+    dept_id = request.GET.get("department")
+    questions = Question.objects.filter(departments__id=dept_id) if dept_id else Question.objects.none()
+    return render(request, "surveys/partials/question_list.html", {"questions": questions})
+
+# edytowanie ankiety
+def survey_edit(request, pk):
+    survey = get_object_or_404(Survey, pk=pk)
+    if request.method == "POST":
+        form = SurveyForm(request.POST, instance=survey)
+        if form.is_valid():
+            form.save()
+            return redirect("surveys_list")
+    else:
+        form = SurveyForm(instance=survey)
+    return render(request, "surveys/survey_form.html", {"form": form, "title": "Edytuj ankietę"})
+
+# usuwanie ankiety
+@login_required
+@require_POST
+def survey_delete(request, pk):
+    survey = get_object_or_404(Survey, pk=pk)
+    survey.delete()
+    return redirect('surveys_list')
+
+@login_required
+def survey_preview(request, pk):
+    survey = get_object_or_404(Survey, pk=pk)
+    questions = survey.surveyquestion_set.select_related('question').all()
+    scale_range = range(1, 10)  # liczby od 1 do 10
+    return render(request, "surveys/survey_preview.html", {
+        "survey": survey,
+        "questions": questions,
+        "scale_range": scale_range,
+    })

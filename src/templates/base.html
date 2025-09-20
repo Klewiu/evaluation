@@ -58,7 +58,7 @@
         {% if user.is_authenticated %}
             {% if user.role == 'hr' or user.role == 'admin' %}
             <li class="nav-item">
-              <a class="nav-link" href="{% url 'surveys_list' %}">Ankiety</a>
+              <a class="nav-link" href="{% url 'surveys_home' %}">Ankiety</a>
             </li>
             {% endif %}
             {% if user.role == 'admin' %}

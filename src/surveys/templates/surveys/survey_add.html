@@ -1,0 +1,44 @@
+{# templates/surveys/survey_add.html #}
+{% extends "base.html" %}
+{% block title %}Dodaj ankietę{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2 class="mb-4">Nowa ankieta</h2>
+  <form method="post" id="surveyAddForm">
+    {% csrf_token %}
+    <div class="mb-3">
+        {{ form.name.label_tag }} {{ form.name }}
+    </div>
+    <div class="mb-3">
+        {{ form.department.label_tag }} {{ form.department }}
+    </div>
+
+    <div id="questions-container"></div>
+
+    <input type="hidden" name="questions_order" id="questions_order">
+    <button type="submit" class="btn btn-primary">Zapisz</button>
+</form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+document.addEventListener("htmx:afterSwap", function(event) {
+    if (event.detail.target.id === "questions-container") {
+        var el = document.getElementById('sortable-questions');
+        if (el) {
+            Sortable.create(el, {
+                animation: 150,
+                onEnd: function () {
+                    var order = [];
+                    el.querySelectorAll('li').forEach(function(li){
+                        order.push(li.dataset.id);
+                    });
+                    document.getElementById('questions_order').value = order.join(',');
+                }
+            });
+        }
+    }
+});
+</script>
+{% endblock %}

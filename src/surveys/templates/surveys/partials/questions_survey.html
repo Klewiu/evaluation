@@ -1,0 +1,15 @@
+{# templates/surveys/partials/question_list.html #}
+{% if questions.exists %}
+    <ul id="sortable-questions" class="list-group">
+        {% for question in questions %}
+            <li class="list-group-item" data-id="{{ question.id }}">
+                {{ question.text }}
+                {% if question.type != "text" %}
+                    <small class="text-muted">[{{ question.get_type_display }}]</small>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>Brak pytań dla wybranego działu.</p>
+{% endif %}

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Lista ankiet{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Ankiety pracownicze</h2>
+        <a href="{% url 'survey_add' %}" class="btn btn-success">Utwórz nową ankietę</a>
+    </div>
+
+    {% if surveys %}
+        <ul class="list-group">
+            {% for survey in surveys %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ survey.name }}</strong> 
+                        <span class="text-muted">({{ survey.department.name }})</span>
+                    </div>
+                    <div class="btn-group">
+                        <a href="{% url 'survey_edit' survey.id %}" class="btn btn-sm btn-warning">Edytuj</a>
+                        <a href="{% url 'survey_preview' survey.id %}" class="btn btn-sm btn-info">Podgląd</a>
+                        <button class="btn btn-sm btn-danger"
+                                data-bs-toggle="modal"
+                                data-bs-target="#deleteModal"
+                                data-survey-id="{{ survey.id }}"
+                                data-survey-name="{{ survey.name }}">
+                            Usuń
+                        </button>
+                    </div>
+                </li>
+            {% empty %}
+                <p class="text-muted">Brak utworzonych ankiet.</p>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-muted">Brak utworzonych ankiet.</p>
+    {% endif %}
+</div>
+
+<!-- Modal usuwania ankiety -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="post" id="deleteForm">
+      {% csrf_token %}
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Usuń ankietę</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>Czy na pewno chcesz usunąć ankietę <strong id="surveyName"></strong>?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+          <button type="submit" class="btn btn-danger">Usuń</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const deleteModal = document.getElementById('deleteModal');
+deleteModal.addEventListener('show.bs.modal', event => {
+    const button = event.relatedTarget;
+    const surveyId = button.getAttribute('data-survey-id');
+    const surveyName = button.getAttribute('data-survey-name');
+
+    deleteModal.querySelector('#surveyName').textContent = surveyName;
+
+    const form = deleteModal.querySelector('#deleteForm');
+    form.action = `{% url 'survey_delete' 0 %}`.replace('0', surveyId);
+});
+</script>
+{% endblock %}

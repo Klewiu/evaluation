@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Podgląd ankiety{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ survey.name }} <small class="text-muted">({{ survey.department.name }})</small></h2>
+    <p>Podgląd ankiety – możesz zmieniać kolejność pytań.</p>
+
+    <form id="previewForm">
+        <ul id="sortable-questions" class="list-group mb-3">
+            {% for sq in questions %}
+            <li class="list-group-item mb-2" data-id="{{ sq.id }}">
+                <strong>{{ forloop.counter }}.</strong> {{ sq.question.text }}
+
+                {% if sq.question.type == "scale" %}
+                    <div class="mt-1">
+                        {% for i in scale_range %}
+                            <input type="radio" name="q{{ sq.question.id }}" disabled> {{ i }}
+                        {% endfor %}
+                    </div>
+                {% elif sq.question.type == "both" %}
+                    <div class="mt-1">
+                        {% for i in scale_range %}
+                            <input type="radio" name="q{{ sq.question.id }}" disabled> {{ i }}
+                        {% endfor %}
+                    </div>
+                    <textarea class="form-control form-control-sm mt-1" rows="1" placeholder="Odpowiedź opisowa..." disabled></textarea>
+                {% else %}
+                    <textarea class="form-control form-control-sm mt-1" rows="1" placeholder="Odpowiedź opisowa..." disabled></textarea>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var el = document.getElementById('sortable-questions');
+    if (el) {
+        Sortable.create(el, {
+            animation: 150,
+            onEnd: function () {
+                // Tylko zmiana numerów w liście
+                el.querySelectorAll('li').forEach(function(li, index){
+                    li.querySelector('strong').textContent = (index + 1) + '.';
+                });
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

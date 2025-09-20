@@ -1,13 +1,7 @@
 from django import forms
-from .models import Competency, Question
+from .models import Competency, Question, Survey, SurveyQuestion
 
 # Formularz do dodawania/edycji kompetencji
-from django import forms
-from .models import Competency
-
-from django import forms
-from .models import Competency
-
 class CompetencyForm(forms.ModelForm):
     class Meta:
         model = Competency
@@ -44,3 +38,18 @@ class QuestionForm(forms.ModelForm):
 
         if competency and type_value == Question.TEXT:
             self.add_error('type', 'Nie możesz wybrać typu "Opisowe" dla pytań z ustawioną kompetencją.')
+
+
+class SurveyForm(forms.ModelForm):
+    class Meta:
+        model = Survey
+        fields = ['name', 'department']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'department': forms.Select(attrs={
+                'class': 'form-select',
+                'hx-get': '/surveys/load-questions/',   # htmx – pobranie pytań
+                'hx-target': '#questions-container',
+                'hx-trigger': 'change'
+            }),
+        }
