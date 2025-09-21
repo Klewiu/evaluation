@@ -45,9 +45,10 @@ class Survey(models.Model):
         related_name='surveys'
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    year = models.PositiveIntegerField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.name} ({self.department.name})"
+        return f"{self.name} ({self.department.name}, {self.year or self.created_at.year})"
 
 class SurveyQuestion(models.Model):
     survey = models.ForeignKey(Survey, on_delete=models.CASCADE)
@@ -57,3 +58,29 @@ class SurveyQuestion(models.Model):
     class Meta:
         ordering = ['order']
         unique_together = ('survey', 'question')
+
+
+class SurveyResponse(models.Model):
+    STATUS_CHOICES = [
+        ("draft", "W trakcie wypełniania"),
+        ("submitted", "Wypełniona"),
+        ("closed", "Zakończona"),
+    ]
+
+    survey = models.ForeignKey(Survey, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft")
+
+    def __str__(self):
+        return f"{self.user} → {self.survey} ({self.get_status_display()})"
+
+class SurveyAnswer(models.Model):
+    response = models.ForeignKey(SurveyResponse, on_delete=models.CASCADE, related_name="answers")
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    scale_value = models.IntegerField(null=True, blank=True)
+    text_value = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"Odpowiedź na {self.question.text}"

@@ -21,10 +21,16 @@ urlpatterns = [
     # ŚCIEŻKI ANKIET
     path("list/", views.surveys_list, name="surveys_list"),
 
+    # ZARZĄDZANIE ANKIETAMI
     path('survey/add/', views.survey_add, name='survey_add'),
     path('survey/<int:pk>/edit/', views.survey_edit, name='survey_edit'),
     path('survey/<int:pk>/delete/', views.survey_delete, name='survey_delete'),
     path('survey/<int:pk>/preview/', views.survey_preview, name='survey_preview'),
+    
+    # WYPEŁNIANIE ANKIETY
+    path("survey/<int:pk>/fill/", views.survey_fill, name="survey_fill"),
+    path('survey/<int:pk>/submit/', views.survey_submit, name='survey_submit'),
+    path('survey/<int:pk>/result/', views.survey_result, name='survey_result'),
 
     # HTMX pytania
     path("load-questions/", views.load_questions, name="load_questions"),

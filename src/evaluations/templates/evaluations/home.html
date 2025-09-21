@@ -1,8 +1,89 @@
 {% extends "base.html" %}
-
-{% block title %}Panel pracownika{% endblock %}
+{% block title %}Moje ankiety{% endblock %}
 
 {% block content %}
-<h1>Witaj, {{ user.username }}!</h1>
-<p>To jest Twój dashboard.</p>
+<div class="container mt-4">
+    <h2>Moje ankiety</h2>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Nazwa ankiety</th>
+                <th>Status</th>
+                <th>Akcje</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in surveys %}
+            {% if item.survey %}
+            <tr>
+                <td>{{ item.survey.name }}</td>
+                <td>
+                    {% if item.response %}
+                        {{ item.response.get_status_display }}
+                    {% else %}
+                        Do wypełnienia
+                    {% endif %}
+                </td>
+                <td>
+                    {% if not item.response %}
+                        <!-- Ankieta niewypełniona -->
+                        <a href="{% url 'survey_fill' item.survey.id %}" class="btn btn-sm btn-success">Wypełnij</a>
+                    {% elif item.response.status == "draft" %}
+                        <!-- Ankieta w trakcie wypełniania -->
+                        <a href="{% url 'survey_edit' item.survey.id %}" class="btn btn-sm btn-warning">Edytuj</a>
+                        <button class="btn btn-sm btn-primary" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#submitModal" 
+                                data-survey-id="{{ item.survey.id }}">
+                            Zakończ i wyślij
+                        </button>
+                    {% elif item.response.status == "submitted" or item.response.status == "closed" %}
+                        <!-- Ankieta zakończona -->
+                        <a href="{% url 'survey_result' item.survey.id %}" class="btn btn-sm btn-info">Podgląd</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endif %}
+            {% empty %}
+            <tr>
+                <td colspan="3">Brak ankiet do wypełnienia.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal zakończenia ankiety -->
+<div class="modal fade" id="submitModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="submitForm" method="post">
+      {% csrf_token %}
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Zakończ ankietę</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>Czy na pewno chcesz zakończyć ankietę? Nie będzie można jej później edytować.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+          <button type="submit" class="btn btn-primary">Zakończ i wyślij</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const submitModal = document.getElementById('submitModal');
+    submitModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const surveyId = button.getAttribute('data-survey-id');
+        const form = submitModal.querySelector('#submitForm');
+        form.action = `/surveys/survey/${surveyId}/submit/`;
+    });
+});
+</script>
 {% endblock %}

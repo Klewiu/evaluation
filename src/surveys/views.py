@@ -4,9 +4,12 @@ from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
 
+from django.utils import timezone
+
 from users.models import Department
-from .models import Question, Competency, Survey, SurveyQuestion
-from .forms import QuestionForm, CompetencyForm, SurveyForm
+from .models import Question, Competency, Survey, SurveyQuestion, SurveyResponse, SurveyAnswer
+from .forms import QuestionForm, CompetencyForm, SurveyForm 
+
 
 # KOMPETENCJE
 
@@ -210,5 +213,106 @@ def survey_preview(request, pk):
     return render(request, "surveys/survey_preview.html", {
         "survey": survey,
         "questions": questions,
+        "scale_range": scale_range,
+    })
+
+
+@login_required
+def survey_fill(request, pk):
+    survey = get_object_or_404(Survey, pk=pk)
+
+    # tylko pracownik może wypełniać
+    if request.user.role != "employee":
+        return HttpResponseForbidden("Tylko pracownicy mogą wypełniać ankiety.")
+
+    # sprawdź czy user już wypełnił
+    if SurveyResponse.objects.filter(survey=survey, user=request.user).exists():
+        return render(request, "surveys/already_filled.html", {"survey": survey})
+
+    if request.method == "POST":
+        # utwórz odpowiedź zbiorczą
+        response = SurveyResponse.objects.create(survey=survey, user=request.user)
+
+        # przeiteruj pytania i zapisz odpowiedzi
+        for sq in survey.surveyquestion_set.select_related("question").all():
+            q = sq.question
+            scale_val = request.POST.get(f"q{q.id}_scale")
+            text_val = request.POST.get(f"q{q.id}_text")
+
+            SurveyAnswer.objects.create(
+                response=response,
+                question=q,
+                scale_value=scale_val if scale_val else None,
+                text_value=text_val if text_val else ""
+            )
+
+        return redirect("home")  # po wypełnieniu wróć na dashboard
+
+    questions = survey.surveyquestion_set.select_related("question").all()
+    scale_range = range(1, 10)
+
+    return render(request, "surveys/survey_fill.html", {
+        "survey": survey,
+        "questions": questions,
+        "scale_range": scale_range,
+    })
+
+
+@login_required
+def survey_submit(request, pk):
+    survey = get_object_or_404(Survey, pk=pk)
+
+    # Pobierz lub utwórz odpowiedź użytkownika
+    response, created = SurveyResponse.objects.get_or_create(
+        survey=survey,
+        user=request.user,
+        defaults={'status': 'draft', 'created_at': timezone.now()}
+    )
+
+    if request.method == "POST":
+        # Przechodzimy po wszystkich pytaniach ankiety
+        for sq in survey.surveyquestion_set.all():
+            qid = str(sq.question.id)
+            value = request.POST.get(f'q{qid}', '')
+            # Zaktualizuj lub stwórz odpowiedź na pytanie
+            SurveyAnswer.objects.update_or_create(
+                response=response,
+                question=sq.question,
+                defaults={'value': value}
+            )
+        
+        # Zmień status na submitted
+        response.status = 'submitted'
+        response.submitted_at = timezone.now()  # jeśli masz takie pole
+        response.save()
+
+        return redirect('home')  # po wysłaniu ankiety
+
+    # GET – wyświetlamy formularz do wypełnienia
+    questions = survey.surveyquestion_set.select_related('question').all()
+    scale_range = range(1, 10)
+    return render(request, 'surveys/survey_fill.html', {
+        'survey': survey,
+        'questions': questions,
+        'scale_range': scale_range
+    })
+
+@login_required
+def survey_result(request, pk):
+    survey = get_object_or_404(Survey, pk=pk)
+
+    # Pobieramy odpowiedź zalogowanego użytkownika dla tej ankiety
+    try:
+        response = SurveyResponse.objects.get(survey=survey, user=request.user)
+    except SurveyResponse.DoesNotExist:
+        response = None
+
+    answers = SurveyAnswer.objects.filter(response=response) if response else []
+
+    scale_range = range(1, 10)  # dla pytań typu scale
+
+    return render(request, "surveys/survey_result.html", {
+        "survey": survey,
+        "answers": answers,
         "scale_range": scale_range,
     })

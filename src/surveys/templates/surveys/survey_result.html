@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Podgląd ankiety{% endblock %}
+
+{% block content %}
+
+<style>
+.custom-radio input[type="radio"] {
+  display: none;
+}
+
+.custom-radio span {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #ccc;
+  margin-right: 8px;
+  vertical-align: middle;
+  position: relative;
+}
+
+.custom-radio input[type="radio"]:checked + span::after {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: green; /* zielona kropka dla zaznaczonego */
+  position: absolute;
+  top: 3px;
+  left: 3px;
+}
+
+.radio-group {
+  margin-bottom: 10px; /* margines pod radio buttonami */
+}
+</style>
+
+<div class="container mt-4">
+    <h2>Podgląd ankiety: {{ survey.name }}</h2>
+    <form>
+        {% for sq in survey.surveyquestion_set.all %}
+            <div class="mb-3">
+                <label><strong>{{ sq.question.text }}</strong></label>
+
+                {% if sq.question.type == "scale" or sq.question.type == "both" %}
+                    <div class="radio-group">
+                        {% for i in scale_range %}
+                            {% for ans in answers %}
+                                {% if ans.question.id == sq.question.id %}
+                                    <label class="custom-radio">
+                                        <input type="radio" name="q{{ sq.question.id }}_scale" value="{{ i }}"
+                                            {% if ans.scale_value|stringformat:"s" == i|stringformat:"s" %}checked{% endif %}
+                                            disabled
+                                        >
+                                        <span></span> {{ i }}
+                                    </label>
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if sq.question.type == "text" or sq.question.type == "both" %}
+                    {% for ans in answers %}
+                        {% if ans.question.id == sq.question.id %}
+                            <textarea class="form-control" disabled>{{ ans.text_value }}</textarea>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            </div>
+        {% empty %}
+            <p>Brak odpowiedzi</p>
+        {% endfor %}
+    </form>
+    <a href="{% url 'home' %}" class="btn btn-secondary mt-3">Powrót</a>
+</div>
+{% endblock %}
