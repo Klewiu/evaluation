@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}Edytuj ankietę{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ survey.name }} <small class="text-muted">({{ survey.department.name }})</small></h2>
+    <p>Proszę edytować swoje odpowiedzi i zatwierdzić.</p>
+
+    <form method="post">
+        {% csrf_token %}
+        <ul class="list-group mb-3">
+            {% for sq in questions %}
+                {% with ans=answers|get_item:sq.question.id %}
+                <li class="list-group-item mb-3">
+                    <strong>{{ forloop.counter }}.</strong> {{ sq.question.text }}
+
+                    {% if sq.question.type == "scale" or sq.question.type == "both" %}
+                        <div class="mt-2">
+                            {% for i in scale_range %}
+                                <label class="me-2 custom-radio">
+                                    <input type="radio" name="q{{ sq.question.id }}_scale" value="{{ i }}"
+                                           {% if ans and ans.scale_value|stringformat:"s" == i|stringformat:"s" %}checked{% endif %}>
+                                    <span></span> {{ i }}
+                                </label>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    {% if sq.question.type == "text" or sq.question.type == "both" %}
+                        <textarea class="form-control form-control-sm mt-2" name="q{{ sq.question.id }}_text" rows="2"
+                                  placeholder="Odpowiedź opisowa...">{% if ans %}{{ ans.text_value }}{% endif %}</textarea>
+                    {% endif %}
+                </li>
+                {% endwith %}
+            {% endfor %}
+        </ul>
+
+        <button type="submit" class="btn btn-success">Zapisz odpowiedzi</button>
+        <a href="{% url 'home' %}" class="btn btn-secondary">Anuluj</a>
+    </form>
+</div>
+
+<style>
+.custom-radio input[type="radio"] {
+  display: none;
+}
+
+.custom-radio span {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #ccc;
+  margin-right: 8px;
+  vertical-align: middle;
+  position: relative;
+}
+
+.custom-radio input[type="radio"]:checked + span::after {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: green; /* kolor zaznaczonej kropki */
+  position: absolute;
+  top: 3px;
+  left: 3px;
+}
+</style>
+{% endblock %}

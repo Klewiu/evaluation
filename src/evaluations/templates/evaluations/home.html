@@ -30,7 +30,7 @@
                         <a href="{% url 'survey_fill' item.survey.id %}" class="btn btn-sm btn-success">Wypełnij</a>
                     {% elif item.response.status == "draft" %}
                         <!-- Ankieta w trakcie wypełniania -->
-                        <a href="{% url 'survey_edit' item.survey.id %}" class="btn btn-sm btn-warning">Edytuj</a>
+                        <a href="{% url 'survey_edit_response' item.survey.id %}" class="btn btn-sm btn-warning">Edytuj</a>
                         <button class="btn btn-sm btn-primary" 
                                 data-bs-toggle="modal" 
                                 data-bs-target="#submitModal" 

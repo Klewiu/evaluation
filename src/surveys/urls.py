@@ -31,6 +31,7 @@ urlpatterns = [
     path("survey/<int:pk>/fill/", views.survey_fill, name="survey_fill"),
     path('survey/<int:pk>/submit/', views.survey_submit, name='survey_submit'),
     path('survey/<int:pk>/result/', views.survey_result, name='survey_result'),
+    path('survey/<int:pk>/edit-response/', views.survey_edit_response, name='survey_edit_response'),
 
     # HTMX pytania
     path("load-questions/", views.load_questions, name="load_questions"),

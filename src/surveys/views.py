@@ -316,3 +316,40 @@ def survey_result(request, pk):
         "answers": answers,
         "scale_range": scale_range,
     })
+@login_required
+def survey_edit_response(request, pk):
+    survey = get_object_or_404(Survey, pk=pk)
+
+    if request.user.role != "employee":
+        return HttpResponseForbidden("Tylko pracownicy mogą edytować swoje odpowiedzi.")
+
+    # Pobierz istniejącą odpowiedź
+    response = get_object_or_404(SurveyResponse, survey=survey, user=request.user)
+    questions = survey.surveyquestion_set.select_related("question").all()
+
+    # Tworzymy słownik: {question.id: SurveyAnswer}
+    answers = {a.question.id: a for a in response.answers.all()}
+
+    if request.method == "POST":
+        for sq in questions:
+            q = sq.question
+            scale_val = request.POST.get(f"q{q.id}_scale")
+            text_val = request.POST.get(f"q{q.id}_text")
+
+            SurveyAnswer.objects.update_or_create(
+                response=response,
+                question=q,
+                defaults={
+                    "scale_value": scale_val if scale_val else None,
+                    "text_value": text_val if text_val else "",
+                },
+            )
+
+        return redirect("home")
+
+    return render(request, "surveys/survey_edit_response.html", {
+        "survey": survey,
+        "questions": questions,
+        "answers": answers,
+        "scale_range": range(1, 10),
+    })
