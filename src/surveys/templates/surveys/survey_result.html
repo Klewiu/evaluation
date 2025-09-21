@@ -24,19 +24,26 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background-color: green; /* zielona kropka dla zaznaczonego */
+  background-color: green;
   position: absolute;
   top: 3px;
   left: 3px;
 }
 
 .radio-group {
-  margin-bottom: 10px; /* margines pod radio buttonami */
+  margin-bottom: 10px;
+}
+
+.radar-container {
+  max-width: 800px; /* większy wykres */
+  height: 600px;
+  margin: auto;
 }
 </style>
 
 <div class="container mt-4">
     <h2>Podgląd ankiety: {{ survey.name }}</h2>
+
     <form>
         {% for sq in survey.surveyquestion_set.all %}
             <div class="mb-3">
@@ -72,6 +79,76 @@
             <p>Brak odpowiedzi</p>
         {% endfor %}
     </form>
+
+    <!-- Wykres radar -->
+    <div class="mt-4 radar-container">
+        <h3>Podsumowanie ocen wg kompetencji</h3>
+        <canvas id="radarChart"></canvas>
+    </div>
+
     <a href="{% url 'home' %}" class="btn btn-secondary mt-3">Powrót</a>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Skracamy etykiety do 7 znaków
+const labels = {{ radar_labels|safe }}.map(label => label.substring(0,7) + (label.length>7 ? "…" : ""));
+
+// Dane procentowe użytkownika
+const values = {{ radar_values|safe }};
+
+const data = {
+    labels: labels,
+    datasets: [{
+        label: 'Twoja ocena [%]',
+        data: values,
+        fill: true,
+        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+        pointBorderColor: '#fff',
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: 'rgba(54, 162, 235, 1)'
+    }]
+};
+
+const config = {
+    type: 'radar',
+    data: data,
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            r: {
+                angleLines: { display: true },
+                min: 0,
+                max: 100,
+                ticks: { 
+                    stepSize: 10,
+                    callback: function(value) {
+                        // Pokaż label tylko co 20%
+                        if ([0,20,40,60,80,100].includes(value)) {
+                            return value + "%";
+                        }
+                        return '';
+                    }
+                }
+            }
+        },
+        plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.dataset.label + ': ' + context.raw + '%';
+                    }
+                }
+            }
+        }
+    },
+};
+
+new Chart(document.getElementById('radarChart'), config);
+</script>
+
 {% endblock %}

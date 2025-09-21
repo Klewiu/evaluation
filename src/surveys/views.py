@@ -209,7 +209,7 @@ def survey_delete(request, pk):
 def survey_preview(request, pk):
     survey = get_object_or_404(Survey, pk=pk)
     questions = survey.surveyquestion_set.select_related('question').all()
-    scale_range = range(1, 10)  # liczby od 1 do 10
+    scale_range = range(1, 11)  # liczby od 1 do 10
     return render(request, "surveys/survey_preview.html", {
         "survey": survey,
         "questions": questions,
@@ -249,7 +249,7 @@ def survey_fill(request, pk):
         return redirect("home")  # po wypełnieniu wróć na dashboard
 
     questions = survey.surveyquestion_set.select_related("question").all()
-    scale_range = range(1, 10)
+    scale_range = range(1, 11)
 
     return render(request, "surveys/survey_fill.html", {
         "survey": survey,
@@ -290,32 +290,49 @@ def survey_submit(request, pk):
 
     # GET – wyświetlamy formularz do wypełnienia
     questions = survey.surveyquestion_set.select_related('question').all()
-    scale_range = range(1, 10)
+    scale_range = range(1, 11)
     return render(request, 'surveys/survey_fill.html', {
         'survey': survey,
         'questions': questions,
         'scale_range': scale_range
     })
 
+
 @login_required
 def survey_result(request, pk):
     survey = get_object_or_404(Survey, pk=pk)
 
-    # Pobieramy odpowiedź zalogowanego użytkownika dla tej ankiety
     try:
         response = SurveyResponse.objects.get(survey=survey, user=request.user)
     except SurveyResponse.DoesNotExist:
         response = None
 
     answers = SurveyAnswer.objects.filter(response=response) if response else []
+    scale_range = range(1, 11)  # dla pytań typu scale
 
-    scale_range = range(1, 10)  # dla pytań typu scale
+    # Przygotowanie danych do wykresu radar
+    radar_labels = []
+    radar_values = []
+
+    competencies = Competency.objects.all()
+    for comp in competencies:
+        comp_questions = survey.questions.filter(competency=comp)
+        if comp_questions.exists():
+            max_total = sum([10 for q in comp_questions])  # maksymalna suma skali pytań
+            user_total = sum([a.scale_value for a in answers if a.question in comp_questions and a.scale_value])
+            percentage = round(user_total / max_total * 100, 2) if max_total > 0 else 0
+            radar_labels.append(comp.name)
+            radar_values.append(percentage)
 
     return render(request, "surveys/survey_result.html", {
         "survey": survey,
         "answers": answers,
         "scale_range": scale_range,
+        "radar_labels": radar_labels,
+        "radar_values": radar_values,
     })
+
+
 @login_required
 def survey_edit_response(request, pk):
     survey = get_object_or_404(Survey, pk=pk)
@@ -351,5 +368,5 @@ def survey_edit_response(request, pk):
         "survey": survey,
         "questions": questions,
         "answers": answers,
-        "scale_range": range(1, 10),
+        "scale_range": range(1, 11),
     })
