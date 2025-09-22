@@ -43,10 +43,33 @@ document.addEventListener("DOMContentLoaded", function() {
         Sortable.create(el, {
             animation: 150,
             onEnd: function () {
-                // Tylko zmiana numerów w liście
+                // aktualizacja numerów w UI
                 el.querySelectorAll('li').forEach(function(li, index){
                     li.querySelector('strong').textContent = (index + 1) + '.';
                 });
+
+                // przygotowanie listy ID pytań w nowej kolejności
+                let order = [];
+                el.querySelectorAll('li').forEach(function(li){
+                    order.push(li.getAttribute('data-id'));
+                });
+
+                // wysyłamy AJAX-em do Django
+                fetch("{% url 'save_question_order' survey.id %}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                    body: JSON.stringify({order: order})
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status !== "ok") {
+                        console.error("Błąd zapisu kolejności:", data.message);
+                    }
+                })
+                .catch(err => console.error("Request failed", err));
             }
         });
     }

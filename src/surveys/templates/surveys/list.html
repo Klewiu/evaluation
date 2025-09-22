@@ -3,20 +3,22 @@
 {% block content %}
 <div class="container mt-4">
     <h2>Ankiety pracownicze</h2>
-    <p>Tworzenie ankiet pracowniczych i ich lista.</p>
-
-    <a href="{% url 'questions_list' %}" class="btn btn-primary">
+    <p>Moduł dla kadr do przygotowania ankiet dla pracowników.</p>
+    <h6>Krok 1 - dodawanie kompetencji i pytań</h6>
+    <a href="{% url 'questions_list' %}" class="btn btn-primary mt-1">
         Zarządzaj pytaniami
     </a>
 
-    <a href="{% url 'competencies_list' %}" class="btn btn-primary">
+    <a href="{% url 'competencies_list' %}" class="btn btn-primary mt-1">
         Zarządzaj kompetencjami
     </a>
-    <a href="{% url 'surveys_list' %}" class="btn btn-success">Lista ankiet</a>
+    <br>
+    <h6 class="mt-3">Krok 2 - tworzenie ankiet i zarządzanie ankietami.</h6>
+    <a href="{% url 'surveys_list' %}" class="btn btn-success mt-1">Menu ankiety</a>
   
-    <a href="{% url 'survey_add' %}" class="btn btn-primary">
+    {% comment %} <a href="{% url 'survey_add' %}" class="btn btn-primary">
         Utwórz nową ankietę
-    </a>
+    </a> {% endcomment %}
 
 
 </div>

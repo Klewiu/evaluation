@@ -1,3 +1,6 @@
+import json
+from django.http import JsonResponse, HttpResponseForbidden
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
@@ -324,14 +327,17 @@ def survey_result(request, pk):
             radar_labels.append(comp.name)
             radar_values.append(percentage)
 
+    # Flaga decydująca o wyświetleniu wykresu
+    show_radar = len(radar_labels) > 2
+
     return render(request, "surveys/survey_result.html", {
         "survey": survey,
         "answers": answers,
         "scale_range": scale_range,
         "radar_labels": radar_labels,
         "radar_values": radar_values,
+        "show_radar": show_radar,
     })
-
 
 @login_required
 def survey_edit_response(request, pk):
@@ -370,3 +376,22 @@ def survey_edit_response(request, pk):
         "answers": answers,
         "scale_range": range(1, 11),
     })
+
+
+
+
+@login_required
+@require_POST
+def save_question_order(request, pk):
+    survey = get_object_or_404(Survey, pk=pk)
+
+    try:
+        data = json.loads(request.body)
+        order = data.get("order", [])  # lista ID w nowej kolejności
+
+        for idx, sq_id in enumerate(order, start=1):
+            SurveyQuestion.objects.filter(id=sq_id, survey=survey).update(order=idx)
+
+        return JsonResponse({"status": "ok"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=400)

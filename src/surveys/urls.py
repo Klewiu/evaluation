@@ -26,6 +26,7 @@ urlpatterns = [
     path('survey/<int:pk>/edit/', views.survey_edit, name='survey_edit'),
     path('survey/<int:pk>/delete/', views.survey_delete, name='survey_delete'),
     path('survey/<int:pk>/preview/', views.survey_preview, name='survey_preview'),
+    path("survey/<int:pk>/save-order/", views.save_question_order, name="save_question_order"),
     
     # WYPEŁNIANIE ANKIETY
     path("survey/<int:pk>/fill/", views.survey_fill, name="survey_fill"),
