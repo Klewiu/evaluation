@@ -30,10 +30,10 @@ class Question(models.Model):
     departments = models.ManyToManyField(
         Department, blank=True, help_text="Wybierz jeden lub więcej działów. Pozostaw puste dla wszystkich."
     )
+    is_active = models.BooleanField(default=True)  # <-- nowe pole
 
     def __str__(self):
         return f"{self.text} ({self.get_type_display()})"
-
 
 # Definicja ankiety - np. ocena roczna dział sprzedaży 2025
 class Survey(models.Model):

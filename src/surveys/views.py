@@ -71,25 +71,42 @@ def competency_delete(request, pk):
 
 # Pytania
 # --- Wyświetlanie listy pytań ---
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, get_object_or_404
+from .models import Question
+from users.models import Department
+
 @login_required
 def questions_list(request):
     department_id = request.GET.get('department_id')
     departments = Department.objects.all()
     
     if department_id and department_id != 'all':
-        filtered_department = Department.objects.get(id=department_id)
+        filtered_department = get_object_or_404(Department, id=department_id)
         department_questions = {
-            filtered_department: Question.objects.filter(departments=filtered_department)
+            filtered_department: Question.objects.filter(
+                departments=filtered_department,
+                is_active=True
+            )
         }
-        unassigned_questions = Question.objects.filter(departments__isnull=True)
+        unassigned_questions = Question.objects.filter(
+            departments__isnull=True,
+            is_active=True
+        )
     else:
         # wszystkie pytania pogrupowane po działach
         department_questions = {}
         for dept in departments:
-            dept_questions = Question.objects.filter(departments=dept)
+            dept_questions = Question.objects.filter(
+                departments=dept,
+                is_active=True
+            )
             if dept_questions.exists():
                 department_questions[dept] = dept_questions
-        unassigned_questions = Question.objects.filter(departments__isnull=True)
+        unassigned_questions = Question.objects.filter(
+            departments__isnull=True,
+            is_active=True
+        )
 
     context = {
         'department_questions': department_questions,
@@ -98,6 +115,7 @@ def questions_list(request):
         'selected_department': department_id or 'all',
     }
     return render(request, "surveys/questions_list.html", context)
+
 
 # Pytania
 # --- Dodawanie pytania ---
@@ -117,9 +135,13 @@ def question_add(request):
 @login_required
 def question_delete(request, pk):
     question = get_object_or_404(Question, pk=pk)
+    
     if request.method == "POST":
-        question.delete()
+        # zamiast fizycznego usuwania ustawiamy is_active = False
+        question.is_active = False
+        question.save()
         return redirect("questions_list")
+    
     return redirect("questions_list")
 
 # Pytania
@@ -158,28 +180,33 @@ def survey_add(request):
             survey = form.save()
             
             # Pobranie kolejności pytań z formularza
-            question_ids = request.POST.get("questions_order", "").split(",")
-            
-            if question_ids == [''] or not question_ids:
-                # Jeśli brak zaznaczonych pytań, dodaj wszystkie z działu ankiety
-                questions = Question.objects.filter(departments=survey.department)
+            question_ids = request.POST.get("questions_order", "").strip().split(",")
+
+            if not question_ids or question_ids == ['']:
+                # Jeśli brak zaznaczonych pytań, dodaj wszystkie aktywne z działu ankiety
+                questions = Question.objects.filter(
+                    departments=survey.department,
+                    is_active=True  # <-- tylko aktywne
+                ).order_by("id")
+                
                 for idx, q in enumerate(questions):
                     SurveyQuestion.objects.create(survey=survey, question=q, order=idx)
             else:
-                # Dodaj pytania wybrane przez użytkownika
+                # Dodaj pytania wybrane przez użytkownika, tylko jeśli są aktywne
                 for idx, qid in enumerate(question_ids):
                     if qid.strip():
-                        q = Question.objects.get(pk=qid)
+                        q = get_object_or_404(Question, pk=qid, is_active=True)
                         SurveyQuestion.objects.create(survey=survey, question=q, order=idx)
 
             return redirect("surveys_list")
     else:
         form = SurveyForm()
 
-    # Pobranie wszystkich pytań do wyświetlenia w formularzu (opcjonalnie)
-    questions = Question.objects.all()
+    # Pobranie wszystkich aktywnych pytań do wyświetlenia w formularzu
+    questions = Question.objects.filter(is_active=True)
 
     return render(request, "surveys/survey_add.html", {"form": form, "questions": questions})
+
 
 
 # Pobieranie pytań dla wybranego działu (htmx)
