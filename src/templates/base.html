@@ -56,17 +56,17 @@
     <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
       <ul class="navbar-nav mb-2 mb-lg-0">
         {% if user.is_authenticated %}
-            {% if user.role == 'hr' or user.role == 'admin' %}
+            {% if user.role == 'hr' or user.role == 'admin' or user.is_superuser %}
             <li class="nav-item">
               <a class="nav-link" href="{% url 'surveys_home' %}">Ankiety</a>
             </li>
             {% endif %}
-            {% if user.role == 'admin' %}
+            {% if user.role == 'admin' or user.is_superuser  %}
             <li class="nav-item">
               <a class="nav-link" href="{% url 'users_list' %}">Użytkownicy</a>
             </li>
             {% endif %}
-            {% if user.role == 'manager' or user.role == 'admin' %}
+            {% if user.role == 'manager' or user.role == 'admin' or user.is_superuser  %}
             <li class="nav-item">
               <a class="nav-link" href="{% url 'evaluations_list' %}">Oceny pracowników</a>
             </li>
