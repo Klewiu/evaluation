@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
+from django.db.models import Q
 
 from django.utils import timezone
 
@@ -183,14 +184,14 @@ def survey_add(request):
             question_ids = request.POST.get("questions_order", "").strip().split(",")
 
             if not question_ids or question_ids == ['']:
-                # Jeśli brak zaznaczonych pytań, dodaj wszystkie aktywne z działu ankiety
                 questions = Question.objects.filter(
-                    departments=survey.department,
-                    is_active=True  # <-- tylko aktywne
-                ).order_by("id")
-                
+                    Q(departments=survey.department) | Q(departments__isnull=True),
+                    is_active=True
+                ).distinct().order_by("id")
+    
                 for idx, q in enumerate(questions):
                     SurveyQuestion.objects.create(survey=survey, question=q, order=idx)
+
             else:
                 # Dodaj pytania wybrane przez użytkownika, tylko jeśli są aktywne
                 for idx, qid in enumerate(question_ids):
