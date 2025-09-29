@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .views import SurveyPDFView
 
 urlpatterns = [
 
@@ -33,6 +34,9 @@ urlpatterns = [
     path('survey/<int:pk>/submit/', views.survey_submit, name='survey_submit'),
     path('survey/<int:pk>/result/', views.survey_result, name='survey_result'),
     path('survey/<int:pk>/edit-response/', views.survey_edit_response, name='survey_edit_response'),
+
+    # PDF
+    path('survey/<int:pk>/pdf/', SurveyPDFView.as_view(), name='survey_pdf'),
 
     # HTMX pytania
     path("load-questions/", views.load_questions, name="load_questions"),

@@ -47,7 +47,8 @@ INSTALLED_APPS = [
     'evaluations',
     'surveys',
     'htmx_messages',
-    'widget_tweaks'
+    'widget_tweaks',
+    'wkhtmltopdf',
 ]
 
 MIDDLEWARE = [
@@ -149,4 +150,10 @@ MESSAGE_TAGS = {
     messages.SUCCESS: "text-white bg-success",
     messages.WARNING: "text-dark bg-warning",
     messages.ERROR: "text-white bg-danger",
+}
+
+WKHTMLTOPDF_CMD = "C:/Program Files/wkhtmltopdf/bin/wkhtmltopdf.exe"
+WKHTMLTOPDF_CMD_OPTIONS = {
+    'quiet': True,
+    'enable-local-file-access': True
 }
