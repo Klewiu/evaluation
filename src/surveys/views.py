@@ -15,6 +15,15 @@ from .models import Question, Competency, Survey, SurveyQuestion, SurveyResponse
 from .forms import QuestionForm, CompetencyForm, SurveyForm 
 
 
+from django.contrib.auth.mixins import LoginRequiredMixin
+from wkhtmltopdf.views import PDFTemplateView
+import io
+import base64
+import matplotlib
+matplotlib.use('Agg') 
+import matplotlib.pyplot as plt
+import numpy as np
+
 # KOMPETENCJE
 
 # Kompetencje
@@ -77,37 +86,56 @@ from django.shortcuts import render, get_object_or_404
 from .models import Question
 from users.models import Department
 
+from collections import OrderedDict
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from .models import Question, Department
+
+from collections import OrderedDict
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from .models import Question, Department
+
 @login_required
 def questions_list(request):
     department_id = request.GET.get('department_id')
-    departments = Department.objects.all()
-    
+    departments = Department.objects.all().order_by('name')  # alfabetyczna kolejność działów
+
     if department_id and department_id != 'all':
+        # Wybrany konkretny dział
         filtered_department = get_object_or_404(Department, id=department_id)
-        department_questions = {
-            filtered_department: Question.objects.filter(
-                departments=filtered_department,
-                is_active=True
-            )
-        }
+        department_questions = OrderedDict()
+
+        dept_questions = Question.objects.filter(
+            departments=filtered_department,
+            is_active=True
+        ).order_by('competency__name', 'text')  # sortowanie po kompetencjach i tekście
+
+        if dept_questions.exists():
+            department_questions[filtered_department] = dept_questions
+
+        # Pytania niezwiązane z żadnym działem
         unassigned_questions = Question.objects.filter(
             departments__isnull=True,
             is_active=True
-        )
+        ).order_by('competency__name', 'text')
+
     else:
-        # wszystkie pytania pogrupowane po działach
-        department_questions = {}
+        # Wszystkie pytania pogrupowane po działach
+        department_questions = OrderedDict()
         for dept in departments:
             dept_questions = Question.objects.filter(
                 departments=dept,
                 is_active=True
-            )
+            ).order_by('competency__name', 'text')
             if dept_questions.exists():
                 department_questions[dept] = dept_questions
+
+        # Pytania niezwiązane z żadnym działem
         unassigned_questions = Question.objects.filter(
             departments__isnull=True,
             is_active=True
-        )
+        ).order_by('competency__name', 'text')
 
     context = {
         'department_questions': department_questions,
@@ -116,6 +144,7 @@ def questions_list(request):
         'selected_department': department_id or 'all',
     }
     return render(request, "surveys/questions_list.html", context)
+
 
 
 # Pytania
@@ -423,3 +452,93 @@ def save_question_order(request, pk):
         return JsonResponse({"status": "ok"})
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
+
+
+class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
+    template_name = "surveys/survey_pdf.html"
+
+    def get_filename(self):
+        survey = get_object_or_404(Survey, pk=self.kwargs["pk"])
+        return f"ankieta_{survey.id}.pdf"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        survey = get_object_or_404(Survey, pk=self.kwargs["pk"])
+
+        # Pobranie odpowiedzi użytkownika
+        try:
+            response = SurveyResponse.objects.get(survey=survey, user=self.request.user)
+            answers = SurveyAnswer.objects.filter(response=response)
+        except SurveyResponse.DoesNotExist:
+            answers = []
+
+        scale_range = range(1, 11)
+        radar_labels, radar_values = self._calculate_competency_scores(survey, answers)
+        radar_image = self._generate_radar_chart(radar_labels, radar_values)
+
+        context.update({
+            "survey": survey,
+            "answers": answers,
+            "scale_range": scale_range,
+            "radar_image": radar_image,
+        })
+        return context
+
+    def _calculate_competency_scores(self, survey, answers):
+        labels = []
+        values = []
+
+        # Pobranie unikalnych kompetencji i odfiltrowanie pustych
+        raw_competencies = survey.questions.values_list("competency__name", flat=True).distinct()
+        competencies = [c for c in raw_competencies if c and str(c).strip()]
+
+        for comp in competencies:
+            comp_questions = survey.questions.filter(competency__name=comp)
+            max_total = comp_questions.count() * 10
+            user_total = sum(
+                a.scale_value for a in answers
+                if a.question in comp_questions and a.scale_value is not None
+            )
+            percentage = round(user_total / max_total * 100, 2) if max_total > 0 else 0
+            labels.append(comp)
+            values.append(percentage)
+
+        return labels, values
+
+    def _generate_radar_chart(self, labels, values):
+        if not labels or not values:
+            return None
+
+        N = len(labels)
+        angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
+        angles_closed = angles + [angles[0]]
+        values_closed = values + [values[0]]
+
+        fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+
+        # Estetyka wykresu
+        ax.set_theta_offset(np.pi / 2)
+        ax.set_theta_direction(-1)
+        ax.set_xticks(angles)
+        ax.set_xticklabels(labels)
+        ax.set_ylim(0, 100)
+        ax.set_rlabel_position(0)
+        ax.grid(True)
+        ax.set_title("Ocena kompetencji", va='bottom')
+
+        # Linie promieniowe dla podziału koła
+        for angle in angles:
+            ax.plot([angle, angle], [0, 100], color='gray', linewidth=0.5, linestyle='dashed')
+
+        # Rysowanie danych
+        ax.plot(angles_closed, values_closed, linewidth=2, linestyle='solid', color='blue')
+        ax.fill(angles_closed, values_closed, 'blue', alpha=0.1)
+
+        # Konwersja do base64
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight')
+        buf.seek(0)
+        image_base64 = base64.b64encode(buf.read()).decode('utf-8')
+        plt.close(fig)
+
+        return image_base64

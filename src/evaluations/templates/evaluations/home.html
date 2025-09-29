@@ -40,6 +40,7 @@
                     {% elif item.response.status == "submitted" or item.response.status == "closed" %}
                         <!-- Ankieta zakończona -->
                         <a href="{% url 'survey_result' item.survey.id %}" class="btn btn-sm btn-info">Podgląd</a>
+                        <a href="{% url 'survey_pdf' item.survey.id %}" target="_blank" class="btn btn-sm btn-secondary">PDF</a>
                     {% endif %}
                 </td>
             </tr>

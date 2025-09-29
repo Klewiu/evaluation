@@ -1,0 +1,148 @@
+{% comment %} {% extends "base.html" %} {% endcomment %}
+{% comment %} 
+{% block title %}Podgląd ankiety{% endblock %} {% endcomment %}
+
+{% block content %}
+
+<style>
+body {
+  font-family: "Segoe UI", "Inter", sans-serif;
+  background-color: #fefefe;
+  color: #333;
+}
+
+/* --- Nagłówek --- */
+h2 {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+
+/* --- Sekcja pytania --- */
+.mb-3 {
+  margin-bottom: 28px;
+}
+
+label strong {
+  font-size: 17px;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 10px;
+}
+
+/* --- Ukrycie oryginalnych radio --- */
+.custom-radio input[type="radio"] {
+  display: none;
+}
+
+/* --- Widoczny krąg --- */
+.custom-radio span {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #bbb;
+  margin-right: 6px;
+  vertical-align: middle;
+  background-color: #fff;
+  transition: all 0.2s ease;
+}
+
+.custom-radio input[type="radio"]:checked + span {
+  background-color: #28a745;
+  border-color: #28a745;
+}
+
+/* --- Radio z tekstem obok --- */
+.custom-radio {
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  margin-right: 10px;
+}
+
+/* --- Kontener przycisków --- */
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+/* --- Textarea --- */
+textarea.form-control {
+  width: 100%;
+  min-height: 60px;
+  resize: none;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  padding: 8px;
+  font-size: 15px;
+  background-color: #f9f9f9;
+  margin-top: 12px;  /* <-- dodany margines od góry */
+}
+
+/* --- Radar container --- */
+.radar-container {
+  max-width: 800px;
+  margin: 40px auto;
+  text-align: center;
+}
+
+.radar-container h3 {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+</style>
+
+<div class="container mt-4">
+  <h2>Ankieta pracownicza - {{ survey.name }}</h2>
+  <h6>utworzona: {{ survey.created_at }}</h6>
+
+  <form>
+    {% for sq in survey.surveyquestion_set.all %}
+      <div class="mb-3">
+        <label><strong>{{ sq.question.text }}</strong></label>
+
+        {% if sq.question.type == "scale" or sq.question.type == "both" %}
+          <div class="radio-group">
+            {% for i in scale_range %}
+              {% for ans in answers %}
+                {% if ans.question.id == sq.question.id %}
+                  <label class="custom-radio">
+                    <input type="radio" name="q{{ sq.question.id }}_scale" value="{{ i }}"
+                      {% if ans.scale_value|stringformat:"s" == i|stringformat:"s" %}checked{% endif %}
+                      disabled>
+                    <span></span> {{ i }}
+                  </label>
+                {% endif %}
+              {% endfor %}
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {% if sq.question.type == "text" or sq.question.type == "both" %}
+          {% for ans in answers %}
+            {% if ans.question.id == sq.question.id %}
+              <textarea class="form-control" disabled>{{ ans.text_value }}</textarea>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+      </div>
+    {% empty %}
+      <p>Brak odpowiedzi</p>
+    {% endfor %}
+  </form>
+
+  {% if radar_image %}
+    <div class="radar-container">
+      <h3>Podsumowanie ocen wg kompetencji</h3>
+      <img src="data:image/png;base64,{{ radar_image }}" style="max-width:100%; height:auto;">
+    </div>
+  {% endif %}
+
+  <a href="{% url 'home' %}" class="btn btn-secondary mt-3">Powrót</a>
+</div>
+
+{% endblock %}
