@@ -97,8 +97,9 @@ textarea.form-control {
 </style>
 
 <div class="container mt-4">
-  <h2>Ankieta pracownicza - {{ survey.name }}</h2>
-  <h6>utworzona: {{ survey.created_at }}</h6>
+  <h2>Ankieta pracownicza - {{ survey.name }} - {{ survey.year }}</h2>
+  <h6>utworzona w: {{ survey.created_at }}</h6>
+
 
   <form>
     {% for sq in survey.surveyquestion_set.all %}

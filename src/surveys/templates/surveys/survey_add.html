@@ -1,4 +1,3 @@
-{# templates/surveys/survey_add.html #}
 {% extends "base.html" %}
 {% block title %}Dodaj ankietę{% endblock %}
 
@@ -7,21 +6,47 @@
   <h2 class="mb-4">Nowa ankieta</h2>
   <form method="post" id="surveyAddForm">
     {% csrf_token %}
+
+    <!-- Nazwa ankiety -->
     <div class="mb-3">
-        {{ form.name.label_tag }} {{ form.name }}
-    </div>
-    <div class="mb-3">
-        {{ form.department.label_tag }} {{ form.department }}
+        {{ form.name.label_tag }} 
+        {{ form.name }}
+        {% if form.name.errors %}
+            <div class="text-danger">{{ form.name.errors }}</div>
+        {% endif %}
     </div>
 
+    <!-- Dział -->
+    <div class="mb-3">
+        {{ form.department.label_tag }} 
+        {{ form.department }}
+        {% if form.department.errors %}
+            <div class="text-danger">{{ form.department.errors }}</div>
+        {% endif %}
+    </div>
+
+    <!-- Rok ankiety -->
+    <div class="mb-3">
+        {{ form.year.label_tag }} 
+        {{ form.year }}
+        {% if form.year.errors %}
+            <div class="text-danger">{{ form.year.errors }}</div>
+        {% endif %}
+    </div>
+
+    <!-- Pytania (ładowane przez HTMX) -->
     <div id="questions-container"></div>
 
+    <!-- Ukryte pole do kolejności pytań -->
     <input type="hidden" name="questions_order" id="questions_order">
+
+    <!-- Przyciski akcji -->
     <button type="submit" class="btn btn-primary">Zapisz</button>
     <button class="btn btn-secondary" onclick="window.location.href='{% url 'surveys_home' %}'; return false;">Anuluj</button>
-</form>
+  </form>
 </div>
 
+<!-- Sortowanie pytań -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
 document.addEventListener("htmx:afterSwap", function(event) {

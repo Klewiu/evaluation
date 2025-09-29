@@ -6,6 +6,10 @@ class CompetencyForm(forms.ModelForm):
     class Meta:
         model = Competency
         fields = ['name', 'description']
+        labels = {
+            'name': 'Nazwa kompetencji',
+            'description': 'Opis kompetencji',
+        }
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nazwa kompetencji'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Opis kompetencji'}),
@@ -24,6 +28,12 @@ class QuestionForm(forms.ModelForm):
     class Meta:
         model = Question
         fields = ['text', 'competency', 'type', 'departments']
+        labels = {
+            'text': 'Treść pytania',
+            'competency': 'Kompetencja',
+            'type': 'Typ pytania',
+            'departments': 'Działy',
+        }
         widgets = {
             'text': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Treść pytania'}),
             'competency': forms.Select(attrs={'class': 'form-select', 'id': 'id_competency'}),
@@ -43,13 +53,24 @@ class QuestionForm(forms.ModelForm):
 class SurveyForm(forms.ModelForm):
     class Meta:
         model = Survey
-        fields = ['name', 'department']
+        fields = ['name', 'department', 'year']  # dodajemy 'year'
+        labels = {
+            'name': 'Nazwa ankiety',
+            'department': 'Dział',
+            'year': 'Rok',
+        }
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nazwa ankiety'}),
             'department': forms.Select(attrs={
                 'class': 'form-select',
-                'hx-get': '/surveys/load-questions/',   # htmx – pobranie pytań
+                'hx-get': '/surveys/load-questions/',
                 'hx-target': '#questions-container',
                 'hx-trigger': 'change'
+            }),
+            'year': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Wpisz rok np. 2025',
+                'min': 2000,  # opcjonalnie ograniczenie minimalnego roku
+                'max': 2100   # opcjonalnie ograniczenie maksymalnego roku
             }),
         }
