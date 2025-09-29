@@ -1,0 +1,38 @@
+<tr id="user-row-{{ u.pk }}" hx-swap-oob="beforeend:#user-table-body">
+  <td>
+    <div class="fw-semibold">
+      {% if u.first_name or u.last_name %}
+        {{ u.first_name }} {{ u.last_name }}
+      {% else %} — {% endif %}
+    </div>
+    <div class="text-muted small">{{ u.email|default:"brak e-maila" }}</div>
+    <div class="text-muted small">({{ u.username }})</div>
+  </td>
+  <td>{{ u.get_role_display|default:"—" }}</td>
+  <td>{{ u.department|default:"—" }}</td>
+  <td>{{ u.is_superuser|yesno:"Tak,Nie" }}</td>
+  <td class="text-end">
+    <div class="btn-group btn-group-sm" role="group">
+      <button
+        type="button"
+        class="btn btn-outline-primary"
+        data-bs-toggle="modal"
+        data-bs-target="#editUserModal"
+        hx-get="{% url 'user_edit' u.pk %}"
+        hx-target="#edit-user-modal-content"
+        hx-swap="innerHTML">
+        Edytuj
+      </button>
+      <button
+        type="button"
+        class="btn btn-outline-danger"
+        data-bs-toggle="modal"
+        data-bs-target="#confirmDeleteModal"
+        hx-get="{% url 'user_confirm_delete' u.pk %}"
+        hx-target="#confirm-delete-modal-content"
+        hx-swap="innerHTML">
+        Usuń
+      </button>
+    </div>
+  </td>
+</tr>

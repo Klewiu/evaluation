@@ -1,0 +1,114 @@
+{# templates/users/_create_form.html #}
+
+<div class="modal-header">
+  <h5 class="modal-title">Nowy użytkownik</h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+</div>
+
+<div class="modal-body">
+  <form
+    novalidate
+    hx-post="{% url 'user_create' %}"
+    hx-target="#create-user-modal-content"
+    hx-swap="innerHTML">
+    {% csrf_token %}
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Nazwa użytkownika (login)</label>
+        {# LIVE check + clear stale error on input #}
+        <input
+          type="text"
+          name="username"
+          id="id_username"
+          value="{{ form.username.value|default_if_none:'' }}"
+          class="form-control{% if form.username.errors %} is-invalid{% endif %}"
+          autocomplete="off" autocapitalize="off" spellcheck="false"
+          hx-get="{% url 'check_username' %}"
+          hx-target="#username-hint"
+          hx-trigger="keyup changed delay:400ms"
+          _="on input remove .is-invalid from me then if #username-error exists then add .d-none to #username-error end">
+        {# server-side error stays here, but we hide it as soon as the user types #}
+        {% if form.username.errors %}
+          <div id="username-error" class="invalid-feedback d-block">
+            {{ form.username.errors|striptags }}
+          </div>
+        {% endif %}
+        <div id="username-hint" class="form-text"></div>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Rola</label>
+        {{ form.role }}
+        {% if form.role.errors %}<div class="text-danger small">{{ form.role.errors|striptags }}</div>{% endif %}
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Imię</label>
+        {{ form.first_name }}
+        {% if form.first_name.errors %}<div class="text-danger small">{{ form.first_name.errors|striptags }}</div>{% endif %}
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Nazwisko</label>
+        {{ form.last_name }}
+        {% if form.last_name.errors %}<div class="text-danger small">{{ form.last_name.errors|striptags }}</div>{% endif %}
+      </div>
+
+      <div class="col-12">
+        <label class="form-label">E-mail</label>
+        {{ form.email }}
+        {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors|striptags }}</div>{% endif %}
+      </div>
+
+      <div class="col-12">
+        <label class="form-label">Dział</label>
+        {{ form.department }}
+        <div class="form-text">Wybierz „-”, aby pozostawić bez przypisania.</div>
+        {% if form.department.errors %}<div class="text-danger small">{{ form.department.errors|striptags }}</div>{% endif %}
+      </div>
+
+      <hr class="mt-2 mb-1">
+
+      {# One toggle for both password fields #}
+      <div class="col-12 d-flex align-items-center justify-content-between">
+        <label class="form-label mb-0">Hasło i potwierdzenie</label>
+        <button type="button" class="btn btn-sm btn-outline-secondary"
+                id="toggle-passwords"
+                _="
+                  on click
+                    if #id_password1's type is 'password'
+                      set #id_password1's type to 'text'
+                      set #id_password2's type to 'text'
+                      put 'Ukryj hasło' into me.innerText
+                    else
+                      set #id_password1's type to 'password'
+                      set #id_password2's type to 'password'
+                      put 'Pokaż hasło' into me.innerText
+                    end
+                ">
+          Pokaż hasło
+        </button>
+      </div>
+
+      <div class="col-md-6">
+        {{ form.password1 }}
+        {% if form.password1.errors %}<div class="text-danger small">{{ form.password1.errors|striptags }}</div>{% endif %}
+      </div>
+
+      <div class="col-md-6">
+        {{ form.password2 }}
+        {% if form.password2.errors %}<div class="text-danger small">{{ form.password2.errors|striptags }}</div>{% endif %}
+      </div>
+
+      {% if form.non_field_errors %}
+        <div class="col-12 text-danger small">{{ form.non_field_errors|striptags }}</div>
+      {% endif %}
+    </div>
+
+    <div class="modal-footer px-2 mt-4">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+      <button type="submit" class="btn btn-success">Utwórz</button>
+    </div>
+  </form>
+</div>

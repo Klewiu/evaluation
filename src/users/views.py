@@ -6,47 +6,79 @@ from django.http import HttpResponse
 from django.contrib.auth import get_user_model
 from django.contrib import messages
 import json
+from django.http import JsonResponse
 
-from .forms import AdminUserUpdateForm  # fields: first_name, last_name, email, department (+ password1/2)
+from .forms import AdminUserUpdateForm, AdminUserCreateForm
+
+User = get_user_model()
+
 
 # Access helper: only admin role or superuser
 def is_admin_or_superuser(user):
     return user.is_authenticated and (user.is_superuser or getattr(user, "role", "") == "admin")
+
 
 # Home (unchanged)
 @login_required
 def home(request):
     return render(request, 'evaluations/home.html', {'user': request.user})
 
+
 # List all users (admin/superuser only)
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def users_list(request):
-    User = get_user_model()
     users = User.objects.all().order_by("username")
     return render(request, "users/list.html", {"users": users})
 
-# ---------- EDIT ----------
-# Load edit form into modal (GET)
+
+# ---------- CREATE ----------
+@login_required
+@user_passes_test(is_admin_or_superuser)
+def user_new(request):
+    form = AdminUserCreateForm()
+    return render(request, "users/_create_form.html", {"form": form})
+
+
+@login_required
+@user_passes_test(is_admin_or_superuser)
+@require_POST
+def user_create(request):
+    form = AdminUserCreateForm(request.POST)
+    if not form.is_valid():
+        # 200 - zostajemy w modalu i pokazujemy błędy (tak jak w edycji)
+        return render(request, "users/_create_form.html", {"form": form})
+
+    user = form.save()
+    messages.success(request, "Użytkownik utworzony.")
+
+    # Dołącz nowy wiersz do tabeli OOB i wywołaj event do zamknięcia modala tworzenia
+    resp = render(request, "users/_row_oob_append.html", {"u": user})
+    resp["HX-Trigger"] = json.dumps({
+        "userCreated": {"target": "#createUserModal"}
+    })
+    return resp
+# ---------- /CREATE ----------
+
+
+# ---------- EDIT (twoje działające) ----------
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def user_edit(request, pk):
-    User = get_user_model()
     user_obj = get_object_or_404(User, pk=pk)
     form = AdminUserUpdateForm(instance=user_obj)  # pre-filled
     return render(request, "users/_edit_form.html", {"form": form, "user_obj": user_obj})
 
-# Save changes (POST) – returns OOB row HTML to update the table, and triggers event to close modal
+
 @login_required
 @user_passes_test(is_admin_or_superuser)
 @require_POST
 def user_update(request, pk):
-    User = get_user_model()
     user_obj = get_object_or_404(User, pk=pk)
 
     form = AdminUserUpdateForm(request.POST, instance=user_obj)
     if not form.is_valid():
-        # Return 200 so HTMX swaps modal content with field errors (e.g., password mismatch)
+        # 200 - HTMX podmienia kontent modala błędami (jak masz obecnie)
         return render(request, "users/_edit_form.html", {"form": form, "user_obj": user_obj})
 
     user = form.save(commit=False)  # unchanged values remain as-is
@@ -57,19 +89,19 @@ def user_update(request, pk):
 
     messages.success(request, "Użytkownik zaktualizowany.")
 
-    # Return OOB row so the table updates in-place AND trigger event to close modal
+    # Zastąp wiersz OOB i wywołaj event do zamknięcia modala edycji (jak u Ciebie)
     resp = render(request, "users/_row_oob.html", {"u": user})
     resp["HX-Trigger"] = json.dumps({
-    "userUpdated": {"target": "#editUserModal"}})
+        "userUpdated": {"target": "#editUserModal"}
+    })
     return resp
 # ---------- /EDIT ----------
 
-# ---------- DELETE ----------
-# Load delete confirmation (GET)
+
+# ---------- DELETE (bez zmian) ----------
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def user_confirm_delete(request, pk):
-    User = get_user_model()
     user_obj = get_object_or_404(User, pk=pk)
 
     # Only a superuser may delete another superuser
@@ -78,12 +110,11 @@ def user_confirm_delete(request, pk):
 
     return render(request, "users/_confirm_delete.html", {"user_obj": user_obj})
 
-# Perform delete (POST) – row is removed via hx-swap="delete" in the form
+
 @login_required
 @user_passes_test(is_admin_or_superuser)
 @require_POST
 def user_delete(request, pk):
-    User = get_user_model()
     user_obj = get_object_or_404(User, pk=pk)
 
     if user_obj.pk == request.user.pk:
@@ -98,3 +129,22 @@ def user_delete(request, pk):
     messages.success(request, "Użytkownik usunięty.")
     return HttpResponse("") 
 # ---------- /DELETE ----------
+
+
+@login_required
+@user_passes_test(is_admin_or_superuser)
+def check_username(request):
+    # Accept ?username=... (or ?q=...)
+    raw = request.GET.get("username") or request.GET.get("q") or ""
+    username = raw.strip()
+    taken = User.objects.filter(username__iexact=username).exists() if username else False
+
+    # Return a tiny HTML snippet (swapped into the help area)
+    if not username:
+        html = ""
+    elif taken:
+        html = "<small class='text-danger'>Ten login jest już zajęty.</small>"
+    else:
+        html = "<small class='text-success'>Login dostępny.</small>"
+
+    return HttpResponse(html)
