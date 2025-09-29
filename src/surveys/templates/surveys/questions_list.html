@@ -7,25 +7,24 @@
 <div class="container">
     <h2 class="mb-2">Moduł zarządzania pytaniami</h2>
     
-    {% comment %} MENU - Buttony akccji {% endcomment %}
+    {# MENU - Buttony akcji #}
     <h6>Menu:</h6>
     <a href="{% url 'question_add' %}" class="btn btn-primary mb-2">Dodaj pytanie</a>
     <a href="{% url 'surveys_home' %}" class="btn btn-secondary mb-2">Wróć</a>
 
-    {% comment %} SEKCJA FILTRACJI {% endcomment %}
+    {# SEKCJA FILTRACJI #}
     <div class="mb-3">
         <p class="mb-1"><small>Filtruj pytania według działu:</small></p>
         <a href="{% url 'questions_list' %}?department_id=all" class="btn btn-sm {% if selected_department == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">Wszystkie</a>
         {% for department in departments %}
             <a href="{% url 'questions_list' %}?department_id={{ department.id }}" 
-            class="btn btn-sm {% if selected_department|add:'' == department.id|stringformat:"s" %}btn-primary{% else %}btn-outline-primary{% endif %}">
+               class="btn btn-sm {% if selected_department|add:'' == department.id|stringformat:"s" %}btn-primary{% else %}btn-outline-primary{% endif %}">
                 {{ department.name }}
             </a>
         {% endfor %}
     </div>
 
-    {% comment %} LISTA PYTAŃ {% endcomment %}
-    
+    {# LISTA PYTAŃ #}
     <h6>Lista pytań:</h6>
     {% if not department_questions and not unassigned_questions %}
         <p>Brak pytań do wyświetlenia.</p>
@@ -38,8 +37,13 @@
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     <div>
                         <span class="text-secondary">{{ question.text }}</span>
-                        {% if question.competency %}<br><small class="font-weight-light text-success">{{ question.competency.name }}</small>{% endif %}
-                        <br><small class="font-weight-light text-primary">{{ question.get_type_display}}</small>
+                        {% if not question.is_active %}
+                            <span class="badge bg-secondary ms-1">Nieaktywne</span>
+                        {% endif %}
+                        {% if question.competency %}
+                            <br><small class="font-weight-light text-success">{{ question.competency.name }}</small>
+                        {% endif %}
+                        <br><small class="font-weight-light text-primary">{{ question.get_type_display }}</small>
                     </div>
                     <div class="btn-group">
                         <a href="{% url 'question_edit' question.id %}" class="btn btn-sm btn-warning">Edit</a>
@@ -65,8 +69,13 @@
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     <div>
                         <span class="text-secondary">{{ question.text }}</span>
-                        {% if question.competency %}<br><small class="font-weight-light text-success">{{ question.competency.name }}</small>{% endif %}
-                        <br><small class="font-weight-light text-primary">{{ question.get_type_display}}</small>
+                        {% if not question.is_active %}
+                            <span class="badge bg-secondary ms-1">Nieaktywne</span>
+                        {% endif %}
+                        {% if question.competency %}
+                            <br><small class="font-weight-light text-success">{{ question.competency.name }}</small>
+                        {% endif %}
+                        <br><small class="font-weight-light text-primary">{{ question.get_type_display }}</small>
                     </div>
                     <div class="btn-group">
                         <a href="{% url 'question_edit' question.id %}" class="btn btn-sm btn-warning">Edit</a>
@@ -84,7 +93,7 @@
     {% endif %}
 </div>
 
-<!-- Modal do usuwania pytania -->
+{# Modal do usuwania pytania #}
 <div class="modal fade" id="deleteQuestionModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <form method="post" id="deleteQuestionForm">
