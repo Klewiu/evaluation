@@ -9,11 +9,16 @@ urlpatterns = [
 
     path('', views.users_list, name='users_list'),
 
-    # EDIT
-    path('<int:pk>/edit/',   views.user_edit,   name='user_edit'),    # GET: load modal form
-    path('<int:pk>/update/', views.user_update, name='user_update'),  # POST: save & return updated row
+    # CREATE
+    path('new/',    views.user_new,    name='user_new'),
+    path('create/', views.user_create, name='user_create'),
+    path('check-username/', views.check_username, name='check_username'),  # ← NEW
 
-    # DELETE (already had)
+    # EDIT
+    path('<int:pk>/edit/',   views.user_edit,   name='user_edit'),
+    path('<int:pk>/update/', views.user_update, name='user_update'),
+
+    # DELETE
     path('<int:pk>/confirm-delete/', views.user_confirm_delete, name='user_confirm_delete'),
     path('<int:pk>/delete/',         views.user_delete,         name='user_delete'),
 ]

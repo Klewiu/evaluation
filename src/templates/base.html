@@ -17,6 +17,24 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
 
+
+    <script>
+  function closeAllModalsAndClean() {
+    document.querySelectorAll('.modal.show').forEach(m => {
+      bootstrap.Modal.getOrCreateInstance(m).hide();
+    });
+    // extra safety cleanup
+    document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+  }
+
+  document.body.addEventListener('userCreated', closeAllModalsAndClean);
+  document.body.addEventListener('userUpdated', closeAllModalsAndClean);
+</script>
+
+
+
 <script>
   // Init popovers after Bootstrap is loaded
   document.addEventListener('DOMContentLoaded', function () {
