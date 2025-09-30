@@ -8,26 +8,26 @@
   display: none;
 }
 
-.custom-radio span {
+.custom-radio span.radio-circle {
   display: inline-block;
   width: 20px;
   height: 20px;
   border-radius: 50%;
   border: 2px solid #ccc;
-  margin-right: 8px;
+  margin-right: 0px;
   vertical-align: middle;
   position: relative;
+  transition: background-color 0.2s, border-color 0.2s;
 }
 
-.custom-radio input[type="radio"]:checked + span::after {
-  content: "";
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+.custom-radio input[type="radio"]:checked + span.radio-circle {
   background-color: green;
-  position: absolute;
-  top: 3px;
-  left: 3px;
+  border-color: green;
+}
+
+.custom-radio span.radio-label {
+  margin-right: 5px;
+  vertical-align: middle;
 }
 
 .radio-group {
@@ -39,18 +39,32 @@
   height: 600px;
   margin: auto;
 }
+
+.custom-radio span.radio-circle:hover {
+  cursor: pointer;
+}
+
+.table-container {
+  max-width: 600px;
+  margin: 30px auto;
+}
 </style>
 
 <div class="container mt-4">
-    <h2>Podgląd ankiety: {{ survey.name }}</h2>
+    <p class="m-0 text-secondary">Nazwa ankiety:</p>
+    <h2 class="mb-2"> {{ survey.name }} - {{ survey.year}}</h2>
+    <p class="m-0 text-secondary">Pracownik:</p>
+    <h3 class="mb-5 text-info"> {{ user.get_full_name }}</h3>
 
+    <p class="my-1 text-secondary">Pytania:</p>    
     <form>
         {% for sq in survey.surveyquestion_set.all %}
             <div class="mb-3">
-                <label><strong>{{ sq.question.text }}</strong></label>
+                <!-- Numeracja pytań -->
+                <label><strong>{{ forloop.counter }}. {{ sq.question.text }}</strong></label>
 
                 {% if sq.question.type == "scale" or sq.question.type == "both" %}
-                    <div class="radio-group">
+                    <div class="radio-group mt-1">
                         {% for i in scale_range %}
                             {% for ans in answers %}
                                 {% if ans.question.id == sq.question.id %}
@@ -59,7 +73,8 @@
                                             {% if ans.scale_value|stringformat:"s" == i|stringformat:"s" %}checked{% endif %}
                                             disabled
                                         >
-                                        <span></span> {{ i }}
+                                        <span class="radio-circle"></span>
+                                        <span class="radio-label">{{ i }}</span>
                                     </label>
                                 {% endif %}
                             {% endfor %}
@@ -70,7 +85,7 @@
                 {% if sq.question.type == "text" or sq.question.type == "both" %}
                     {% for ans in answers %}
                         {% if ans.question.id == sq.question.id %}
-                            <textarea class="form-control" disabled>{{ ans.text_value }}</textarea>
+                            <textarea class="form-control mt-2" disabled>{{ ans.text_value }}</textarea>
                         {% endif %}
                     {% endfor %}
                 {% endif %}
@@ -81,28 +96,47 @@
     </form>
 
     {% if show_radar %}
-    <!-- Wykres radar -->
-    <div class="mt-4 radar-container">
-        <h3>Podsumowanie ocen wg kompetencji</h3>
+    <div class="mt-4 radar-container text-center">
+        <h3 class="my-5">Wykres kompetencji</h3>
         <canvas id="radarChart"></canvas>
+    </div>
+
+    <!-- Tabela z wartościami pod wykresem -->
+    <div class="table-container mt-1">
+        <table class="table table-bordered text-center">
+            <thead>
+                <tr>
+                    <th>Kompetencja</th>
+                    <th>Procent [%]</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for label, value in radar_data %}
+                <tr>
+                    <td>{{ label }}</td>
+                    <td>{{ value }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
     {% endif %}
 
-    <!-- Przyciski zawsze widoczne -->
-    <a href="{% url 'home' %}" class="btn btn-secondary mt-3">Powrót</a>
+    <!-- Przycisk powrót pod tabelą -->
+    <div class="text-center my-2">
+        <a href="{% url 'home' %}" class="btn btn-secondary px-4">Powrót</a>
+    </div>
 </div>
 
 {% if show_radar %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Skracamy etykiety do 7 znaków
-const labels = {{ radar_labels|safe }}.map(label => label.substring(0,7) + (label.length>7 ? "…" : ""));
-
-// Dane procentowe użytkownika
+const labels = {{ radar_labels|safe }};
 const values = {{ radar_values|safe }};
 
+// Radar Chart
 const data = {
-    labels: labels,
+    labels: labels.map(label => label.substring(0,7) + (label.length>7 ? "…" : "")),
     datasets: [{
         label: 'Twoja ocena [%]',
         data: values,

@@ -384,6 +384,9 @@ def survey_result(request, pk):
             radar_labels.append(comp.name)
             radar_values.append(percentage)
 
+    # Przygotowanie danych do tabeli jako lista krotek
+    radar_data = list(zip(radar_labels, radar_values))
+
     # Flaga decydująca o wyświetleniu wykresu
     show_radar = len(radar_labels) > 2
 
@@ -393,6 +396,7 @@ def survey_result(request, pk):
         "scale_range": scale_range,
         "radar_labels": radar_labels,
         "radar_values": radar_values,
+        "radar_data": radar_data,  # <-- teraz przekazujemy dane do tabeli
         "show_radar": show_radar,
     })
 
@@ -453,13 +457,12 @@ def save_question_order(request, pk):
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
-
 class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
     template_name = "surveys/survey_pdf.html"
 
     def get_filename(self):
         survey = get_object_or_404(Survey, pk=self.kwargs["pk"])
-        return f"ankieta_{survey.id}.pdf"
+        return f"{survey.name}_{survey.year}_{self.request.user.username}.pdf"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -476,11 +479,15 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         radar_labels, radar_values = self._calculate_competency_scores(survey, answers)
         radar_image = self._generate_radar_chart(radar_labels, radar_values)
 
+        # Tworzymy dane do tabeli pod wykresem
+        radar_data = list(zip(radar_labels, radar_values))
+
         context.update({
             "survey": survey,
             "answers": answers,
             "scale_range": scale_range,
             "radar_image": radar_image,
+            "radar_data": radar_data,
         })
         return context
 
@@ -524,7 +531,7 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         ax.set_ylim(0, 100)
         ax.set_rlabel_position(0)
         ax.grid(True)
-        ax.set_title("Ocena kompetencji", va='bottom')
+        ax.set_title("Wykres kompetencji", va='bottom')
 
         # Linie promieniowe dla podziału koła
         for angle in angles:
