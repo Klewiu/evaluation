@@ -7,20 +7,19 @@
       Lista użytkowników
       <span class="ms-2">
         <i class="bi bi-info-circle-fill text-warning fs-5"
-           role="img"
-           aria-label="Wskazówka"
-           data-bs-toggle="popover"
-           data-bs-placement="bottom"
-           data-bs-container="body"
-           data-bs-trigger="hover focus"
-           data-bs-html="true"
-           data-bs-title="Wskazówka"
-           data-bs-content="<div class='mb-1'><strong>Utwórz nowego użytkownika</strong>, zmodyfikuj lub usuń istniejącego użytkownika.</div>">
+            role="img"
+            aria-label="Wskazówka"
+            data-bs-toggle="popover"
+            data-bs-placement="bottom"
+            data-bs-container="body"
+            data-bs-trigger="hover focus"
+            data-bs-html="true"
+            data-bs-title="Wskazówka"
+            data-bs-content="<div class='mb-1'><strong>Utwórz nowego użytkownika</strong>, zmodyfikuj lub usuń istniejącego użytkownika.</div>">
         </i>
       </span>
     </h2>
 
-    <!-- Create button -->
     <button
       type="button"
       class="btn btn-success"
@@ -37,7 +36,7 @@
     <table class="table align-middle">
       <thead class="table-light">
         <tr>
-          <th>Użytkownik</th>   {# Imię + Nazwisko + Email + (username) #}
+          <th>Użytkownik</th>    {# Imię + Nazwisko + Email + (username) #}
           <th>Rola</th>
           <th>Dział</th>
           <th>Admin</th>
@@ -51,12 +50,11 @@
   </div>
 </div>
 
-<!-- CREATE Modal: hide on userCreated (emitted by response header HX-Trigger) -->
 <div class="modal fade"
-     id="createUserModal"
-     tabindex="-1"
-     aria-hidden="true"
-     hx-on="userCreated: bootstrap.Modal.getOrCreateInstance(this).hide()">
+      id="createUserModal"
+      tabindex="-1"
+      aria-hidden="true"
+      hx-on="userCreated: bootstrap.Modal.getOrCreateInstance(this).hide()">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" id="create-user-modal-content">
       <div class="modal-header">
@@ -70,12 +68,11 @@
   </div>
 </div>
 
-<!-- EDIT Modal: auto-close on 'userUpdated' (unchanged) -->
 <div class="modal fade"
-     id="editUserModal"
-     tabindex="-1"
-     aria-hidden="true"
-     hx-on="userUpdated: bootstrap.Modal.getOrCreateInstance(this).hide()">
+      id="editUserModal"
+      tabindex="-1"
+      aria-hidden="true"
+      hx-on="userUpdated: bootstrap.Modal.getOrCreateInstance(this).hide()">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" id="edit-user-modal-content">
       <div class="modal-header">
@@ -89,7 +86,6 @@
   </div>
 </div>
 
-<!-- DELETE Modal (unchanged) -->
 <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" id="confirm-delete-modal-content">
@@ -104,19 +100,5 @@
   </div>
 </div>
 
-{% comment %} (opcjonalnie) jeżeli nadal chcesz czyścić ewentualny backdrop po zamknięciu: {% endcomment %}
-{% block extra_js %}
-<script>
-  // edit
-  document.body.addEventListener('userUpdated', function () {
-    const backdrops = document.getElementsByClassName('modal-backdrop');
-    while (backdrops.length) backdrops[0].remove();
-  });
-  // create
-  document.body.addEventListener('userCreated', function () {
-    const backdrops = document.getElementsByClassName('modal-backdrop');
-    while (backdrops.length) backdrops[0].remove();
-  });
-</script>
-{% endblock %}
+
 {% endblock %}

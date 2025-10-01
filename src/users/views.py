@@ -6,7 +6,6 @@ from django.http import HttpResponse
 from django.contrib.auth import get_user_model
 from django.contrib import messages
 import json
-from django.http import JsonResponse
 
 from .forms import AdminUserUpdateForm, AdminUserCreateForm
 
@@ -46,22 +45,20 @@ def user_new(request):
 def user_create(request):
     form = AdminUserCreateForm(request.POST)
     if not form.is_valid():
-        # 200 - zostajemy w modalu i pokazujemy błędy (tak jak w edycji)
+        # 200 => stay in modal and show field errors
         return render(request, "users/_create_form.html", {"form": form})
 
     user = form.save()
     messages.success(request, "Użytkownik utworzony.")
 
-    # Dołącz nowy wiersz do tabeli OOB i wywołaj event do zamknięcia modala tworzenia
+    # Append new row OOB and fire event AFTER swap/settle to close modal via base.html
     resp = render(request, "users/_row_oob_append.html", {"u": user})
-    resp["HX-Trigger"] = json.dumps({
-        "userCreated": {"target": "#createUserModal"}
-    })
+    resp["HX-Trigger-After-Settle"] = "userCreated"
     return resp
 # ---------- /CREATE ----------
 
 
-# ---------- EDIT (twoje działające) ----------
+# ---------- EDIT ----------
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def user_edit(request, pk):
@@ -78,10 +75,10 @@ def user_update(request, pk):
 
     form = AdminUserUpdateForm(request.POST, instance=user_obj)
     if not form.is_valid():
-        # 200 - HTMX podmienia kontent modala błędami (jak masz obecnie)
+        # 200 => swap modal content with form + errors
         return render(request, "users/_edit_form.html", {"form": form, "user_obj": user_obj})
 
-    user = form.save(commit=False)  # unchanged values remain as-is
+    user = form.save(commit=False)
     pwd1 = form.cleaned_data.get("password1")
     if pwd1:
         user.set_password(pwd1)
@@ -89,16 +86,14 @@ def user_update(request, pk):
 
     messages.success(request, "Użytkownik zaktualizowany.")
 
-    # Zastąp wiersz OOB i wywołaj event do zamknięcia modala edycji (jak u Ciebie)
+    # Replace row OOB and fire event AFTER swap/settle to close modal via base.html
     resp = render(request, "users/_row_oob.html", {"u": user})
-    resp["HX-Trigger"] = json.dumps({
-        "userUpdated": {"target": "#editUserModal"}
-    })
+    resp["HX-Trigger-After-Settle"] = "userUpdated"
     return resp
 # ---------- /EDIT ----------
 
 
-# ---------- DELETE (bez zmian) ----------
+# ---------- DELETE ----------
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def user_confirm_delete(request, pk):
@@ -127,19 +122,18 @@ def user_delete(request, pk):
 
     user_obj.delete()
     messages.success(request, "Użytkownik usunięty.")
-    return HttpResponse("") 
+    return HttpResponse("")
 # ---------- /DELETE ----------
 
 
+# Live username availability check (HTMX GET)
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def check_username(request):
-    # Accept ?username=... (or ?q=...)
     raw = request.GET.get("username") or request.GET.get("q") or ""
     username = raw.strip()
     taken = User.objects.filter(username__iexact=username).exists() if username else False
 
-    # Return a tiny HTML snippet (swapped into the help area)
     if not username:
         html = ""
     elif taken:
