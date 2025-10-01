@@ -1,4 +1,3 @@
-# users/urls.py
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
@@ -12,11 +11,14 @@ urlpatterns = [
     # CREATE
     path('new/',    views.user_new,    name='user_new'),
     path('create/', views.user_create, name='user_create'),
-    path('check-username/', views.check_username, name='check_username'),  # ← NEW
+    path('check-username/', views.check_username, name='check_username'),
 
     # EDIT
     path('<int:pk>/edit/',   views.user_edit,   name='user_edit'),
     path('<int:pk>/update/', views.user_update, name='user_update'),
+
+    # TOGGLE ACTIVE (block/unblock)
+    path('<int:pk>/toggle-active/', views.user_toggle_active, name='user_toggle_active'),
 
     # DELETE
     path('<int:pk>/confirm-delete/', views.user_confirm_delete, name='user_confirm_delete'),

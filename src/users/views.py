@@ -11,17 +11,14 @@ from .forms import AdminUserUpdateForm, AdminUserCreateForm
 
 User = get_user_model()
 
-
 # Access helper: only admin role or superuser
 def is_admin_or_superuser(user):
     return user.is_authenticated and (user.is_superuser or getattr(user, "role", "") == "admin")
-
 
 # Home (unchanged)
 @login_required
 def home(request):
     return render(request, 'evaluations/home.html', {'user': request.user})
-
 
 # List all users (admin/superuser only)
 @login_required
@@ -30,7 +27,6 @@ def users_list(request):
     users = User.objects.all().order_by("username")
     return render(request, "users/list.html", {"users": users})
 
-
 # ---------- CREATE ----------
 @login_required
 @user_passes_test(is_admin_or_superuser)
@@ -38,44 +34,39 @@ def user_new(request):
     form = AdminUserCreateForm()
     return render(request, "users/_create_form.html", {"form": form})
 
-
 @login_required
 @user_passes_test(is_admin_or_superuser)
 @require_POST
 def user_create(request):
     form = AdminUserCreateForm(request.POST)
     if not form.is_valid():
-        # 200 => stay in modal and show field errors
+        # stay in modal & show errors
         return render(request, "users/_create_form.html", {"form": form})
 
     user = form.save()
     messages.success(request, "Użytkownik utworzony.")
 
-    # Append new row OOB and fire event AFTER swap/settle to close modal via base.html
+    # Append the new row (OOB) + close the modal via your base.html listener
     resp = render(request, "users/_row_oob_append.html", {"u": user})
-    resp["HX-Trigger-After-Settle"] = "userCreated"
+    resp["HX-Trigger"] = json.dumps({"userCreated": True})
     return resp
 # ---------- /CREATE ----------
-
 
 # ---------- EDIT ----------
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def user_edit(request, pk):
     user_obj = get_object_or_404(User, pk=pk)
-    form = AdminUserUpdateForm(instance=user_obj)  # pre-filled
+    form = AdminUserUpdateForm(instance=user_obj)
     return render(request, "users/_edit_form.html", {"form": form, "user_obj": user_obj})
-
 
 @login_required
 @user_passes_test(is_admin_or_superuser)
 @require_POST
 def user_update(request, pk):
     user_obj = get_object_or_404(User, pk=pk)
-
     form = AdminUserUpdateForm(request.POST, instance=user_obj)
     if not form.is_valid():
-        # 200 => swap modal content with form + errors
         return render(request, "users/_edit_form.html", {"form": form, "user_obj": user_obj})
 
     user = form.save(commit=False)
@@ -86,12 +77,37 @@ def user_update(request, pk):
 
     messages.success(request, "Użytkownik zaktualizowany.")
 
-    # Replace row OOB and fire event AFTER swap/settle to close modal via base.html
+    # Replace row (OOB) + close modal via your base.html listener
     resp = render(request, "users/_row_oob.html", {"u": user})
-    resp["HX-Trigger-After-Settle"] = "userUpdated"
+    resp["HX-Trigger"] = json.dumps({"userUpdated": True})
     return resp
 # ---------- /EDIT ----------
 
+# ---------- TOGGLE ACTIVE (BLOCK/UNBLOCK) ----------
+@login_required
+@user_passes_test(is_admin_or_superuser)
+@require_POST
+def user_toggle_active(request, pk):
+    user_obj = get_object_or_404(User, pk=pk)
+
+    # Safety guardrails
+    if user_obj.pk == request.user.pk:
+        messages.error(request, "Nie możesz zablokować/odblokować swojego konta.")
+        return HttpResponse("Nie możesz zablokować/odblokować swojego konta.", status=400)
+
+    if user_obj.is_superuser and not request.user.is_superuser:
+        messages.error(request, "Nie masz uprawnień do blokowania superużytkownika.")
+        return HttpResponse("Brak uprawnień.", status=403)
+
+    # Toggle
+    user_obj.is_active = not user_obj.is_active
+    user_obj.save(update_fields=["is_active"])
+
+    messages.success(request, "Użytkownik odblokowany." if user_obj.is_active else "Użytkownik zablokowany.")
+
+    # Return updated row as OOB swap so HTMX replaces it in-place
+    return render(request, "users/_row_oob.html", {"u": user_obj})
+# ---------- /TOGGLE ACTIVE ----------
 
 # ---------- DELETE ----------
 @login_required
@@ -99,12 +115,10 @@ def user_update(request, pk):
 def user_confirm_delete(request, pk):
     user_obj = get_object_or_404(User, pk=pk)
 
-    # Only a superuser may delete another superuser
     if user_obj.is_superuser and not request.user.is_superuser:
         return HttpResponse("Nie masz uprawnień do usunięcia superużytkownika.", status=403)
 
     return render(request, "users/_confirm_delete.html", {"user_obj": user_obj})
-
 
 @login_required
 @user_passes_test(is_admin_or_superuser)
@@ -125,20 +139,17 @@ def user_delete(request, pk):
     return HttpResponse("")
 # ---------- /DELETE ----------
 
-
-# Live username availability check (HTMX GET)
+# username availability (live check for create form)
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def check_username(request):
     raw = request.GET.get("username") or request.GET.get("q") or ""
     username = raw.strip()
     taken = User.objects.filter(username__iexact=username).exists() if username else False
-
     if not username:
         html = ""
     elif taken:
         html = "<small class='text-danger'>Ten login jest już zajęty.</small>"
     else:
         html = "<small class='text-success'>Login dostępny.</small>"
-
     return HttpResponse(html)
