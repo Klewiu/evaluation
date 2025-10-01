@@ -27,18 +27,20 @@ class CompetencyForm(forms.ModelForm):
 class QuestionForm(forms.ModelForm):
     class Meta:
         model = Question
-        fields = ['text', 'competency', 'type', 'departments']
+        fields = ['text', 'competency', 'type', 'departments', 'role']
         labels = {
             'text': 'Treść pytania',
             'competency': 'Kompetencja',
             'type': 'Typ pytania',
             'departments': 'Działy',
+            'role': 'Dla kogo pytanie',
         }
         widgets = {
             'text': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Treść pytania'}),
             'competency': forms.Select(attrs={'class': 'form-select', 'id': 'id_competency'}),
             'type': forms.Select(attrs={'class': 'form-select', 'id': 'id_type'}),
             'departments': forms.SelectMultiple(attrs={'class': 'form-select', 'size': 5}),
+            'role': forms.Select(attrs={'class': 'form-select'}),
         }
 
     def clean(self):

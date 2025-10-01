@@ -44,6 +44,7 @@
                             <br><small class="font-weight-light text-success">{{ question.competency.name }}</small>
                         {% endif %}
                         <br><small class="font-weight-light text-primary">{{ question.get_type_display }}</small>
+                        <br><small class="font-weight-light text-info">Dla: {{ question.get_role_display }}</small>
                     </div>
                     <div class="btn-group">
                         <a href="{% url 'question_edit' question.id %}" class="btn btn-sm btn-warning">Edytuj</a>
@@ -76,15 +77,16 @@
                             <br><small class="font-weight-light text-success">{{ question.competency.name }}</small>
                         {% endif %}
                         <br><small class="font-weight-light text-primary">{{ question.get_type_display }}</small>
+                        <br><small class="font-weight-light text-info">Dla: {{ question.get_role_display }}</small>
                     </div>
                     <div class="btn-group">
-                        <a href="{% url 'question_edit' question.id %}" class="btn btn-sm btn-warning">Edit</a>
+                        <a href="{% url 'question_edit' question.id %}" class="btn btn-sm btn-warning">Edytuj</a>
                         <button class="btn btn-sm btn-danger"
                                 data-bs-toggle="modal"
                                 data-bs-target="#deleteQuestionModal"
                                 data-question-id="{{ question.id }}"
                                 data-question-text="{{ question.text }}">
-                            Delete
+                            Usuń
                         </button>
                     </div>
                 </li>

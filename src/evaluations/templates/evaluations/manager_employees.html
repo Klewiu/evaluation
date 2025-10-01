@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Pracownicy działu{% endblock %}
+
+{% block content %}
+<div class="container">
+      {% if request.user.role == "manager" %}
+        <h2 class="mb-4">Pracownicy działu {{ request.user.department.name }}</h2>
+    {% else %}
+        <h2 class="mb-4">Oceny pracowników</h2>
+    {% endif %}
+
+    {% if employees_with_survey %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Lp</th>
+                        <th>Imię i nazwisko</th>
+                        <th class="d-none d-md-table-cell">Dział</th>
+                        <th class="d-none d-md-table-cell">Rola</th>
+                        <th>Ankieta</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in employees_with_survey %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ item.employee.first_name }} {{ item.employee.last_name }}</td>
+                            <td class="d-none d-md-table-cell">
+                                {% if item.employee.department %}
+                                    {{ item.employee.department.name }}
+                                {% else %}
+                                    BRAK
+                                {% endif %}
+                            </td>
+                            <td class="d-none d-md-table-cell">{{ item.employee.get_role_display }}</td>
+                            <td>
+                                {% if item.has_survey %}
+                                    <i class="bi bi-check-lg text-success"></i>
+                                {% else %}
+                                    <i class="bi bi-x-lg text-danger"></i>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            Brak pracowników w Twoim dziale.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -13,6 +13,12 @@ class Competency(models.Model):
 
 # Pytania przypisane do kompetencji
 class Question(models.Model):
+    ROLE_CHOICES = [
+        ("manager", "Manager"),
+        ("employee", "Pracownik"),
+        ("both", "Pracownik i Manager"),
+    ]
+
     SCALE = "scale"
     TEXT = "text"
     BOTH = "both"
@@ -30,10 +36,13 @@ class Question(models.Model):
     departments = models.ManyToManyField(
         Department, blank=True, help_text="Wybierz jeden lub więcej działów. Pozostaw puste dla wszystkich."
     )
-    is_active = models.BooleanField(default=True)  # <-- nowe pole
+    role = models.CharField(
+        max_length=20, choices=ROLE_CHOICES, default="both", help_text="Dla kogo pytanie?"
+    )
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.text} ({self.get_type_display()})"
+        return f"{self.text} ({self.get_type_display()}) → {self.get_role_display()}"
 
 # Definicja ankiety - np. ocena roczna dział sprzedaży 2025
 class Survey(models.Model):

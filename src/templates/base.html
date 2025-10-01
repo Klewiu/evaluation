@@ -62,7 +62,7 @@
             {% endif %}
             {% if user.role == 'manager' or user.role == 'admin' or user.is_superuser %}
             <li class="nav-item">
-              <a class="nav-link" href="{% url 'evaluations_list' %}">Oceny pracowników</a>
+              <a class="nav-link" href="{% url 'manager_employees' %}">Oceny pracowników</a>
             </li>
             {% endif %}
             <li class="nav-item">

@@ -198,7 +198,7 @@ def surveys_home(request):
 
 @login_required
 def surveys_list(request):
-    surveys = Survey.objects.all()
+    surveys = Survey.objects.all().order_by('-created_at')  # najnowsze pierwsze
     return render(request, "surveys/surveys_list.html", {"surveys": surveys})
 
 # Dodanie ankiety
