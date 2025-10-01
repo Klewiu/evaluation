@@ -99,49 +99,58 @@ from .models import Question, Department
 @login_required
 def questions_list(request):
     department_id = request.GET.get('department_id')
+    selected_role = request.GET.get('role')  # 'manager', 'employee', 'both'
     departments = Department.objects.all().order_by('name')  # alfabetyczna kolejność działów
 
+    # Funkcja do filtrowania po roli
+    def filter_by_role(queryset):
+        if selected_role and selected_role != 'both':
+            return queryset.filter(Q(role='both') | Q(role=selected_role))
+        return queryset
+
     if department_id and department_id != 'all':
-        # Wybrany konkretny dział
         filtered_department = get_object_or_404(Department, id=department_id)
         department_questions = OrderedDict()
 
         dept_questions = Question.objects.filter(
             departments=filtered_department,
             is_active=True
-        ).order_by('competency__name', 'text')  # sortowanie po kompetencjach i tekście
+        ).order_by('competency__name', 'text')
+        dept_questions = filter_by_role(dept_questions)
 
         if dept_questions.exists():
             department_questions[filtered_department] = dept_questions
 
-        # Pytania niezwiązane z żadnym działem
         unassigned_questions = Question.objects.filter(
             departments__isnull=True,
             is_active=True
         ).order_by('competency__name', 'text')
+        unassigned_questions = filter_by_role(unassigned_questions)
 
     else:
-        # Wszystkie pytania pogrupowane po działach
         department_questions = OrderedDict()
         for dept in departments:
             dept_questions = Question.objects.filter(
                 departments=dept,
                 is_active=True
             ).order_by('competency__name', 'text')
+            dept_questions = filter_by_role(dept_questions)
             if dept_questions.exists():
                 department_questions[dept] = dept_questions
 
-        # Pytania niezwiązane z żadnym działem
         unassigned_questions = Question.objects.filter(
             departments__isnull=True,
             is_active=True
         ).order_by('competency__name', 'text')
+        unassigned_questions = filter_by_role(unassigned_questions)
 
     context = {
         'department_questions': department_questions,
         'unassigned_questions': unassigned_questions,
         'departments': departments,
         'selected_department': department_id or 'all',
+        'role_choices': Question.ROLE_CHOICES,
+        'selected_role': selected_role or 'both',  # domyślnie 'both'
     }
     return render(request, "surveys/questions_list.html", context)
 
