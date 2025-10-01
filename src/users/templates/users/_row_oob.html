@@ -1,11 +1,9 @@
-<tr id="user-row-{{ u.pk }}" hx-swap-oob="outerHTML">
+<tr id="user-row-{{ u.pk }}" hx-swap-oob="outerHTML" class="{% if not u.is_active %}opacity-50{% endif %}">
   <td>
     <div class="fw-semibold">
       {% if u.first_name or u.last_name %}
         {{ u.first_name }} {{ u.last_name }}
-      {% else %}
-        — 
-      {% endif %}
+      {% else %} — {% endif %}
     </div>
     <div class="text-muted small">{{ u.email|default:"brak e-maila" }}</div>
     <div class="text-muted small">({{ u.username }})</div>
@@ -25,6 +23,17 @@
         hx-swap="innerHTML">
         Edytuj
       </button>
+
+      <form class="d-inline"
+            hx-post="{% url 'user_toggle_active' u.pk %}"
+            hx-swap="none">
+        {% csrf_token %}
+        <button type="submit"
+                class="btn {% if u.is_active %}btn-outline-secondary{% else %}btn-warning{% endif %}">
+          {% if u.is_active %}Zablokuj{% else %}ZABLOKOWANY{% endif %}
+        </button>
+      </form>
+
       <button
         type="button"
         class="btn btn-outline-danger"
