@@ -14,9 +14,9 @@ class Competency(models.Model):
 # Pytania przypisane do kompetencji
 class Question(models.Model):
     ROLE_CHOICES = [
+        ("both", "Pracownik i Manager"),
         ("manager", "Manager"),
         ("employee", "Pracownik"),
-        ("both", "Pracownik i Manager"),
     ]
 
     SCALE = "scale"
