@@ -73,19 +73,31 @@ def manager_employees(request):
         employees = CustomUser.objects.none()  # inni nie mają dostępu
 
     for emp in employees:
-        # Pobierz najnowszą ankietę pracownika
-        latest_survey_response = SurveyResponse.objects.filter(
-            user=emp
-        ).order_by("-created_at").first()  # najnowsza według created_at
+        # Pobierz najnowszą ankietę dla działu i roli pracownika
+        latest_survey = Survey.objects.filter(
+            department=emp.department,
+            role__in=[emp.role, "both"]
+        ).order_by("-created_at").first()
 
         has_survey = False
-        if latest_survey_response:
-            has_survey = latest_survey_response.status in ["submitted", "closed"]
+        latest_survey_response = None
+
+        if latest_survey:
+            # Sprawdź, czy pracownik wypełnił tę ankietę
+            latest_survey_response = SurveyResponse.objects.filter(
+                survey=latest_survey,
+                user=emp
+            ).first()
+
+            if latest_survey_response:
+                has_survey = latest_survey_response.status in ["submitted", "closed"]
+            else:
+                has_survey = False  # nowa ankieta jeszcze nie wypełniona
 
         employees_with_survey.append({
             "employee": emp,
             "has_survey": has_survey,
-            "latest_survey": latest_survey_response
+            "latest_survey": latest_survey
         })
 
     context = {
