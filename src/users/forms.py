@@ -1,3 +1,4 @@
+# users/forms.py
 from django import forms
 from django.contrib.auth import get_user_model, password_validation
 
@@ -5,6 +6,21 @@ User = get_user_model()
 
 
 class AdminUserUpdateForm(forms.ModelForm):
+    # Override email field to use Polish 'invalid' message (and disable native browser validation via TextInput)
+    email = forms.EmailField(
+        label="E-mail",
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "inputmode": "email",
+            "autocomplete": "email",
+        }),
+        error_messages={
+            "invalid": "Błędny format e-mail",
+            # "required": "Adres e-mail jest wymagany.",  # odkomentuj jeśli chcesz
+        },
+        required=False,  # jak u Ciebie – e-mail opcjonalny przy edycji
+    )
+
     password1 = forms.CharField(
         label="Nowe hasło",
         widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "••••••••"}),
@@ -21,21 +37,16 @@ class AdminUserUpdateForm(forms.ModelForm):
         model = User
         fields = ["first_name", "last_name", "email", "department"]
         widgets = {
-            "first_name":  forms.TextInput(attrs={"class": "form-control"}),
-            "last_name":   forms.TextInput(attrs={"class": "form-control"}),
-            # Disable native HTML5 email blocking; Django will still validate as EmailField.
-            "email":       forms.TextInput(attrs={
-                                "class": "form-control",
-                                "inputmode": "email",
-                                "autocomplete": "email",
-                            }),
-            "department":  forms.Select(attrs={"class": "form-select"}),
+            "first_name": forms.TextInput(attrs={"class": "form-control"}),
+            "last_name":  forms.TextInput(attrs={"class": "form-control"}),
+            # "email": set above
+            "department": forms.Select(attrs={"class": "form-select"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["department"].required = False
-        self.fields["department"].empty_label = "-"  # choosing "-" clears department
+        self.fields["department"].empty_label = "-"  # wybór "-" wyczyści dział
 
     def clean(self):
         cleaned = super().clean()
@@ -50,15 +61,27 @@ class AdminUserUpdateForm(forms.ModelForm):
 
 
 class AdminUserCreateForm(forms.ModelForm):
+    # Email with Polish 'invalid' message (again TextInput to avoid native browser message)
+    email = forms.EmailField(
+        label="E-mail",
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "inputmode": "email",
+            "autocomplete": "email",
+        }),
+        error_messages={
+            "invalid": "Błędny format e-mail",
+            # "required": "Adres e-mail jest wymagany.",  # odkomentuj jeśli chcesz
+        },
+    )
+
     password1 = forms.CharField(
         label="Hasło",
         widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "••••••••"}),
-        required=True,
     )
     password2 = forms.CharField(
         label="Powtórz hasło",
         widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "••••••••"}),
-        required=True,
     )
 
     class Meta:
@@ -69,26 +92,34 @@ class AdminUserCreateForm(forms.ModelForm):
             "role":       forms.Select(attrs={"class": "form-select"}),
             "first_name": forms.TextInput(attrs={"class": "form-control"}),
             "last_name":  forms.TextInput(attrs={"class": "form-control"}),
-            # Same trick as above: TextInput + inputmode=email
-            "email":      forms.TextInput(attrs={
-                               "class": "form-control",
-                               "inputmode": "email",
-                               "autocomplete": "email",
-                           }),
+            # "email": set above
             "department": forms.Select(attrs={"class": "form-select"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["department"].required = False
-        self.fields["department"].empty_label = "-"
+        self.fields["department"].empty_label = "-"  # "-" = brak działu
 
     def clean(self):
         cleaned = super().clean()
+
+        # Unique username (case-insensitive)
+        username = cleaned.get("username", "").strip()
+        if username and User.objects.filter(username__iexact=username).exists():
+            self.add_error("username", "Ten login jest już zajęty.")
+
+        # Passwords match + strength
         p1 = cleaned.get("password1")
         p2 = cleaned.get("password2")
-        if p1 != p2:
-            self.add_error("password2", "Hasła nie są takie same.")
+        if p1 or p2:
+            if p1 != p2:
+                self.add_error("password2", "Hasła nie są takie same.")
+            else:
+                # validate strength against a new (unsaved) user instance
+                dummy = User(username=username or None)
+                password_validation.validate_password(p1, user=dummy)
+
         return cleaned
 
     def save(self, commit=True):
