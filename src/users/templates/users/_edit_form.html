@@ -1,7 +1,6 @@
 {# templates/users/_edit_form.html #}
 
 <style>
-  /* placeholdery w kursywie */
   ::placeholder { font-style: italic; opacity: .8; }
 </style>
 
@@ -26,6 +25,7 @@
 
 <div class="modal-body">
   <form
+    novalidate
     hx-post="{% url 'user_update' user_obj.pk %}"
     hx-target="#edit-user-modal-content"
     hx-swap="innerHTML">
@@ -67,7 +67,6 @@
 
       <hr class="mt-2 mb-1">
 
-      {# Przycisk toggle sekcji haseł (hyperscript) #}
       <div class="col-12 d-flex align-items-center gap-2">
         <button type="button"
                 class="btn btn-outline-danger btn-sm"
@@ -77,14 +76,12 @@
         <small class="text-muted">Opcjonalne — kliknij tylko, jeśli chcesz zmienić hasło.</small>
       </div>
 
-      {# Globalny komunikat o błędach (opcjonalny) #}
       {% if form.errors %}
         <div class="col-12">
           <div class="alert alert-danger py-2 mb-0 small">Popraw błędy w formularzu.</div>
         </div>
       {% endif %}
 
-      {# Sekcja haseł: ukryta, ale pokaż jeśli były wartości/błędy #}
       {% with pw1=form.password1.value pw2=form.password2.value %}
       <div id="pw-section-{{ user_obj.pk }}"
            class="row g-3 mt-1 {% if not pw1 and not pw2 and not form.password1.errors and not form.password2.errors %}d-none{% endif %}">
