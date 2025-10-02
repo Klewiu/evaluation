@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Historia ankiet - {{ employee.first_name }} {{ employee.last_name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Historia ankiet: {{ employee.first_name }} {{ employee.last_name }}</h2>
+
+    {% if surveys_with_status %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Lp</th>
+                        <th>Nazwa ankiety</th>
+                        <th class="d-none d-md-table-cell">Rok</th>
+                        <th>Status</th>
+                        <th>Akcje</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in surveys_with_status %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ item.survey.name }}</td>
+                        <td class="d-none d-md-table-cell">{{ item.survey.year }}</td>
+
+                        <!-- Status ankiety -->
+                        <td>
+                            {% if item.has_survey %}
+                                <i class="bi bi-check-lg text-success"></i>
+                            {% else %}
+                                <i class="bi bi-x-lg text-danger"></i>
+                            {% endif %}
+                        </td>
+
+                        <!-- Akcje -->
+                        <td>
+                            {% if item.has_survey %}
+                                <a class="btn btn-sm btn-primary" 
+                                href="{% url 'survey_result_for_user' survey_id=item.survey.id user_id=employee.id %}" 
+                                title="Podgląd wyników">
+                                    <i class="bi bi-search"></i>
+                                </a>
+                                <a class="btn btn-sm btn-secondary" 
+                                href="{% url 'survey_pdf' survey_id=item.survey.id user_id=employee.id %}" 
+                                title="Pobierz PDF" target="_blank">
+                                    <i class="bi bi-file-earmark-pdf"></i>
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            Brak ankiet przypisanych do tego użytkownika.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

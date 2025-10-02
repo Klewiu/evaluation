@@ -24,6 +24,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
+from users.models import CustomUser
 # KOMPETENCJE
 
 # Kompetencje
@@ -99,49 +100,58 @@ from .models import Question, Department
 @login_required
 def questions_list(request):
     department_id = request.GET.get('department_id')
+    selected_role = request.GET.get('role')  # 'manager', 'employee', 'both'
     departments = Department.objects.all().order_by('name')  # alfabetyczna kolejność działów
 
+    # Funkcja do filtrowania po roli
+    def filter_by_role(queryset):
+        if selected_role and selected_role != 'both':
+            return queryset.filter(Q(role='both') | Q(role=selected_role))
+        return queryset
+
     if department_id and department_id != 'all':
-        # Wybrany konkretny dział
         filtered_department = get_object_or_404(Department, id=department_id)
         department_questions = OrderedDict()
 
         dept_questions = Question.objects.filter(
             departments=filtered_department,
             is_active=True
-        ).order_by('competency__name', 'text')  # sortowanie po kompetencjach i tekście
+        ).order_by('competency__name', 'text')
+        dept_questions = filter_by_role(dept_questions)
 
         if dept_questions.exists():
             department_questions[filtered_department] = dept_questions
 
-        # Pytania niezwiązane z żadnym działem
         unassigned_questions = Question.objects.filter(
             departments__isnull=True,
             is_active=True
         ).order_by('competency__name', 'text')
+        unassigned_questions = filter_by_role(unassigned_questions)
 
     else:
-        # Wszystkie pytania pogrupowane po działach
         department_questions = OrderedDict()
         for dept in departments:
             dept_questions = Question.objects.filter(
                 departments=dept,
                 is_active=True
             ).order_by('competency__name', 'text')
+            dept_questions = filter_by_role(dept_questions)
             if dept_questions.exists():
                 department_questions[dept] = dept_questions
 
-        # Pytania niezwiązane z żadnym działem
         unassigned_questions = Question.objects.filter(
             departments__isnull=True,
             is_active=True
         ).order_by('competency__name', 'text')
+        unassigned_questions = filter_by_role(unassigned_questions)
 
     context = {
         'department_questions': department_questions,
         'unassigned_questions': unassigned_questions,
         'departments': departments,
         'selected_department': department_id or 'all',
+        'role_choices': Question.ROLE_CHOICES,
+        'selected_role': selected_role or 'both',  # domyślnie 'both'
     }
     return render(request, "surveys/questions_list.html", context)
 
@@ -198,10 +208,10 @@ def surveys_home(request):
 
 @login_required
 def surveys_list(request):
-    surveys = Survey.objects.all()
+    surveys = Survey.objects.all().order_by('-created_at')  # najnowsze pierwsze
     return render(request, "surveys/surveys_list.html", {"surveys": surveys})
 
-# Dodanie ankiety
+# Dodawanie ankiety
 @login_required
 def survey_add(request):
     if request.method == "POST":
@@ -215,27 +225,30 @@ def survey_add(request):
             if not question_ids or question_ids == ['']:
                 questions = Question.objects.filter(
                     Q(departments=survey.department) | Q(departments__isnull=True),
+                    Q(role=survey.role) | Q(role="both"),   # <-- filtrowanie po roli
                     is_active=True
                 ).distinct().order_by("id")
-    
+
                 for idx, q in enumerate(questions):
                     SurveyQuestion.objects.create(survey=survey, question=q, order=idx)
 
             else:
-                # Dodaj pytania wybrane przez użytkownika, tylko jeśli są aktywne
                 for idx, qid in enumerate(question_ids):
                     if qid.strip():
-                        q = get_object_or_404(Question, pk=qid, is_active=True)
+                        q = get_object_or_404(
+                            Question, pk=qid, is_active=True
+                        )
                         SurveyQuestion.objects.create(survey=survey, question=q, order=idx)
 
             return redirect("surveys_list")
     else:
         form = SurveyForm()
 
-    # Pobranie wszystkich aktywnych pytań do wyświetlenia w formularzu
+    # Pokazujemy wszystkie pytania do HTMX lub wyboru ręcznego
     questions = Question.objects.filter(is_active=True)
 
     return render(request, "surveys/survey_add.html", {"form": form, "questions": questions})
+
 
 
 
@@ -281,9 +294,12 @@ def survey_preview(request, pk):
 def survey_fill(request, pk):
     survey = get_object_or_404(Survey, pk=pk)
 
-    # tylko pracownik może wypełniać
-    if request.user.role != "employee":
-        return HttpResponseForbidden("Tylko pracownicy mogą wypełniać ankiety.")
+    # sprawdzamy czy rola użytkownika pasuje do roli ankiety
+    if not (
+        survey.role == "both"
+        or survey.role == request.user.role
+    ):
+        return HttpResponseForbidden("Nie masz uprawnień do wypełnienia tej ankiety.")
 
     # sprawdź czy user już wypełnił
     if SurveyResponse.objects.filter(survey=survey, user=request.user).exists():
@@ -359,35 +375,38 @@ def survey_submit(request, pk):
 
 
 @login_required
-def survey_result(request, pk):
-    survey = get_object_or_404(Survey, pk=pk)
+def survey_result(request, survey_id, user_id=None):
+    # Pobranie ankiety
+    survey = get_object_or_404(Survey, pk=survey_id)
 
+    # Jeśli podano user_id (manager/admin) – pobieramy tego użytkownika
+    if user_id:
+        viewed_user = get_object_or_404(CustomUser, pk=user_id)
+    else:
+        viewed_user = request.user  # pracownik korzysta jak wcześniej
+
+    # Pobranie odpowiedzi użytkownika
     try:
-        response = SurveyResponse.objects.get(survey=survey, user=request.user)
+        response = SurveyResponse.objects.get(survey=survey, user=viewed_user)
     except SurveyResponse.DoesNotExist:
         response = None
 
     answers = SurveyAnswer.objects.filter(response=response) if response else []
-    scale_range = range(1, 11)  # dla pytań typu scale
+    scale_range = range(1, 11)
 
     # Przygotowanie danych do wykresu radar
-    radar_labels = []
-    radar_values = []
-
+    radar_labels, radar_values = [], []
     competencies = Competency.objects.all()
     for comp in competencies:
         comp_questions = survey.questions.filter(competency=comp)
         if comp_questions.exists():
-            max_total = sum([10 for q in comp_questions])  # maksymalna suma skali pytań
+            max_total = sum([10 for q in comp_questions])
             user_total = sum([a.scale_value for a in answers if a.question in comp_questions and a.scale_value])
             percentage = round(user_total / max_total * 100, 2) if max_total > 0 else 0
             radar_labels.append(comp.name)
             radar_values.append(percentage)
 
-    # Przygotowanie danych do tabeli jako lista krotek
     radar_data = list(zip(radar_labels, radar_values))
-
-    # Flaga decydująca o wyświetleniu wykresu
     show_radar = len(radar_labels) > 2
 
     return render(request, "surveys/survey_result.html", {
@@ -396,18 +415,20 @@ def survey_result(request, pk):
         "scale_range": scale_range,
         "radar_labels": radar_labels,
         "radar_values": radar_values,
-        "radar_data": radar_data,  # <-- teraz przekazujemy dane do tabeli
+        "radar_data": radar_data,
         "show_radar": show_radar,
+        "viewed_user": viewed_user,  # neutralny alias
     })
 
 @login_required
 def survey_edit_response(request, pk):
     survey = get_object_or_404(Survey, pk=pk)
 
-    if request.user.role != "employee":
-        return HttpResponseForbidden("Tylko pracownicy mogą edytować swoje odpowiedzi.")
+    # Sprawdzenie roli użytkownika względem ankiety
+    if not (survey.role == "both" or survey.role == request.user.role):
+        return HttpResponseForbidden("Nie masz uprawnień do edycji tej ankiety.")
 
-    # Pobierz istniejącą odpowiedź
+    # Pobierz istniejącą odpowiedź użytkownika
     response = get_object_or_404(SurveyResponse, survey=survey, user=request.user)
     questions = survey.surveyquestion_set.select_related("question").all()
 
@@ -436,9 +457,8 @@ def survey_edit_response(request, pk):
         "questions": questions,
         "answers": answers,
         "scale_range": range(1, 11),
+        "user_role": request.user.role,  # nowa zmienna do wyświetlenia w szablonie
     })
-
-
 
 
 @login_required
@@ -457,20 +477,32 @@ def save_question_order(request, pk):
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
+
 class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
     template_name = "surveys/survey_pdf.html"
 
+    def get_user(self):
+        user_id = self.kwargs.get("user_id")
+        if user_id:
+            return get_object_or_404(CustomUser, pk=user_id)
+        return self.request.user
+
+    def get_survey(self):
+        survey_id = self.kwargs.get("pk") or self.kwargs.get("survey_id")
+        return get_object_or_404(Survey, pk=survey_id)
+
     def get_filename(self):
-        survey = get_object_or_404(Survey, pk=self.kwargs["pk"])
-        return f"{survey.name}_{survey.year}_{self.request.user.username}.pdf"
+        survey = self.get_survey()
+        user = self.get_user()
+        return f"{survey.name}_{survey.year}_{user.username}.pdf"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        survey = get_object_or_404(Survey, pk=self.kwargs["pk"])
+        survey = self.get_survey()
+        user = self.get_user()
 
-        # Pobranie odpowiedzi użytkownika
         try:
-            response = SurveyResponse.objects.get(survey=survey, user=self.request.user)
+            response = SurveyResponse.objects.get(survey=survey, user=user)
             answers = SurveyAnswer.objects.filter(response=response)
         except SurveyResponse.DoesNotExist:
             answers = []
@@ -478,8 +510,6 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         scale_range = range(1, 11)
         radar_labels, radar_values = self._calculate_competency_scores(survey, answers)
         radar_image = self._generate_radar_chart(radar_labels, radar_values)
-
-        # Tworzymy dane do tabeli pod wykresem
         radar_data = list(zip(radar_labels, radar_values))
 
         context.update({
@@ -488,6 +518,7 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
             "scale_range": scale_range,
             "radar_image": radar_image,
             "radar_data": radar_data,
+            "user": user,
         })
         return context
 
@@ -495,7 +526,6 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         labels = []
         values = []
 
-        # Pobranie unikalnych kompetencji i odfiltrowanie pustych
         raw_competencies = survey.questions.values_list("competency__name", flat=True).distinct()
         competencies = [c for c in raw_competencies if c and str(c).strip()]
 
@@ -523,7 +553,6 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
 
         fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
 
-        # Estetyka wykresu
         ax.set_theta_offset(np.pi / 2)
         ax.set_theta_direction(-1)
         ax.set_xticks(angles)
@@ -533,15 +562,12 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         ax.grid(True)
         ax.set_title("Wykres kompetencji", va='bottom')
 
-        # Linie promieniowe dla podziału koła
         for angle in angles:
             ax.plot([angle, angle], [0, 100], color='gray', linewidth=0.5, linestyle='dashed')
 
-        # Rysowanie danych
         ax.plot(angles_closed, values_closed, linewidth=2, linestyle='solid', color='blue')
         ax.fill(angles_closed, values_closed, 'blue', alpha=0.1)
 
-        # Konwersja do base64
         buf = io.BytesIO()
         plt.savefig(buf, format='png', bbox_inches='tight')
         buf.seek(0)

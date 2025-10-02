@@ -13,6 +13,12 @@ class Competency(models.Model):
 
 # Pytania przypisane do kompetencji
 class Question(models.Model):
+    ROLE_CHOICES = [
+        ("both", "Pracownik i Manager"),
+        ("manager", "Manager"),
+        ("employee", "Pracownik"),
+    ]
+
     SCALE = "scale"
     TEXT = "text"
     BOTH = "both"
@@ -30,10 +36,13 @@ class Question(models.Model):
     departments = models.ManyToManyField(
         Department, blank=True, help_text="Wybierz jeden lub więcej działów. Pozostaw puste dla wszystkich."
     )
-    is_active = models.BooleanField(default=True)  # <-- nowe pole
+    role = models.CharField(
+        max_length=20, choices=ROLE_CHOICES, default="both", help_text="Dla kogo pytanie?"
+    )
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.text} ({self.get_type_display()})"
+        return f"{self.text} ({self.get_type_display()}) → {self.get_role_display()}"
 
 # Definicja ankiety - np. ocena roczna dział sprzedaży 2025
 class Survey(models.Model):
@@ -47,8 +56,16 @@ class Survey(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     year = models.PositiveIntegerField(blank=True, null=True)
 
+    ROLE_CHOICES = [
+        ("both", "Pracownik i Manager"),
+        ("manager", "Manager"),
+        ("employee", "Pracownik"),
+    ]
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="both")
+
     def __str__(self):
-        return f"{self.name} ({self.department.name}, {self.year or self.created_at.year})"
+        return f"{self.name} ({self.department.name}, {self.year or self.created_at.year}, {self.get_role_display()})"
+
 
 class SurveyQuestion(models.Model):
     survey = models.ForeignKey(Survey, on_delete=models.CASCADE)

@@ -20,10 +20,10 @@
                     {% if sq.question.type == "scale" or sq.question.type == "both" %}
                         <div class="mt-2">
                             {% for i in scale_range %}
-                                <label class="me-2 custom-radio">
+                                <label class="me-2">
                                     <input type="radio" name="q{{ sq.question.id }}_scale" value="{{ i }}"
                                            {% if ans and ans.scale_value|stringformat:"s" == i|stringformat:"s" %}checked{% endif %}>
-                                    <span></span> {{ i }}
+                                    {{ i }}
                                 </label>
                             {% endfor %}
                         </div>
@@ -42,32 +42,4 @@
         <a href="{% url 'home' %}" class="btn btn-secondary">Anuluj</a>
     </form>
 </div>
-
-<style>
-.custom-radio input[type="radio"] {
-  display: none;
-}
-
-.custom-radio span {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 2px solid #ccc;
-  margin-right: 8px;
-  vertical-align: middle;
-  position: relative;
-}
-
-.custom-radio input[type="radio"]:checked + span::after {
-  content: "";
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background-color: green; /* kolor zaznaczonej kropki */
-  position: absolute;
-  top: 3px;
-  left: 3px;
-}
-</style>
 {% endblock %}

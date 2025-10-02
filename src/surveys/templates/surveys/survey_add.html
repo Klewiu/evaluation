@@ -24,6 +24,15 @@
             <div class="text-danger">{{ form.department.errors }}</div>
         {% endif %}
     </div>
+    
+     <!-- Rola -->
+    <div class="mb-3">
+        {{ form.role.label_tag }} 
+        {{ form.role }}
+        {% if form.role.errors %}
+            <div class="text-danger">{{ form.role.errors }}</div>
+        {% endif %}
+    </div>
 
     <!-- Rok ankiety -->
     <div class="mb-3">
