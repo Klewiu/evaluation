@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .views import SurveyPDFView
+from .views import SurveyPDFView, survey_result
 
 urlpatterns = [
 
@@ -32,7 +32,11 @@ urlpatterns = [
     # WYPEŁNIANIE ANKIETY
     path("survey/<int:pk>/fill/", views.survey_fill, name="survey_fill"),
     path('survey/<int:pk>/submit/', views.survey_submit, name='survey_submit'),
-    path('survey/<int:pk>/result/', views.survey_result, name='survey_result'),
+    # Podgląd wyników dla pracownika (prywatny)
+    path('survey/<int:survey_id>/result/', survey_result, name='survey_result'),
+    # Podgląd wyników dla managera/admina (dla wybranego użytkownika)
+    path('survey/<int:survey_id>/result/<int:user_id>/', survey_result, name='survey_result_for_user'),
+    
     path('survey/<int:pk>/edit-response/', views.survey_edit_response, name='survey_edit_response'),
 
     # PDF

@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from surveys.models import Survey, SurveyResponse
 
-from surveys.models import Survey, SurveyResponse
+from surveys.models import Survey, SurveyResponse, SurveyAnswer
 
 
 from django.shortcuts import render, get_object_or_404
@@ -80,7 +80,6 @@ def manager_employees(request):
         ).order_by("-created_at").first()
 
         has_survey = False
-        latest_survey_response = None
 
         if latest_survey:
             # Sprawdź, czy pracownik wypełnił tę ankietę
@@ -104,3 +103,33 @@ def manager_employees(request):
         "employees_with_survey": employees_with_survey,
     }
     return render(request, "evaluations/manager_employees.html", context)
+
+@login_required
+def employee_surveys(request, user_id):
+    employee = get_object_or_404(CustomUser, pk=user_id)
+    
+    # Pobranie wszystkich ankiet dla działu i roli użytkownika
+    surveys = Survey.objects.filter(
+        department=employee.department,
+        role__in=[employee.role, "both"]
+    ).order_by("-created_at")
+
+    surveys_with_status = []
+    for survey in surveys:
+        try:
+            response = SurveyResponse.objects.get(survey=survey, user=employee)
+            has_survey = response.status in ["submitted", "closed"]
+        except SurveyResponse.DoesNotExist:
+            response = None
+            has_survey = False
+
+        surveys_with_status.append({
+            "survey": survey,
+            "has_survey": has_survey,
+            "response": response
+        })
+
+    return render(request, "evaluations/employee_surveys.html", {
+        "employee": employee,
+        "surveys_with_status": surveys_with_status
+    })

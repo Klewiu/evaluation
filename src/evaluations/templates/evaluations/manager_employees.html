@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="container">
-      {% if request.user.role == "manager" %}
+    {% if request.user.role == "manager" %}
         <h2 class="mb-4">Pracownicy działu {{ request.user.department.name }}</h2>
     {% else %}
         <h2 class="mb-4">Oceny pracowników</h2>
@@ -18,7 +18,8 @@
                         <th>Imię i nazwisko</th>
                         <th class="d-none d-md-table-cell">Dział</th>
                         <th class="d-none d-md-table-cell">Rola</th>
-                        <th>Ankieta</th>
+                        <th>Status</th>
+                        <th>Akcje</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -40,6 +41,11 @@
                                 {% else %}
                                     <i class="bi bi-x-lg text-danger"></i>
                                 {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'employee_surveys' item.employee.id %}" class="btn btn-sm btn-primary" title="Historia ankiet">
+                                    <i class="bi bi-database"></i>
+                                </a>
                             </td>
                         </tr>
                     {% endfor %}

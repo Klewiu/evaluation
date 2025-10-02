@@ -24,6 +24,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
+from users.models import CustomUser
 # KOMPETENCJE
 
 # Kompetencje
@@ -374,35 +375,38 @@ def survey_submit(request, pk):
 
 
 @login_required
-def survey_result(request, pk):
-    survey = get_object_or_404(Survey, pk=pk)
+def survey_result(request, survey_id, user_id=None):
+    # Pobranie ankiety
+    survey = get_object_or_404(Survey, pk=survey_id)
 
+    # Jeśli podano user_id (manager/admin) – pobieramy tego użytkownika
+    if user_id:
+        viewed_user = get_object_or_404(CustomUser, pk=user_id)
+    else:
+        viewed_user = request.user  # pracownik korzysta jak wcześniej
+
+    # Pobranie odpowiedzi użytkownika
     try:
-        response = SurveyResponse.objects.get(survey=survey, user=request.user)
+        response = SurveyResponse.objects.get(survey=survey, user=viewed_user)
     except SurveyResponse.DoesNotExist:
         response = None
 
     answers = SurveyAnswer.objects.filter(response=response) if response else []
-    scale_range = range(1, 11)  # dla pytań typu scale
+    scale_range = range(1, 11)
 
     # Przygotowanie danych do wykresu radar
-    radar_labels = []
-    radar_values = []
-
+    radar_labels, radar_values = [], []
     competencies = Competency.objects.all()
     for comp in competencies:
         comp_questions = survey.questions.filter(competency=comp)
         if comp_questions.exists():
-            max_total = sum([10 for q in comp_questions])  # maksymalna suma skali pytań
+            max_total = sum([10 for q in comp_questions])
             user_total = sum([a.scale_value for a in answers if a.question in comp_questions and a.scale_value])
             percentage = round(user_total / max_total * 100, 2) if max_total > 0 else 0
             radar_labels.append(comp.name)
             radar_values.append(percentage)
 
-    # Przygotowanie danych do tabeli jako lista krotek
     radar_data = list(zip(radar_labels, radar_values))
-
-    # Flaga decydująca o wyświetleniu wykresu
     show_radar = len(radar_labels) > 2
 
     return render(request, "surveys/survey_result.html", {
@@ -411,8 +415,9 @@ def survey_result(request, pk):
         "scale_range": scale_range,
         "radar_labels": radar_labels,
         "radar_values": radar_values,
-        "radar_data": radar_data,  # <-- teraz przekazujemy dane do tabeli
+        "radar_data": radar_data,
         "show_radar": show_radar,
+        "viewed_user": viewed_user,  # neutralny alias
     })
 
 @login_required
@@ -472,20 +477,32 @@ def save_question_order(request, pk):
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
+
 class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
     template_name = "surveys/survey_pdf.html"
 
+    def get_user(self):
+        user_id = self.kwargs.get("user_id")
+        if user_id:
+            return get_object_or_404(CustomUser, pk=user_id)
+        return self.request.user
+
+    def get_survey(self):
+        survey_id = self.kwargs.get("pk") or self.kwargs.get("survey_id")
+        return get_object_or_404(Survey, pk=survey_id)
+
     def get_filename(self):
-        survey = get_object_or_404(Survey, pk=self.kwargs["pk"])
-        return f"{survey.name}_{survey.year}_{self.request.user.username}.pdf"
+        survey = self.get_survey()
+        user = self.get_user()
+        return f"{survey.name}_{survey.year}_{user.username}.pdf"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        survey = get_object_or_404(Survey, pk=self.kwargs["pk"])
+        survey = self.get_survey()
+        user = self.get_user()
 
-        # Pobranie odpowiedzi użytkownika
         try:
-            response = SurveyResponse.objects.get(survey=survey, user=self.request.user)
+            response = SurveyResponse.objects.get(survey=survey, user=user)
             answers = SurveyAnswer.objects.filter(response=response)
         except SurveyResponse.DoesNotExist:
             answers = []
@@ -493,8 +510,6 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         scale_range = range(1, 11)
         radar_labels, radar_values = self._calculate_competency_scores(survey, answers)
         radar_image = self._generate_radar_chart(radar_labels, radar_values)
-
-        # Tworzymy dane do tabeli pod wykresem
         radar_data = list(zip(radar_labels, radar_values))
 
         context.update({
@@ -503,6 +518,7 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
             "scale_range": scale_range,
             "radar_image": radar_image,
             "radar_data": radar_data,
+            "user": user,
         })
         return context
 
@@ -510,7 +526,6 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         labels = []
         values = []
 
-        # Pobranie unikalnych kompetencji i odfiltrowanie pustych
         raw_competencies = survey.questions.values_list("competency__name", flat=True).distinct()
         competencies = [c for c in raw_competencies if c and str(c).strip()]
 
@@ -538,7 +553,6 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
 
         fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
 
-        # Estetyka wykresu
         ax.set_theta_offset(np.pi / 2)
         ax.set_theta_direction(-1)
         ax.set_xticks(angles)
@@ -548,15 +562,12 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         ax.grid(True)
         ax.set_title("Wykres kompetencji", va='bottom')
 
-        # Linie promieniowe dla podziału koła
         for angle in angles:
             ax.plot([angle, angle], [0, 100], color='gray', linewidth=0.5, linestyle='dashed')
 
-        # Rysowanie danych
         ax.plot(angles_closed, values_closed, linewidth=2, linestyle='solid', color='blue')
         ax.fill(angles_closed, values_closed, 'blue', alpha=0.1)
 
-        # Konwersja do base64
         buf = io.BytesIO()
         plt.savefig(buf, format='png', bbox_inches='tight')
         buf.seek(0)
