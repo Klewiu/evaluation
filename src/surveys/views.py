@@ -210,7 +210,7 @@ def surveys_list(request):
     surveys = Survey.objects.all().order_by('-created_at')  # najnowsze pierwsze
     return render(request, "surveys/surveys_list.html", {"surveys": surveys})
 
-# Dodanie ankiety
+# Dodawanie ankiety
 @login_required
 def survey_add(request):
     if request.method == "POST":
@@ -224,27 +224,30 @@ def survey_add(request):
             if not question_ids or question_ids == ['']:
                 questions = Question.objects.filter(
                     Q(departments=survey.department) | Q(departments__isnull=True),
+                    Q(role=survey.role) | Q(role="both"),   # <-- filtrowanie po roli
                     is_active=True
                 ).distinct().order_by("id")
-    
+
                 for idx, q in enumerate(questions):
                     SurveyQuestion.objects.create(survey=survey, question=q, order=idx)
 
             else:
-                # Dodaj pytania wybrane przez użytkownika, tylko jeśli są aktywne
                 for idx, qid in enumerate(question_ids):
                     if qid.strip():
-                        q = get_object_or_404(Question, pk=qid, is_active=True)
+                        q = get_object_or_404(
+                            Question, pk=qid, is_active=True
+                        )
                         SurveyQuestion.objects.create(survey=survey, question=q, order=idx)
 
             return redirect("surveys_list")
     else:
         form = SurveyForm()
 
-    # Pobranie wszystkich aktywnych pytań do wyświetlenia w formularzu
+    # Pokazujemy wszystkie pytania do HTMX lub wyboru ręcznego
     questions = Question.objects.filter(is_active=True)
 
     return render(request, "surveys/survey_add.html", {"form": form, "questions": questions})
+
 
 
 
@@ -290,9 +293,12 @@ def survey_preview(request, pk):
 def survey_fill(request, pk):
     survey = get_object_or_404(Survey, pk=pk)
 
-    # tylko pracownik może wypełniać
-    if request.user.role != "employee":
-        return HttpResponseForbidden("Tylko pracownicy mogą wypełniać ankiety.")
+    # sprawdzamy czy rola użytkownika pasuje do roli ankiety
+    if not (
+        survey.role == "both"
+        or survey.role == request.user.role
+    ):
+        return HttpResponseForbidden("Nie masz uprawnień do wypełnienia tej ankiety.")
 
     # sprawdź czy user już wypełnił
     if SurveyResponse.objects.filter(survey=survey, user=request.user).exists():
@@ -413,10 +419,11 @@ def survey_result(request, pk):
 def survey_edit_response(request, pk):
     survey = get_object_or_404(Survey, pk=pk)
 
-    if request.user.role != "employee":
-        return HttpResponseForbidden("Tylko pracownicy mogą edytować swoje odpowiedzi.")
+    # Sprawdzenie roli użytkownika względem ankiety
+    if not (survey.role == "both" or survey.role == request.user.role):
+        return HttpResponseForbidden("Nie masz uprawnień do edycji tej ankiety.")
 
-    # Pobierz istniejącą odpowiedź
+    # Pobierz istniejącą odpowiedź użytkownika
     response = get_object_or_404(SurveyResponse, survey=survey, user=request.user)
     questions = survey.surveyquestion_set.select_related("question").all()
 
@@ -445,9 +452,8 @@ def survey_edit_response(request, pk):
         "questions": questions,
         "answers": answers,
         "scale_range": range(1, 11),
+        "user_role": request.user.role,  # nowa zmienna do wyświetlenia w szablonie
     })
-
-
 
 
 @login_required

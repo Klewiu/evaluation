@@ -55,24 +55,37 @@ class QuestionForm(forms.ModelForm):
 class SurveyForm(forms.ModelForm):
     class Meta:
         model = Survey
-        fields = ['name', 'department', 'year']  # dodajemy 'year'
+        fields = ['name', 'department', 'year', 'role']  # dodaliśmy role
         labels = {
             'name': 'Nazwa ankiety',
             'department': 'Dział',
             'year': 'Rok',
+            'role': 'Rola użytkownika',
         }
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nazwa ankiety'}),
+
+            # Dział – zostawiamy HTMX
             'department': forms.Select(attrs={
                 'class': 'form-select',
                 'hx-get': '/surveys/load-questions/',
                 'hx-target': '#questions-container',
                 'hx-trigger': 'change'
             }),
+
+            # Rok
             'year': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Wpisz rok np. 2025',
-                'min': 2000,  # opcjonalnie ograniczenie minimalnego roku
-                'max': 2100   # opcjonalnie ograniczenie maksymalnego roku
+                'min': 2000,
+                'max': 2100
+            }),
+
+            # Rola – też podpinamy do HTMX
+            'role': forms.Select(attrs={
+                'class': 'form-select',
+                'hx-get': '/surveys/load-questions/',
+                'hx-target': '#questions-container',
+                'hx-trigger': 'change'
             }),
         }

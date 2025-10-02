@@ -10,18 +10,32 @@ from django.contrib.auth.decorators import login_required
 from users.models import CustomUser
 from surveys.models import Survey, SurveyResponse
 
+from django.db.models import Q
+
 @login_required
 def home(request):
     user = request.user
     surveys_list = []
 
-    # tylko dla pracowników
-    if user.role == 'employee' and user.department:
-        # wszystkie ankiety dla działu użytkownika
-        department_surveys = Survey.objects.filter(department=user.department)
+    if user.department:
+        # Filtrowanie ankiet zależnie od roli
+        if user.role == 'employee':
+            department_surveys = Survey.objects.filter(
+                department=user.department,
+                role__in=["employee", "both"]
+            ).order_by('-created_at')
 
+        elif user.role == 'manager':
+            department_surveys = Survey.objects.filter(
+                department=user.department,
+                role__in=["manager", "both"]
+            ).order_by('-created_at')
+
+        else:
+            department_surveys = Survey.objects.none()
+
+        # Sparuj ankiety z ewentualnymi odpowiedziami użytkownika
         for survey in department_surveys:
-            # sprawdź czy user już wypełnił ankietę
             try:
                 response = SurveyResponse.objects.get(survey=survey, user=user)
             except SurveyResponse.DoesNotExist:

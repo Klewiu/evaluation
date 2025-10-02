@@ -56,8 +56,16 @@ class Survey(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     year = models.PositiveIntegerField(blank=True, null=True)
 
+    ROLE_CHOICES = [
+        ("both", "Pracownik i Manager"),
+        ("manager", "Manager"),
+        ("employee", "Pracownik"),
+    ]
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="both")
+
     def __str__(self):
-        return f"{self.name} ({self.department.name}, {self.year or self.created_at.year})"
+        return f"{self.name} ({self.department.name}, {self.year or self.created_at.year}, {self.get_role_display()})"
+
 
 class SurveyQuestion(models.Model):
     survey = models.ForeignKey(Survey, on_delete=models.CASCADE)
