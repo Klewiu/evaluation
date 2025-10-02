@@ -1,0 +1,4 @@
+{# templates/users/_tbody_oob.html #}
+<tbody id="user-table-body" hx-swap-oob="outerHTML">
+  {% include "users/_rows.html" with users=users %}
+</tbody>

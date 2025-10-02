@@ -1,39 +1,33 @@
 {# templates/users/_create_form.html #}
 
 <script>
-    /**
-     * Generates a secure, randomized password of a given length.
-     * Guarantees at least one capital letter, one digit, and one special character.
-     * @param {number} length - The desired password length (default 14).
-     * @returns {string} The generated password.
-     */
-    function generatePassword(length = 14) {
-        // Define character pools
-        const specialChars = '!@#$%^&*()_+~`|}{[]:;?><,./-=';
-        const digits = '0123456789';
-        const capitals = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        const lowers = 'abcdefghijklmnopqrstuvwxyz';
-        const allChars = capitals + lowers + digits + specialChars;
-        
-        let passwordArray = [];
+  /**
+   * Generates a secure, randomized password of a given length.
+   * Guarantees at least one capital letter, one digit, and one special character.
+   */
+  function generatePassword(length = 14) {
+    const specialChars = '!@#$%^&*()_+~`|}{[]:;?><,./-=';
+    const digits = '0123456789';
+    const capitals = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowers = 'abcdefghijklmnopqrstuvwxyz';
+    const allChars = capitals + lowers + digits + specialChars;
 
-        // 1. Guarantee inclusion of required types
-        passwordArray.push(capitals[Math.floor(Math.random() * capitals.length)]);
-        passwordArray.push(digits[Math.floor(Math.random() * digits.length)]);
-        passwordArray.push(specialChars[Math.floor(Math.random() * specialChars.length)]);
-        // Fill the rest of the length randomly
-        for (let i = passwordArray.length; i < length; i++) {
-            passwordArray.push(allChars[Math.floor(Math.random() * allChars.length)]);
-        }
-        
-        // 3. Shuffle the array to randomize the order
-        for (let i = passwordArray.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [passwordArray[i], passwordArray[j]] = [passwordArray[j], passwordArray[i]];
-        }
-        
-        return passwordArray.join('');
+    let passwordArray = [];
+    // ensure each category
+    passwordArray.push(capitals[Math.floor(Math.random() * capitals.length)]);
+    passwordArray.push(digits[Math.floor(Math.random() * digits.length)]);
+    passwordArray.push(specialChars[Math.floor(Math.random() * specialChars.length)]);
+    // fill the rest
+    for (let i = passwordArray.length; i < length; i++) {
+      passwordArray.push(allChars[Math.floor(Math.random() * allChars.length)]);
     }
+    // shuffle
+    for (let i = passwordArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [passwordArray[i], passwordArray[j]] = [passwordArray[j], passwordArray[i]];
+    }
+    return passwordArray.join('');
+  }
 </script>
 
 <div class="modal-header">
@@ -52,7 +46,6 @@
     <div class="row g-3">
       <div class="col-md-6">
         <label class="form-label">Nazwa użytkownika (login)</label>
-        {# LIVE check + clear stale error on input #}
         <input
           type="text"
           name="username"
@@ -64,7 +57,6 @@
           hx-target="#username-hint"
           hx-trigger="keyup changed delay:400ms"
           _="on input remove .is-invalid from me then if #username-error exists then add .d-none to #username-error end">
-        {# server-side error stays here, but we hide it as soon as the user types #}
         {% if form.username.errors %}
           <div id="username-error" class="invalid-feedback d-block">
             {{ form.username.errors|striptags }}
@@ -106,41 +98,37 @@
 
       <hr class="mt-2 mb-1">
 
-      {# Password Actions: Generator and Toggle #}
       <div class="col-12 d-flex align-items-center justify-content-between">
         <label class="form-label mb-0">Hasło i potwierdzenie</label>
         <div class="btn-group btn-group-sm" role="group" aria-label="Password actions">
-            
-            {# NEW: Password Generator Button #}
-            <button type="button" class="btn btn-outline-success"
-                title="Generuje bezpieczne hasło (14 znaków)"
-                _="on click 
-                   call generatePassword() 
-                   then set value of #id_password1 to result 
-                   then set value of #id_password2 to result 
-                   then set #toggle-passwords's innerText to 'Ukryj hasło' 
-                   then set #id_password1's type to 'text'
-                   then set #id_password2's type to 'text'">
-                <i class="bi bi-shield-lock"></i> Generuj Silne Hasło
-            </button>
+          <button type="button" class="btn btn-outline-success"
+                  title="Generuje bezpieczne hasło (14 znaków)"
+                  _="on click 
+                       call generatePassword() 
+                       then set value of #id_password1 to result 
+                       then set value of #id_password2 to result 
+                       then set #toggle-passwords's innerText to 'Ukryj hasło' 
+                       then set #id_password1's type to 'text'
+                       then set #id_password2's type to 'text'">
+            <i class="bi bi-shield-lock"></i> Generuj Silne Hasło
+          </button>
 
-            {# Existing Toggle for password visibility #}
-            <button type="button" class="btn btn-outline-secondary"
-                    id="toggle-passwords"
-                    _="
-                      on click
-                        if #id_password1's type is 'password'
-                          set #id_password1's type to 'text'
-                          set #id_password2's type to 'text'
-                          put 'Ukryj hasło' into me.innerText
-                        else
-                          set #id_password1's type to 'password'
-                          set #id_password2's type to 'password'
-                          put 'Pokaż hasło' into me.innerText
-                        end
-                    ">
-              Pokaż hasło
-            </button>
+          <button type="button" class="btn btn-outline-secondary"
+                  id="toggle-passwords"
+                  _="
+                    on click
+                      if #id_password1's type is 'password'
+                        set #id_password1's type to 'text'
+                        set #id_password2's type to 'text'
+                        put 'Ukryj hasło' into me.innerText
+                      else
+                        set #id_password1's type to 'password'
+                        set #id_password2's type to 'password'
+                        put 'Pokaż hasło' into me.innerText
+                      end
+                  ">
+            Pokaż hasło
+          </button>
         </div>
       </div>
 
@@ -161,7 +149,7 @@
 
     <div class="modal-footer px-2 mt-4">
       <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
-      <button type="submit" class="btn btn-success">Utwórz</button>
+      <button type="submit" class="btn btn-success" formnovalidate>Utwórz</button>
     </div>
   </form>
 </div>
