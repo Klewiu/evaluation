@@ -19,6 +19,10 @@
         </i>
       </span>
     </h2>
+ <div class="d-flex align-items-center gap-2">
+      <a href="{% url 'departments_list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-diagram-3"></i> Działy
+      </a>
 
     <button
       type="button"
@@ -31,6 +35,22 @@
       <i class="bi bi-person-plus"></i> Dodaj użytkownika
     </button>
   </div>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if users|length == 0 %}
+    <div class="alert alert-info" role="alert">
+      Brak użytkowników. Kliknij przycisk "Dodaj użytkownika", aby utworzyć nowego użytkownika.
+    </div>
+  {% endif %}
 
   <div class="table-responsive">
     <table class="table align-middle">

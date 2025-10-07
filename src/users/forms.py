@@ -1,12 +1,12 @@
 # users/forms.py
 from django import forms
 from django.contrib.auth import get_user_model, password_validation
+from .models import Department  # ← added
 
 User = get_user_model()
 
 
 class AdminUserUpdateForm(forms.ModelForm):
-    # Override email field to use Polish 'invalid' message (and disable native browser validation via TextInput)
     email = forms.EmailField(
         label="E-mail",
         widget=forms.TextInput(attrs={
@@ -16,9 +16,8 @@ class AdminUserUpdateForm(forms.ModelForm):
         }),
         error_messages={
             "invalid": "Błędny format e-mail",
-            # "required": "Adres e-mail jest wymagany.",  # odkomentuj jeśli chcesz
         },
-        required=False,  # jak u Ciebie – e-mail opcjonalny przy edycji
+        required=False,
     )
 
     password1 = forms.CharField(
@@ -39,14 +38,13 @@ class AdminUserUpdateForm(forms.ModelForm):
         widgets = {
             "first_name": forms.TextInput(attrs={"class": "form-control"}),
             "last_name":  forms.TextInput(attrs={"class": "form-control"}),
-            # "email": set above
             "department": forms.Select(attrs={"class": "form-select"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["department"].required = False
-        self.fields["department"].empty_label = "-"  # wybór "-" wyczyści dział
+        self.fields["department"].empty_label = "-"
 
     def clean(self):
         cleaned = super().clean()
@@ -61,7 +59,6 @@ class AdminUserUpdateForm(forms.ModelForm):
 
 
 class AdminUserCreateForm(forms.ModelForm):
-    # Email with Polish 'invalid' message (again TextInput to avoid native browser message)
     email = forms.EmailField(
         label="E-mail",
         widget=forms.TextInput(attrs={
@@ -71,7 +68,6 @@ class AdminUserCreateForm(forms.ModelForm):
         }),
         error_messages={
             "invalid": "Błędny format e-mail",
-            # "required": "Adres e-mail jest wymagany.",  # odkomentuj jeśli chcesz
         },
     )
 
@@ -92,34 +88,29 @@ class AdminUserCreateForm(forms.ModelForm):
             "role":       forms.Select(attrs={"class": "form-select"}),
             "first_name": forms.TextInput(attrs={"class": "form-control"}),
             "last_name":  forms.TextInput(attrs={"class": "form-control"}),
-            # "email": set above
             "department": forms.Select(attrs={"class": "form-select"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["department"].required = False
-        self.fields["department"].empty_label = "-"  # "-" = brak działu
+        self.fields["department"].empty_label = "-"
 
     def clean(self):
         cleaned = super().clean()
 
-        # Unique username (case-insensitive)
         username = cleaned.get("username", "").strip()
         if username and User.objects.filter(username__iexact=username).exists():
             self.add_error("username", "Ten login jest już zajęty.")
 
-        # Passwords match + strength
         p1 = cleaned.get("password1")
         p2 = cleaned.get("password2")
         if p1 or p2:
             if p1 != p2:
                 self.add_error("password2", "Hasła nie są takie same.")
             else:
-                # validate strength against a new (unsaved) user instance
                 dummy = User(username=username or None)
                 password_validation.validate_password(p1, user=dummy)
-
         return cleaned
 
     def save(self, commit=True):
@@ -130,3 +121,30 @@ class AdminUserCreateForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
+
+# ======================================================
+# DEPARTMENT FORM
+# ======================================================
+class DepartmentForm(forms.ModelForm):
+    name = forms.CharField(
+        label="Nazwa działu",
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "np. Księgowość, IT, Marketing",
+            "autocomplete": "off",
+        }),
+        error_messages={
+            "required": "Nazwa działu jest wymagana.",
+        },
+    )
+
+    class Meta:
+        model = Department
+        fields = ["name"]
+
+    def clean_name(self):
+        name = self.cleaned_data.get("name", "").strip()
+        if Department.objects.filter(name__iexact=name).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Taki dział już istnieje.")
+        return name
