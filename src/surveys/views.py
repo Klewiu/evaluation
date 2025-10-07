@@ -23,6 +23,7 @@ import matplotlib
 matplotlib.use('Agg') 
 import matplotlib.pyplot as plt
 import numpy as np
+from django.views.generic import TemplateView
 
 from users.models import CustomUser
 # KOMPETENCJE
@@ -478,7 +479,105 @@ def save_question_order(request, pk):
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
 
-class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
+# class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
+#     template_name = "surveys/survey_pdf.html"
+
+#     def get_user(self):
+#         user_id = self.kwargs.get("user_id")
+#         if user_id:
+#             return get_object_or_404(CustomUser, pk=user_id)
+#         return self.request.user
+
+#     def get_survey(self):
+#         survey_id = self.kwargs.get("pk") or self.kwargs.get("survey_id")
+#         return get_object_or_404(Survey, pk=survey_id)
+
+#     def get_filename(self):
+#         survey = self.get_survey()
+#         user = self.get_user()
+#         return f"{survey.name}_{survey.year}_{user.username}.pdf"
+
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         survey = self.get_survey()
+#         user = self.get_user()
+
+#         try:
+#             response = SurveyResponse.objects.get(survey=survey, user=user)
+#             answers = SurveyAnswer.objects.filter(response=response)
+#         except SurveyResponse.DoesNotExist:
+#             answers = []
+
+#         scale_range = range(1, 11)
+#         radar_labels, radar_values = self._calculate_competency_scores(survey, answers)
+#         radar_image = self._generate_radar_chart(radar_labels, radar_values)
+#         radar_data = list(zip(radar_labels, radar_values))
+
+#         context.update({
+#             "survey": survey,
+#             "answers": answers,
+#             "scale_range": scale_range,
+#             "radar_image": radar_image,
+#             "radar_data": radar_data,
+#             "user": user,
+#         })
+#         return context
+
+#     def _calculate_competency_scores(self, survey, answers):
+#         labels = []
+#         values = []
+
+#         raw_competencies = survey.questions.values_list("competency__name", flat=True).distinct()
+#         competencies = [c for c in raw_competencies if c and str(c).strip()]
+
+#         for comp in competencies:
+#             comp_questions = survey.questions.filter(competency__name=comp)
+#             max_total = comp_questions.count() * 10
+#             user_total = sum(
+#                 a.scale_value for a in answers
+#                 if a.question in comp_questions and a.scale_value is not None
+#             )
+#             percentage = round(user_total / max_total * 100, 2) if max_total > 0 else 0
+#             labels.append(comp)
+#             values.append(percentage)
+
+#         return labels, values
+
+#     def _generate_radar_chart(self, labels, values):
+#         if not labels or not values:
+#             return None
+
+#         N = len(labels)
+#         angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
+#         angles_closed = angles + [angles[0]]
+#         values_closed = values + [values[0]]
+
+#         fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+
+#         ax.set_theta_offset(np.pi / 2)
+#         ax.set_theta_direction(-1)
+#         ax.set_xticks(angles)
+#         ax.set_xticklabels(labels)
+#         ax.set_ylim(0, 100)
+#         ax.set_rlabel_position(0)
+#         ax.grid(True)
+#         ax.set_title("Wykres kompetencji", va='bottom')
+
+#         for angle in angles:
+#             ax.plot([angle, angle], [0, 100], color='gray', linewidth=0.5, linestyle='dashed')
+
+#         ax.plot(angles_closed, values_closed, linewidth=2, linestyle='solid', color='blue')
+#         ax.fill(angles_closed, values_closed, 'blue', alpha=0.1)
+
+#         buf = io.BytesIO()
+#         plt.savefig(buf, format='png', bbox_inches='tight')
+#         buf.seek(0)
+#         image_base64 = base64.b64encode(buf.read()).decode('utf-8')
+#         plt.close(fig)
+
+#         return image_base64
+    
+class SurveyPDFView(LoginRequiredMixin, TemplateView):
     template_name = "surveys/survey_pdf.html"
 
     def get_user(self):
@@ -509,14 +608,14 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
 
         scale_range = range(1, 11)
         radar_labels, radar_values = self._calculate_competency_scores(survey, answers)
-        radar_image = self._generate_radar_chart(radar_labels, radar_values)
         radar_data = list(zip(radar_labels, radar_values))
 
         context.update({
             "survey": survey,
             "answers": answers,
             "scale_range": scale_range,
-            "radar_image": radar_image,
+            "radar_labels": radar_labels,
+            "radar_values": radar_values,
             "radar_data": radar_data,
             "user": user,
         })
@@ -541,37 +640,3 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
             values.append(percentage)
 
         return labels, values
-
-    def _generate_radar_chart(self, labels, values):
-        if not labels or not values:
-            return None
-
-        N = len(labels)
-        angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
-        angles_closed = angles + [angles[0]]
-        values_closed = values + [values[0]]
-
-        fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
-
-        ax.set_theta_offset(np.pi / 2)
-        ax.set_theta_direction(-1)
-        ax.set_xticks(angles)
-        ax.set_xticklabels(labels)
-        ax.set_ylim(0, 100)
-        ax.set_rlabel_position(0)
-        ax.grid(True)
-        ax.set_title("Wykres kompetencji", va='bottom')
-
-        for angle in angles:
-            ax.plot([angle, angle], [0, 100], color='gray', linewidth=0.5, linestyle='dashed')
-
-        ax.plot(angles_closed, values_closed, linewidth=2, linestyle='solid', color='blue')
-        ax.fill(angles_closed, values_closed, 'blue', alpha=0.1)
-
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight')
-        buf.seek(0)
-        image_base64 = base64.b64encode(buf.read()).decode('utf-8')
-        plt.close(fig)
-
-        return image_base64

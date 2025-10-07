@@ -1,3 +1,4 @@
+{% extends "base.html" %}
 {% block content %}
 
 <style>
@@ -6,191 +7,158 @@ body {
   background-color: #fefefe;
   color: #333;
 }
-
-p {
-  font-size: 14px;
-  margin-bottom: 4px;  /* mniejszy margines dla nagłówków ankiety i pracownika */
-}
-
-/* --- Nagłówek ankiety --- */
-h2 {
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-h3 {
-  font-size: 18px;
-  font-weight: 500;
-  margin-bottom: 28px;  /* większy margines przed pytaniami */
-  color: #17a2b8;
-}
-
-/* --- Sekcja pytania --- */
-.mb-3 {
-  margin-bottom: 28px;
-}
-
-label strong {
-  font-size: 17px;
-  font-weight: 500;
-  display: block;
-  margin-bottom: 10px;
-}
-
-/* --- Ukrycie oryginalnych radio --- */
-.custom-radio input[type="radio"] {
-  display: none;
-}
-
-/* --- Widoczny krąg --- */
+p { font-size: 14px; margin-bottom: 4px; }
+h2 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+h3 { font-size: 18px; font-weight: 500; margin-bottom: 28px; color: #17a2b8; }
+.mb-3 { margin-bottom: 28px; }
+label strong { font-size: 17px; font-weight: 500; display: block; margin-bottom: 10px; }
+.custom-radio input[type="radio"] { display: none; }
 .custom-radio span {
-  display: inline-block;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 2px solid #bbb;
-  margin-right: 6px;
-  vertical-align: middle;
-  background-color: #fff;
+  display: inline-block; width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid #bbb; margin-right: 6px; background-color: #fff;
   transition: all 0.2s ease;
 }
-
-.custom-radio input[type="radio"]:checked + span {
-  background-color: #28a745;
-  border-color: #28a745;
-}
-
-/* --- Radio z tekstem obok --- */
-.custom-radio {
-  font-size: 15px;
-  display: inline-flex;
-  align-items: center;
-  margin-right: 10px;
-}
-
-/* --- Kontener przycisków --- */
-.radio-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 6px;
-}
-
-/* --- Textarea --- */
+.custom-radio input[type="radio"]:checked + span { background-color: #28a745; border-color: #28a745; }
+.custom-radio { font-size: 15px; display: inline-flex; align-items: center; margin-right: 10px; }
+.radio-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
 textarea.form-control {
-  width: 100%;
-  min-height: 60px;
-  resize: none;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  padding: 8px;
-  font-size: 15px;
-  background-color: #f9f9f9;
-  margin-top: 12px;
+  width: 100%; min-height: 60px; resize: none; border-radius: 6px;
+  border: 1px solid #ccc; padding: 8px; font-size: 15px; background-color: #f9f9f9; margin-top: 12px;
 }
-
-/* --- Radar container --- */
-.radar-container {
-  max-width: 800px;
-  margin: 40px auto;
-  text-align: center;
+.radar-container { max-width: 800px; margin: 40px auto; text-align: center; }
+.table-container { max-width: 400px; margin: 50px auto 0 auto; }
+.table-container table { width: 100%; border-collapse: collapse; text-align: center; }
+.table-container th, .table-container td { border: 1px solid #333; padding: 6px; }
+#downloadPDF {
+  background-color: #17a2b8; color: white; border: none; border-radius: 6px;
+  padding: 10px 16px; cursor: pointer; margin-top: 20px;
 }
-
-.radar-container h3 {
-  font-size: 18px;
-  font-weight: 500;
-  margin-bottom: 16px;
-}
-
-/* --- Tabela pod wykresem --- */
-.table-container {
-  max-width: 400px;
-  margin: 20px auto 0 auto;
-  margin-top: 50px;
-}
-
-.table-container table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: center;
-}
-
-.table-container th,
-.table-container td {
-  border: 1px solid #333;
-  padding: 6px;
-}
+#downloadPDF:hover { background-color: #138496; }
 </style>
 
-<div class="container mt-4">
-    <p>Nazwa ankiety:</p>
-    <h2>{{ survey.name }} - {{ survey.year }}</h2>
-    <p>Pracownik:</p>
-    <h3 class="text-info">{{ user.get_full_name }}</h3>
-    <p style="margin-bottom: 28px;">Pytania:</p>    
+<div class="container mt-4" id="pdf-content">
+  <p>Nazwa ankiety:</p>
+  <h2>{{ survey.name }} - {{ survey.year }}</h2>
+  <p>Pracownik:</p>
+  <h3>{{ user.get_full_name }}</h3>
+  <p style="margin-bottom: 28px;">Pytania:</p>
 
-    <form>
-      {% for sq in survey.surveyquestion_set.all %}
-        <div class="mb-3">
-          <!-- Numeracja pytań -->
-          <label><strong>{{ forloop.counter }}. {{ sq.question.text }}</strong></label>
+  <form>
+    {% for sq in survey.surveyquestion_set.all %}
+      <div class="mb-3">
+        <label><strong>{{ forloop.counter }}. {{ sq.question.text }}</strong></label>
 
-          {% if sq.question.type == "scale" or sq.question.type == "both" %}
-            <div class="radio-group">
-              {% for i in scale_range %}
-                {% for ans in answers %}
-                  {% if ans.question.id == sq.question.id %}
-                    <label class="custom-radio">
-                      <input type="radio" name="q{{ sq.question.id }}_scale" value="{{ i }}"
-                        {% if ans.scale_value|stringformat:"s" == i|stringformat:"s" %}checked{% endif %}
-                        disabled>
-                      <span></span> {{ i }}
-                    </label>
-                  {% endif %}
-                {% endfor %}
+        {% if sq.question.type == "scale" or sq.question.type == "both" %}
+          <div class="radio-group">
+            {% for i in scale_range %}
+              {% for ans in answers %}
+                {% if ans.question.id == sq.question.id %}
+                  <label class="custom-radio">
+                    <input type="radio" name="q{{ sq.question.id }}_scale" value="{{ i }}"
+                      {% if ans.scale_value|stringformat:"s" == i|stringformat:"s" %}checked{% endif %} disabled>
+                    <span></span> {{ i }}
+                  </label>
+                {% endif %}
               {% endfor %}
-            </div>
-          {% endif %}
-
-          {% if sq.question.type == "text" or sq.question.type == "both" %}
-            {% for ans in answers %}
-              {% if ans.question.id == sq.question.id %}
-                <textarea class="form-control" disabled>{{ ans.text_value }}</textarea>
-              {% endif %}
             {% endfor %}
-          {% endif %}
-        </div>
-      {% empty %}
-        <p>Brak odpowiedzi</p>
-      {% endfor %}
-    </form>
+          </div>
+        {% endif %}
 
-    {% if radar_image %}
-      <div class="radar-container">
-        <img src="data:image/png;base64,{{ radar_image }}" style="max-width:100%; height:auto;">
-
-        <!-- Tabela z wartościami pod wykresem -->
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Kompetencja</th>
-                        <th>Procent [%]</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for label, value in radar_data %}
-                    <tr>
-                        <td>{{ label }}</td>
-                        <td>{{ value }}%</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        {% if sq.question.type == "text" or sq.question.type == "both" %}
+          {% for ans in answers %}
+            {% if ans.question.id == sq.question.id %}
+              <textarea class="form-control" disabled>{{ ans.text_value }}</textarea>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
       </div>
-    {% endif %}
+    {% empty %}
+      <p>Brak odpowiedzi</p>
+    {% endfor %}
+  </form>
+
+  <div class="radar-container">
+    <h3>Wykres kompetencji</h3>
+    <canvas id="radarChart" width="400" height="400"></canvas>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Kompetencja</th>
+            <th>Procent [%]</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for label, value in radar_data %}
+          <tr>
+            <td>{{ label }}</td>
+            <td>{{ value }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <button id="downloadPDF">Pobierz PDF</button>
+  </div>
 </div>
+
+<!-- Chart.js + jsPDF + html2canvas -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const ctx = document.getElementById('radarChart');
+
+  const radarLabels = {{ radar_labels|safe }};
+  const radarValues = {{ radar_values|safe }};
+
+  // Wykres Chart.js
+  new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: radarLabels,
+      datasets: [{
+        label: 'Poziom kompetencji (%)',
+        data: radarValues,
+        fill: true,
+        borderColor: 'rgba(54, 162, 235, 1)',
+        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+        pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      scales: {
+        r: {
+          angleLines: { display: true },
+          suggestedMin: 0,
+          suggestedMax: 100
+        }
+      }
+    }
+  });
+
+  // Generowanie PDF w przeglądarce
+  document.getElementById('downloadPDF').addEventListener('click', function() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'pt', 'a4');
+    const pdfElement = document.getElementById("pdf-content");
+
+    html2canvas(pdfElement, { scale: 2 }).then(canvas => {
+      const imgData = canvas.toDataURL('image/png');
+      const imgProps = doc.getImageProperties(imgData);
+      const pdfWidth = doc.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      doc.save('{{ survey.name }}_{{ survey.year }}_{{ user.username }}.pdf');
+    });
+  });
+});
+</script>
 
 {% endblock %}

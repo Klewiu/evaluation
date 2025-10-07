@@ -124,7 +124,13 @@
 
     <!-- Przycisk powrót pod tabelą -->
     <div class="text-center my-2">
-        <a href="{% url 'home' %}" class="btn btn-secondary px-4">Powrót</a>
+        <button
+            class="btn btn-secondary"
+            type="button"
+            onclick="if (document.referrer) { window.history.back(); } else { window.location.href = '{% url 'home' %}'; }"
+            >
+            Powrót
+            </button>
     </div>
 </div>
 
