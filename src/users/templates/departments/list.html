@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <h2 class="mb-0 d-flex align-items-center">
+      Lista działów
+      <span class="ms-2">
+        <i class="bi bi-info-circle-fill text-warning fs-5"
+           role="img"
+           aria-label="Wskazówka"
+           data-bs-toggle="popover"
+           data-bs-placement="bottom"
+           data-bs-container="body"
+           data-bs-trigger="hover focus"
+           data-bs-html="true"
+           data-bs-title="Wskazówka"
+           data-bs-content="<div class='mb-1'>Zarządzaj działami: dodawaj, edytuj lub usuwaj działy.</div>">
+        </i>
+      </span>
+    </h2>
+
+    <div class="d-flex align-items-center gap-2">
+      <a href="{% url 'users_list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-people"></i> Użytkownicy
+      </a>
+
+      <button
+        type="button"
+        class="btn btn-success"
+        data-bs-toggle="modal"
+        data-bs-target="#createDepartmentModal"
+        hx-get="{% url 'department_new' %}"
+        hx-target="#create-department-modal-content"
+        hx-swap="innerHTML">
+        <i class="bi bi-building-add"></i> Dodaj dział
+      </button>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Nazwa działu</th>
+          <th>Liczba użytkowników</th>
+          <th class="text-end">Akcje</th>
+        </tr>
+      </thead>
+      <tbody id="department-table-body">
+        {% for d in departments %}
+        <tr id="department-row-{{ d.pk }}">
+          <td>{{ d.name }}</td>
+          <td>{{ d.user_count|default:0 }}</td>
+          <td class="text-end">
+            <div class="btn-group btn-group-sm gap-1" role="group">
+              <!-- Edit -->
+              <button
+                type="button"
+                class="btn btn-outline-primary"
+                data-bs-toggle="modal"
+                data-bs-target="#editDepartmentModal"
+                hx-get="{% url 'department_edit' d.pk %}"
+                hx-target="#edit-department-modal-content"
+                hx-swap="innerHTML">
+                Edytuj
+              </button>
+
+              <!-- Delete -->
+              <button
+                type="button"
+                class="btn btn-outline-danger"
+                data-bs-toggle="modal"
+                data-bs-target="#confirmDeleteDepartmentModal"
+                hx-get="{% url 'department_confirm_delete' d.pk %}"
+                hx-target="#confirm-delete-department-modal-content"
+                hx-swap="innerHTML">
+                Usuń
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="3" class="text-center text-muted">Brak działów.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- CREATE Modal -->
+<div class="modal fade"
+     id="createDepartmentModal"
+     tabindex="-1"
+     aria-hidden="true"
+     hx-on="deptCreated: bootstrap.Modal.getOrCreateInstance(this).hide()">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" id="create-department-modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Nowy dział</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-muted">Wczytywanie formularza…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT Modal -->
+<div class="modal fade"
+     id="editDepartmentModal"
+     tabindex="-1"
+     aria-hidden="true"
+     hx-on="deptUpdated: bootstrap.Modal.getOrCreateInstance(this).hide()">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" id="edit-department-modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edytuj dział</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-muted">Wybierz dział do edycji…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE Modal -->
+<div class="modal fade" id="confirmDeleteDepartmentModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" id="confirm-delete-department-modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Usuwanie działu</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-muted">Wybierz dział do usunięcia…</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
