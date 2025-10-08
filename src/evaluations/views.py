@@ -12,6 +12,8 @@ from surveys.models import Survey, SurveyResponse
 
 from django.db.models import Q
 
+from .models import EmployeeEvaluation
+
 @login_required
 def home(request):
     user = request.user
@@ -132,4 +134,41 @@ def employee_surveys(request, user_id):
     return render(request, "evaluations/employee_surveys.html", {
         "employee": employee,
         "surveys_with_status": surveys_with_status
+    })
+
+
+@login_required
+def manager_evaluate_employee(request, response_id):
+    # Pobieramy ankietę wypełnioną przez pracownika
+    employee_response = get_object_or_404(SurveyResponse, id=response_id)
+    
+    # Pobieramy odpowiedzi pracownika
+    employee_answers = SurveyAnswer.objects.filter(response=employee_response)
+    
+    # Pobranie wcześniejszych ocen managera (jeśli już istnieją)
+    manager_evals = EmployeeEvaluation.objects.filter(
+        employee_response=employee_response,
+        manager=request.user
+    )
+    manager_evals_dict = {e.question.id: e for e in manager_evals}
+
+    if request.method == "POST":
+        for ans in employee_answers:
+            scale = request.POST.get(f'scale_{ans.question.id}')
+            text = request.POST.get(f'text_{ans.question.id}')
+            if scale or text:
+                # Zapis lub aktualizacja oceny managera
+                EmployeeEvaluation.objects.update_or_create(
+                    employee_response=employee_response,
+                    question=ans.question,
+                    manager=request.user,
+                    defaults={'scale_value': scale, 'text_value': text}
+                )
+        # Po zapisaniu przekierowanie np. na listę pracowników
+        return redirect('manager_employees')  
+
+    return render(request, 'evaluations/manager_evaluate.html', {
+        'employee_response': employee_response,
+        'employee_answers': employee_answers,
+        'manager_evals_dict': manager_evals_dict
     })

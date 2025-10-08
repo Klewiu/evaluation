@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static %}
+{% load dict_filters %} {# zamiast evaluation_tags #}
+
+{% block title %}Ocena pracownika{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Ocena pracownika: {{ employee_response.user.get_full_name }}</h2>
+    <p>Ankieta: {{ employee_response.survey.name }}</p>
+    <form method="post">
+        {% csrf_token %}
+
+        {% for ans in employee_answers %}
+            <div class="mb-3 p-3 border rounded">
+                <!-- Pytanie -->
+                <p><strong>{{ ans.question.text }}</strong></p>
+
+                <!-- Odpowiedź pracownika -->
+                <p style="color: green;">
+                    {% if ans.scale_value %}Skala: {{ ans.scale_value }}{% endif %}
+                    {% if ans.text_value %}<br>Tekst: {{ ans.text_value }}{% endif %}
+                </p>
+
+                <!-- Pole do wpisania oceny managera -->
+                <div class="form-group">
+                    <label for="scale_{{ ans.question.id }}">Skala (opcjonalnie)</label>
+                    <input type="number" class="form-control" name="scale_{{ ans.question.id }}"
+                           value="{% if manager_evals_dict|dict_get:ans.question.id %}{{ manager_evals_dict|dict_get:ans.question.id.scale_value }}{% endif %}">
+                </div>
+
+                <div class="form-group mt-2">
+                    <label for="text_{{ ans.question.id }}">Komentarz (opcjonalnie)</label>
+                    <textarea class="form-control" name="text_{{ ans.question.id }}" rows="2">{% if manager_evals_dict|dict_get:ans.question.id %}{{ manager_evals_dict|dict_get:ans.question.id.text_value }}{% endif %}</textarea>
+                </div>
+            </div>
+        {% endfor %}
+
+        <button type="submit" class="btn btn-success mt-3">Zapisz oceny</button>
+        <a href="{% url 'manager_employees' %}" class="btn btn-secondary mt-3">Anuluj</a>
+    </form>
+</div>
+{% endblock %}

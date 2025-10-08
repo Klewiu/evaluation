@@ -6,5 +6,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('users/', include('users.urls')),         # logowanie i logout
     path('', include('evaluations.urls')),         # główna aplikacja
-    path('surveys/', include('surveys.urls')),     # ankiety (HR i admin)
+    path('surveys/', include('surveys.urls')),
+              # ankiety (HR i admin)
 ]

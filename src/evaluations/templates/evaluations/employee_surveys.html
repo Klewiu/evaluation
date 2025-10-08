@@ -46,6 +46,14 @@
                                 title="Pobierz PDF" target="_blank">
                                     <i class="bi bi-file-earmark-pdf"></i>
                                 </a>
+                               {% if item.response %}
+                                    <a href="{% url 'manager_evaluate_employee' item.response.id %}" 
+                                    class="btn btn-sm btn-success" title="Ocena managera">
+                                        <i class="bi bi-person-fill"></i>
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">Brak ankiety</span>
+                                {% endif %}
                             {% endif %}
                         </td>
                     </tr>
