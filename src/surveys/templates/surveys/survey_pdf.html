@@ -124,11 +124,23 @@ textarea.form-control {
 </style>
 
 <div class="container mt-4">
-    <p>Nazwa ankiety:</p>
-    <h2>{{ survey.name }} - {{ survey.year }}</h2>
-    <p>Pracownik:</p>
-    <h3 class="text-info">{{ user.get_full_name }}</h3>
-    <p style="margin-bottom: 28px;">Pytania:</p>    
+   <p><small class="text-muted"><u>Data wypełnienia: {{ survey.created_at|date:"d.m.Y H:i" }}</u></small></p>
+    <p class="m-0 text-secondary"><u>Nazwa ankiety:</u></p>
+    <h2 class="mb-2">{{ survey.name }}</h2>
+
+    <p class="m-0 text-secondary"><u>Pracownik:</u></p>
+    <h3 class="mb-2 text-info">{{ user.get_full_name }}</h3>
+
+    <p class="m-0 text-secondary"><u>Dział:</u></p>
+    <h4 class="mb-4 text-secondary">
+        {% if user.department %}
+            {{ user.department.name }}
+        {% else %}
+            Brak przypisanego działu
+        {% endif %}
+    </h4>
+
+    <p class="my-1 text-secondary"><u>Pytania:</u></p>   
 
     <form>
       {% for sq in survey.surveyquestion_set.all %}
