@@ -19,6 +19,9 @@ urlpatterns = [
     path('evaluate/<int:response_id>/', views.manager_evaluate_employee, name='manager_evaluate_employee'),
     # Podgląd oceny pracownika przez managera
     path('manager/survey_overview/<int:response_id>/', views.manager_survey_overview, name='manager_survey_overview'),
+    # PDF z podglądem oceny managera + wykresami
+   path('manager/survey_overview/pdf/<int:response_id>/', views.ManagerSurveyOverviewPDFView.as_view(), name='manager_survey_overview_pdf'),
+
 
 
 ]

@@ -12,8 +12,23 @@ from surveys.models import Survey, SurveyResponse
 
 from django.db.models import Q,Exists, OuterRef
 
-
 from .models import EmployeeEvaluation
+
+from django.contrib.auth.mixins import LoginRequiredMixin
+from wkhtmltopdf.views import PDFTemplateView
+import io
+import base64
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+from django.shortcuts import get_object_or_404
+from surveys.models import SurveyResponse, SurveyAnswer 
+from evaluations.models import EmployeeEvaluation  # dostosuj importy
+from django.contrib.auth import get_user_model
+
+
+
 
 @login_required
 def home(request):
@@ -224,3 +239,103 @@ def manager_survey_overview(request, response_id):
         "radar_manager_values": radar_manager_values,
         "radar_data": radar_data,
     })
+
+CustomUser = get_user_model()
+
+class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
+    template_name = "evaluations/manager_survey_overview_pdf.html"
+
+    def get_response(self):
+        response_id = self.kwargs.get("response_id")
+        return get_object_or_404(SurveyResponse, pk=response_id)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        response = self.get_response()
+
+        # Odpowiedzi pracownika
+        answers_user = response.answers.all()
+
+        # Odpowiedzi managera — przypisane do tego response i aktualnego managera
+        answers_manager = EmployeeEvaluation.objects.filter(
+            employee_response=response,
+            manager=self.request.user
+        )
+
+        # Wyliczenie kompetencji
+        labels, user_values, manager_values = [], [], []
+
+        competencies = response.survey.questions.values_list("competency__name", flat=True).distinct()
+        competencies = [c for c in competencies if c]
+
+        for comp_name in competencies:
+            comp_questions = response.survey.questions.filter(competency__name=comp_name)
+            max_total = comp_questions.count() * 10
+
+            user_total = sum(
+                a.scale_value for a in answers_user if a.question in comp_questions and a.scale_value is not None
+            )
+            manager_total = sum(
+                a.scale_value for a in answers_manager if a.question in comp_questions and a.scale_value is not None
+            )
+
+            labels.append(comp_name)
+            user_values.append(round(user_total / max_total * 100, 2) if max_total else 0)
+            manager_values.append(round(manager_total / max_total * 100, 2) if max_total else 0)
+
+        # Wygenerowanie wspólnego radaru
+        radar_image = self._generate_radar_chart_user_manager(labels, user_values, manager_values)
+
+        # Dane do tabeli pod wykresem
+        radar_data = list(zip(labels, user_values, manager_values))
+
+        context.update({
+            "response": response,
+            "answers_user": answers_user,
+            "answers_manager": answers_manager,
+            "radar_image": radar_image,
+            "radar_data": radar_data,
+        })
+
+        return context
+
+    def _generate_radar_chart_user_manager(self, labels, user_values, manager_values):
+        if not labels:
+            return None
+
+        N = len(labels)
+        angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
+        angles_closed = angles + [angles[0]]
+        user_values_closed = user_values + [user_values[0]]
+        manager_values_closed = manager_values + [manager_values[0]] if manager_values else None
+
+        fig, ax = plt.subplots(figsize=(6,6), subplot_kw=dict(polar=True))
+        ax.set_theta_offset(np.pi / 2)
+        ax.set_theta_direction(-1)
+        ax.set_xticks(angles)
+        ax.set_xticklabels(labels)
+        ax.set_ylim(0, 100)
+        ax.set_rlabel_position(0)
+        ax.grid(True)
+
+        # Linie siatki
+        for angle in angles:
+            ax.plot([angle, angle], [0, 100], color='gray', linestyle='dashed', linewidth=0.5)
+
+        # Wartości pracownika
+        ax.plot(angles_closed, user_values_closed, color='blue', linewidth=2, label='Pracownik')
+        ax.fill(angles_closed, user_values_closed, 'blue', alpha=0.1)
+
+        # Wartości managera
+        if manager_values_closed:
+            ax.plot(angles_closed, manager_values_closed, color='red', linewidth=2, label='Manager')
+            ax.fill(angles_closed, manager_values_closed, 'red', alpha=0.1)
+
+        ax.legend(loc='upper right', bbox_to_anchor=(1.15, 1.15))
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight')
+        buf.seek(0)
+        img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+        plt.close(fig)
+        return img_base64

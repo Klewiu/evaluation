@@ -57,6 +57,11 @@
                                     class="btn btn-sm btn-warning" title="Podgląd oceny managera + wykres">
                                         <i class="bi bi-bar-chart-line-fill"></i>
                                     </a>
+                                      <!-- NOWY PRZYCISK PDF -->
+                                    <a href="{% url 'manager_survey_overview_pdf' item.response.id %}" 
+                                    class="btn btn-sm btn-dark" title="Pobierz PDF z wykresami">
+                                        <i class="bi bi-file-earmark-pdf-fill"></i>
+                                    </a>
                                 {% endif %}
                             {% else %}
                                 <span class="text-muted">Brak ankiety</span>

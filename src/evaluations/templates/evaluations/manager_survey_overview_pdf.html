@@ -1,0 +1,169 @@
+{% load static %}
+{% load dict_get_item %}
+{% load get_item_by_question %}
+
+{% block content %}
+<style>
+body {
+    font-family: "Segoe UI", "Inter", sans-serif;
+    font-size: 13px;
+    color: #333;
+    background-color: #fff;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 12px;
+}
+
+h2 {
+    color: #2a7ae2;
+    font-size: 26px;
+    margin-bottom: 8px;
+}
+
+h3 {
+    color: #17a2b8;
+    font-size: 20px;
+    margin-top: 30px;
+    margin-bottom: 16px;
+    border-bottom: 2px solid #17a2b8;
+    padding-bottom: 4px;
+}
+
+p {
+    margin: 4px 0;
+}
+
+.question-card {
+    margin-bottom: 18px;
+    padding: 12px 16px;
+    background-color: #fefefe;
+    border-radius: 6px;
+}
+
+.comment-box {
+    width: 100%;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background-color: #fefefe;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 14px;
+    margin-top: 6px;
+}
+
+.radar-container {
+    text-align: center;
+    margin: 40px 0;
+}
+
+.radar-container h4 {
+    font-size: 18px;
+    margin-bottom: 16px;
+    color: #2a7ae2;
+}
+
+.table-container {
+    max-width: 500px;
+    margin: 20px auto 0 auto;
+    font-size: 13px;
+    border-collapse: collapse;
+}
+
+.table-container table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: center;
+}
+
+.table-container th, .table-container td {
+    padding: 8px;
+    border: none;
+}
+
+.table-container th {
+    background-color: #17a2b8;
+    color: #fff;
+    font-weight: 600;
+}
+
+.table-container tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+</style>
+
+<div class="container">
+    <h2>Ocena managera</h2>
+    <p><strong>Pracownik:</strong> {{ response.user.get_full_name }}</p>
+    <p><strong>Ankieta:</strong> {{ response.survey.name }} ({{ response.survey.year }})</p>
+    <p><strong>Data wypełnienia:</strong> {{ response.created_at|date:"d.m.Y H:i" }}</p>
+
+    <h3>Pytania i odpowiedzi</h3>
+    {% for question in response.survey.questions.all %}
+    <div class="question-card">
+        <strong>{{ forloop.counter }}. {{ question.text }}</strong>
+
+        {% with ans_user=answers_user|get_item_by_question:question.id %}
+            {% if question.type in "scale,both" %}
+                <p><strong>Ocena pracownika:</strong>
+                    {% if ans_user %}{{ ans_user.scale_value }}{% else %}-{% endif %}
+                </p>
+            {% endif %}
+            {% if question.type in "text,both" %}
+                {% if ans_user and ans_user.text_value %}
+                    <p><strong>Komentarz pracownika:</strong></p>
+                    <div class="comment-box">{{ ans_user.text_value|linebreaksbr }}</div>
+                {% endif %}
+            {% endif %}
+        {% endwith %}
+
+        {% with ans_manager=answers_manager|get_item_by_question:question.id %}
+            {% if question.type in "scale,both" %}
+                <p><strong>Ocena managera:</strong>
+                    {% if ans_manager %}{{ ans_manager.scale_value }}{% else %}-{% endif %}
+                </p>
+            {% endif %}
+            {% if question.type in "text,both,scale" %}
+                {% if ans_manager and ans_manager.text_value %}
+                    <p><strong>Komentarz managera:</strong></p>
+                    <div class="comment-box">{{ ans_manager.text_value|linebreaksbr }}</div>
+                {% endif %}
+            {% endif %}
+        {% endwith %}
+    </div>
+    {% endfor %}
+
+    {% if radar_image %}
+    <div class="radar-container">
+        <h4>Wykres kompetencji</h4>
+        <img src="data:image/png;base64,{{ radar_image }}" style="max-width:100%; height:auto;">
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Kompetencja</th>
+                        <th>Pracownik [%]</th>
+                        <th>Manager [%]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for label, user_val, manager_val in radar_data %}
+                    <tr>
+                        <td>{{ label }}</td>
+                        <td>{{ user_val }}%</td>
+                        <td>{% if manager_val is not None %}{{ manager_val }}%{% else %}-{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
