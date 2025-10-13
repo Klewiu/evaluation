@@ -142,12 +142,11 @@ def employee_surveys(request, user_id):
             response = None
             has_survey = False
 
-        # Sprawdzenie, czy manager ocenił ankietę
+        # Sprawdzenie, czy **jakikolwiek manager ocenił ankietę**
         manager_evaluated = False
         if response:
             manager_evaluated = EmployeeEvaluation.objects.filter(
-                employee_response=response,
-                manager=request.user  # lub odpowiedni manager
+                employee_response=response
             ).exists()
 
         surveys_with_status.append({
@@ -162,17 +161,14 @@ def employee_surveys(request, user_id):
         "surveys_with_status": surveys_with_status
     })
 
+
 @login_required
 def manager_evaluate_employee(request, response_id):
     employee_response = get_object_or_404(SurveyResponse, id=response_id)
     employee_answers = SurveyAnswer.objects.filter(response=employee_response)
     
-    manager_evals = EmployeeEvaluation.objects.filter(
-        employee_response=employee_response,
-        manager=request.user
-    )
+    manager_evals = EmployeeEvaluation.objects.filter(employee_response=employee_response)
     manager_evals_dict = {e.question.id: e for e in manager_evals}
-
     # Skala ocen od 1 do 10
     scale_choices = list(range(1, 11))
 
@@ -211,7 +207,7 @@ def manager_survey_overview(request, response_id):
     answers_user = SurveyAnswer.objects.filter(response=response_user)
 
     # Odpowiedzi managera
-    answers_manager = EmployeeEvaluation.objects.filter(employee_response=response_user, manager=request.user)
+    answers_manager = EmployeeEvaluation.objects.filter(employee_response=response_user)
 
     # Przygotowanie wykresu radarowego
     radar_labels, radar_user_values, radar_manager_values = [], [], []
@@ -257,10 +253,7 @@ class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
         answers_user = response.answers.all()
 
         # Odpowiedzi managera — przypisane do tego response i aktualnego managera
-        answers_manager = EmployeeEvaluation.objects.filter(
-            employee_response=response,
-            manager=self.request.user
-        )
+        answers_manager = EmployeeEvaluation.objects.filter(employee_response=response)
 
         # Wyliczenie kompetencji
         labels, user_values, manager_values = [], [], []
