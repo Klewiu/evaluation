@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from surveys.models import Survey, SurveyResponse
+from surveys.models import Survey, SurveyResponse, Competency
 
 from surveys.models import Survey, SurveyResponse, SurveyAnswer
 
@@ -127,19 +127,19 @@ def employee_surveys(request, user_id):
             response = None
             has_survey = False
 
-        # Sprawdzenie, czy manager ocenił już ankietę
+        # Sprawdzenie, czy manager ocenił ankietę
         manager_evaluated = False
         if response:
             manager_evaluated = EmployeeEvaluation.objects.filter(
                 employee_response=response,
-                manager=request.user
+                manager=request.user  # lub odpowiedni manager
             ).exists()
 
         surveys_with_status.append({
             "survey": survey,
             "has_survey": has_survey,
             "response": response,
-            "manager_evaluated": manager_evaluated
+            "manager_evaluated": manager_evaluated,
         })
 
     return render(request, "evaluations/employee_surveys.html", {
@@ -183,4 +183,44 @@ def manager_evaluate_employee(request, response_id):
         'employee_answers': employee_answers,
         'manager_evals_dict': manager_evals_dict,
         'scale_choices': scale_choices,
+    })
+
+
+@login_required
+def manager_survey_overview(request, response_id):
+    response_user = get_object_or_404(SurveyResponse, id=response_id)
+    survey = response_user.survey
+    viewed_user = response_user.user
+
+    # Odpowiedzi użytkownika
+    answers_user = SurveyAnswer.objects.filter(response=response_user)
+
+    # Odpowiedzi managera
+    answers_manager = EmployeeEvaluation.objects.filter(employee_response=response_user, manager=request.user)
+
+    # Przygotowanie wykresu radarowego
+    radar_labels, radar_user_values, radar_manager_values = [], [], []
+
+    competencies = Competency.objects.all()
+    for comp in competencies:
+        comp_questions = survey.surveyquestion_set.filter(question__competency=comp)
+        if comp_questions.exists():
+            max_total = sum([10 for q in comp_questions])
+            user_total = sum([a.scale_value for a in answers_user if a.question in [q.question for q in comp_questions] and a.scale_value])
+            manager_total = sum([a.scale_value for a in answers_manager if a.question in [q.question for q in comp_questions] and a.scale_value])
+            radar_labels.append(comp.name)
+            radar_user_values.append(round(user_total / max_total * 100, 2) if max_total else 0)
+            radar_manager_values.append(round(manager_total / max_total * 100, 2) if max_total else 0)
+
+    radar_data = list(zip(radar_labels, radar_user_values, radar_manager_values))
+
+    return render(request, 'evaluations/manager_survey_overview.html', {
+        "survey": survey,
+        "viewed_user": viewed_user,
+        "answers_user": answers_user,
+        "answers_manager": answers_manager,
+        "radar_labels": radar_labels,
+        "radar_user_values": radar_user_values,
+        "radar_manager_values": radar_manager_values,
+        "radar_data": radar_data,
     })

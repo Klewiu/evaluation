@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Podgląd ankiety - manager{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Podgląd ankiety: {{ survey.name }}</h2>
+    <p>Pracownik: {{ viewed_user.get_full_name }}</p>
+    <p>Dział: {{ viewed_user.department.name }}</p>
+
+    <!-- Pytania i odpowiedzi -->
+    <div class="mt-4">
+        {% for sq in survey.surveyquestion_set.all %}
+            <div class="mb-3 p-3 border rounded">
+                <p><strong>{{ forloop.counter }}. {{ sq.question.text }}</strong></p>
+
+                <!-- Odpowiedź pracownika -->
+                {% for ans in answers_user %}
+                    {% if ans.question.id == sq.question.id %}
+                        {% if ans.scale_value %}
+                        <div><strong>Ocena pracownika:</strong> {{ ans.scale_value }}</div>
+                        {% endif %}
+                        {% if ans.text_value %}
+                        <div><strong>Komentarz pracownika:</strong> {{ ans.text_value }}</div>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+
+                <!-- Odpowiedź managera -->
+                {% for ans in answers_manager %}
+                    {% if ans.question.id == sq.question.id %}
+                        {% if ans.scale_value %}
+                        <div class="text-danger"><strong>Ocena managera:</strong> {{ ans.scale_value }}</div>
+                        {% endif %}
+                        {% if ans.text_value %}
+                        <div class="text-danger"><strong>Komentarz managera:</strong> {{ ans.text_value }}</div>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Wykres radar -->
+    <div class="mt-4 radar-container text-center" style="height:600px;">
+        <h3 class="my-4">Wykres kompetencji</h3>
+        <canvas id="radarChart"></canvas>
+    </div>
+
+    <!-- Tabela wyników -->
+    <div class="table-container mt-4">
+        <table class="table table-bordered text-center">
+            <thead>
+                <tr>
+                    <th>Kompetencja</th>
+                    <th>Pracownik [%]</th>
+                    <th>Manager [%]</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for label, user_val, manager_val in radar_data %}
+                <tr>
+                    <td>{{ label }}</td>
+                    <td>{{ user_val }}%</td>
+                    <td>{{ manager_val }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="text-center my-3">
+        <a href="{% url 'manager_employees' %}" class="btn btn-secondary">Powrót</a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const labels = {{ radar_labels|safe }};
+const user_values = {{ radar_user_values|safe }};
+const manager_values = {{ radar_manager_values|safe }};
+
+const data = {
+    labels: labels.map(label => label.substring(0,7) + (label.length>7 ? "…" : "")),
+    datasets: [
+        {
+            label: 'Pracownik [%]',
+            data: user_values,
+            fill: true,
+            backgroundColor: 'rgba(40, 167, 69, 0.2)',
+            borderColor: 'rgba(40, 167, 69, 1)',
+            pointBackgroundColor: 'rgba(40, 167, 69, 1)',
+            pointBorderColor: '#fff',
+        },
+        {
+            label: 'Manager [%]',
+            data: manager_values,
+            fill: true,
+            backgroundColor: 'rgba(220, 53, 69, 0.2)',
+            borderColor: 'rgba(220, 53, 69, 1)',
+            pointBackgroundColor: 'rgba(220, 53, 69, 1)',
+            pointBorderColor: '#fff',
+        }
+    ]
+};
+
+const config = {
+    type: 'radar',
+    data: data,
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            r: {
+                angleLines: { display: true },
+                min: 0,
+                max: 100,
+                ticks: { stepSize: 10, callback: val => val + "%" }
+            }
+        },
+        plugins: { legend: { position: 'top' } }
+    }
+};
+
+new Chart(document.getElementById('radarChart'), config);
+</script>
+{% endblock %}
