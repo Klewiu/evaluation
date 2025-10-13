@@ -1,10 +1,30 @@
 {% extends "base.html" %}
 {% load static %}
-{% load dict_filters %} {# zamiast evaluation_tags #}
+{% load dict_filters %}
 
 {% block title %}Ocena pracownika{% endblock %}
 
 {% block content %}
+<style>
+.custom-radio input[type="radio"] { display: none; }
+.custom-radio span.radio-circle {
+  display: inline-block; width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid #ccc; margin-right: 5px; vertical-align: middle;
+  position: relative; transition: background-color 0.2s, border-color 0.2s, opacity 0.2s;
+}
+.custom-radio span.radio-label { margin-right: 10px; vertical-align: middle; }
+
+.employee-radio input[type="radio"]:checked + span.radio-circle { background-color: #28a745; border-color: #28a745; }
+.employee-radio input[type="radio"]:disabled + span.radio-circle,
+.employee-text textarea:disabled { opacity: 0.5; cursor: default; }
+
+.manager-radio input[type="radio"]:checked + span.radio-circle { background-color: #dc3545; border-color: #dc3545; }
+.manager-radio .custom-radio span.radio-circle:hover { cursor: pointer; }
+
+.radio-group { margin-bottom: 10px; }
+.employee-text textarea, .manager-text textarea { width: 100%; resize: vertical; }
+</style>
+
 <div class="container">
     <h2>Ocena pracownika: {{ employee_response.user.get_full_name }}</h2>
     <p>Ankieta: {{ employee_response.survey.name }}</p>
@@ -12,28 +32,67 @@
         {% csrf_token %}
 
         {% for ans in employee_answers %}
-            <div class="mb-3 p-3 border rounded">
-                <!-- Pytanie -->
-                <p><strong>{{ ans.question.text }}</strong></p>
+        <div class="mb-3 p-3 border rounded">
+            <p><strong>{{ ans.question.text }}</strong></p>
 
-                <!-- Odpowiedź pracownika -->
-                <p style="color: green;">
-                    {% if ans.scale_value %}Skala: {{ ans.scale_value }}{% endif %}
-                    {% if ans.text_value %}<br>Tekst: {{ ans.text_value }}{% endif %}
-                </p>
-
-                <!-- Pole do wpisania oceny managera -->
-                <div class="form-group">
-                    <label for="scale_{{ ans.question.id }}">Skala (opcjonalnie)</label>
-                    <input type="number" class="form-control" name="scale_{{ ans.question.id }}"
-                           value="{% if manager_evals_dict|dict_get:ans.question.id %}{{ manager_evals_dict|dict_get:ans.question.id.scale_value }}{% endif %}">
+            {% if ans.scale_value is not None %}
+                <!-- Ocena pracownika (zielona, disabled) -->
+                <div class="radio-group employee-radio">
+                    {% for i in scale_choices %}
+                        <label class="custom-radio">
+                            <input type="radio"
+                                   name="employee_scale_{{ ans.question.id }}"
+                                   value="{{ i }}"
+                                   {% if ans.scale_value == i %}checked{% endif %}
+                                   disabled>
+                            <span class="radio-circle"></span>
+                            <span class="radio-label">{{ i }}</span>
+                        </label>
+                    {% endfor %}
                 </div>
 
-                <div class="form-group mt-2">
-                    <label for="text_{{ ans.question.id }}">Komentarz (opcjonalnie)</label>
-                    <textarea class="form-control" name="text_{{ ans.question.id }}" rows="2">{% if manager_evals_dict|dict_get:ans.question.id %}{{ manager_evals_dict|dict_get:ans.question.id.text_value }}{% endif %}</textarea>
+                <!-- Komentarz pracownika -->
+                {% if ans.text_value %}
+                <div class="form-group mt-2 employee-text">
+                    <label>Komentarz pracownika:</label>
+                    <textarea class="form-control" rows="2" disabled>{{ ans.text_value }}</textarea>
                 </div>
+                {% endif %}
+
+                <!-- Ocena managera (czerwona) -->
+                <div class="radio-group manager-radio mt-3">
+                    <p>Twoja ocena:</p>
+                    {% with manager_eval=manager_evals_dict|dict_get:ans.question.id %}
+                        {% for i in scale_choices %}
+                            <label class="custom-radio">
+                                <input type="radio"
+                                       name="manager_scale_{{ ans.question.id }}"
+                                       value="{{ i }}"
+                                       {% if manager_eval and manager_eval.scale_value == i %}checked{% endif %}>
+                                <span class="radio-circle"></span>
+                                <span class="radio-label">{{ i }}</span>
+                            </label>
+                        {% endfor %}
+                    {% endwith %}
+                </div>
+            {% else %}
+                <!-- Pytanie tylko tekstowe -->
+                {% if ans.text_value %}
+                <div class="form-group mt-2 employee-text">
+                    <label>Komentarz pracownika:</label>
+                    <textarea class="form-control" rows="2" disabled>{{ ans.text_value }}</textarea>
+                </div>
+                {% endif %}
+            {% endif %}
+
+            <!-- Komentarz managera (zawsze) -->
+            <div class="form-group mt-2 manager-text">
+                <label for="text_{{ ans.question.id }}">Komentarz (opcjonalnie)</label>
+                {% with manager_eval=manager_evals_dict|dict_get:ans.question.id %}
+                    <textarea class="form-control" name="text_{{ ans.question.id }}" rows="2">{% if manager_eval %}{{ manager_eval.text_value }}{% endif %}</textarea>
+                {% endwith %}
             </div>
+        </div>
         {% endfor %}
 
         <button type="submit" class="btn btn-success mt-3">Zapisz oceny</button>

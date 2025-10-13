@@ -5,12 +5,13 @@ from surveys.models import Survey, SurveyResponse
 from surveys.models import Survey, SurveyResponse, SurveyAnswer
 
 
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from users.models import CustomUser
 from surveys.models import Survey, SurveyResponse
 
-from django.db.models import Q
+from django.db.models import Q,Exists, OuterRef
+
 
 from .models import EmployeeEvaluation
 
@@ -106,11 +107,12 @@ def manager_employees(request):
     }
     return render(request, "evaluations/manager_employees.html", context)
 
+
+
 @login_required
 def employee_surveys(request, user_id):
     employee = get_object_or_404(CustomUser, pk=user_id)
     
-    # Pobranie wszystkich ankiet dla działu i roli użytkownika
     surveys = Survey.objects.filter(
         department=employee.department,
         role__in=[employee.role, "both"]
@@ -125,10 +127,19 @@ def employee_surveys(request, user_id):
             response = None
             has_survey = False
 
+        # Sprawdzenie, czy manager ocenił już ankietę
+        manager_evaluated = False
+        if response:
+            manager_evaluated = EmployeeEvaluation.objects.filter(
+                employee_response=response,
+                manager=request.user
+            ).exists()
+
         surveys_with_status.append({
             "survey": survey,
             "has_survey": has_survey,
-            "response": response
+            "response": response,
+            "manager_evaluated": manager_evaluated
         })
 
     return render(request, "evaluations/employee_surveys.html", {
@@ -136,39 +147,40 @@ def employee_surveys(request, user_id):
         "surveys_with_status": surveys_with_status
     })
 
-
 @login_required
 def manager_evaluate_employee(request, response_id):
-    # Pobieramy ankietę wypełnioną przez pracownika
     employee_response = get_object_or_404(SurveyResponse, id=response_id)
-    
-    # Pobieramy odpowiedzi pracownika
     employee_answers = SurveyAnswer.objects.filter(response=employee_response)
     
-    # Pobranie wcześniejszych ocen managera (jeśli już istnieją)
     manager_evals = EmployeeEvaluation.objects.filter(
         employee_response=employee_response,
         manager=request.user
     )
     manager_evals_dict = {e.question.id: e for e in manager_evals}
 
+    # Skala ocen od 1 do 10
+    scale_choices = list(range(1, 11))
+
     if request.method == "POST":
         for ans in employee_answers:
-            scale = request.POST.get(f'scale_{ans.question.id}')
-            text = request.POST.get(f'text_{ans.question.id}')
+            scale = request.POST.get(f'manager_scale_{ans.question.id}')
+            text = request.POST.get(f'text_{ans.question.id}', '')
+            
             if scale or text:
-                # Zapis lub aktualizacja oceny managera
                 EmployeeEvaluation.objects.update_or_create(
                     employee_response=employee_response,
                     question=ans.question,
                     manager=request.user,
-                    defaults={'scale_value': scale, 'text_value': text}
+                    defaults={
+                        'scale_value': int(scale) if scale else None,
+                        'text_value': text
+                    }
                 )
-        # Po zapisaniu przekierowanie np. na listę pracowników
         return redirect('manager_employees')  
 
     return render(request, 'evaluations/manager_evaluate.html', {
         'employee_response': employee_response,
         'employee_answers': employee_answers,
-        'manager_evals_dict': manager_evals_dict
+        'manager_evals_dict': manager_evals_dict,
+        'scale_choices': scale_choices,
     })
