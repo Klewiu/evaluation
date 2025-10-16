@@ -41,7 +41,15 @@
                         <!-- Ankieta zakończona -->
                         <a href="{% url 'survey_result' item.survey.id %}" class="btn btn-sm btn-info">Podgląd</a>
                         <a href="{% url 'survey_pdf' item.survey.id %}" target="_blank" class="btn btn-sm btn-secondary">PDF</a>
-                    {% endif %}
+                         
+                        {% if item.has_manager_evaluation %}
+                            <a href="{% url 'manager_survey_overview' item.response.id %}" class="btn btn-sm btn-outline-danger">
+                                Ocena managera
+                            </a>
+                        {% endif %}
+                    
+                    
+                        {% endif %}
                 </td>
             </tr>
             {% endif %}

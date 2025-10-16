@@ -30,6 +30,8 @@ from django.contrib.auth import get_user_model
 
 
 
+from evaluations.models import EmployeeEvaluation  # dodaj import
+
 @login_required
 def home(request):
     user = request.user
@@ -52,22 +54,31 @@ def home(request):
         else:
             department_surveys = Survey.objects.none()
 
-        # Sparuj ankiety z ewentualnymi odpowiedziami użytkownika
+        # Sparuj ankiety z odpowiedziami użytkownika
         for survey in department_surveys:
             try:
                 response = SurveyResponse.objects.get(survey=survey, user=user)
             except SurveyResponse.DoesNotExist:
                 response = None
 
+            # 🔹 Sprawdź, czy są już oceny managera
+            has_manager_evaluation = False
+            if response:
+                has_manager_evaluation = EmployeeEvaluation.objects.filter(
+                    employee_response=response
+                ).exists()
+
             surveys_list.append({
                 "survey": survey,
                 "response": response,
+                "has_manager_evaluation": has_manager_evaluation,  # <--- DODANE
             })
 
     context = {
         "surveys": surveys_list,
     }
     return render(request, 'evaluations/home.html', context)
+
 
 @login_required
 def manager_employees(request):

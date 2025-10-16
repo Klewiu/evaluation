@@ -29,21 +29,21 @@
             {% endfor %}
         </div>
 
-        <div class="mb-2">
+        <div class="mb-0">
             {{ form.departments.label_tag }} {{ form.departments }}
             {% for error in form.departments.errors %}
                 <div class="text-danger">{{ error }}</div>
             {% endfor %}
         </div>
-
-        <div class="mb-2">
+         <small class="text-muted"><i>Pozostaw puste dla wszystkich działów</i></small>
+        <div class="mb-2 mt-3">
             {{ form.role.label_tag }} {{ form.role }}
             {% for error in form.role.errors %}
                 <div class="text-danger">{{ error }}</div>
             {% endfor %}
         </div>
 
-        <small class="text-muted">Pozostaw puste dla wszystkich działów</small>
+       
         <br>
         <button type="submit" class="btn btn-primary">{% if edit %}Zapisz zmiany{% else %}Dodaj{% endif %}</button>
         <a href="{% url 'questions_list' %}" class="btn btn-secondary">Anuluj</a>
