@@ -1,0 +1,24 @@
+<form
+  hx-post="{% url 'department_update' dept.pk %}"
+  hx-target="#edit-department-modal-content"
+  hx-swap="innerHTML"
+>
+  {% csrf_token %}
+  <div class="modal-header">
+    <h5 class="modal-title">Edytuj dział</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+  </div>
+  <div class="modal-body">
+    <div class="mb-3">
+      <label class="form-label">Nazwa działu</label>
+      {{ form.name }}
+      {% if form.name.errors %}
+        <div class="text-danger small mt-1">{{ form.name.errors|striptags }}</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Anuluj</button>
+    <button type="submit" class="btn btn-primary">Zapisz</button>
+  </div>
+</form>

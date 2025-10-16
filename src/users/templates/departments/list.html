@@ -24,7 +24,6 @@
       <a href="{% url 'users_list' %}" class="btn btn-outline-secondary">
         <i class="bi bi-people"></i> Użytkownicy
       </a>
-
       <button
         type="button"
         class="btn btn-success"
@@ -129,7 +128,11 @@
 </div>
 
 <!-- DELETE Modal -->
-<div class="modal fade" id="confirmDeleteDepartmentModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade"
+     id="confirmDeleteDepartmentModal"
+     tabindex="-1"
+     aria-hidden="true"
+     hx-on="deptDeleted: bootstrap.Modal.getOrCreateInstance(this).hide()">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" id="confirm-delete-department-modal-content">
       <div class="modal-header">
@@ -142,4 +145,43 @@
     </div>
   </div>
 </div>
+
+<!-- Safety net: ensure any lingering backdrop is removed after our custom events -->
+<script>
+  (function() {
+    function hideModalBySelector(sel) {
+      try {
+        const el = document.querySelector(sel);
+        if (!el) return;
+        const inst = bootstrap.Modal.getOrCreateInstance(el);
+        inst.hide();
+      } catch (_) {}
+      // cleanup any stray backdrops & body state
+      document.querySelectorAll('.modal-backdrop').forEach(n => n.remove());
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('padding-right');
+    }
+
+    // Listen globally (in case the event targets a nested element)
+    document.addEventListener('deptCreated', e => {
+      const sel = (e.detail && e.detail.target) || '#createDepartmentModal';
+      hideModalBySelector(sel);
+    });
+    document.addEventListener('deptUpdated', e => {
+      const sel = (e.detail && e.detail.target) || '#editDepartmentModal';
+      hideModalBySelector(sel);
+    });
+    document.addEventListener('deptDeleted', e => {
+      const sel = (e.detail && e.detail.target) || '#confirmDeleteDepartmentModal';
+      hideModalBySelector(sel);
+    });
+
+    // Also clean up on any modal hide (covers manual close)
+    document.addEventListener('hidden.bs.modal', () => {
+      document.querySelectorAll('.modal-backdrop').forEach(n => n.remove());
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('padding-right');
+    });
+  })();
+</script>
 {% endblock %}
