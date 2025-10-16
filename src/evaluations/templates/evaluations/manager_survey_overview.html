@@ -69,7 +69,7 @@
     </div>
 
     <div class="text-center my-3">
-        <a href="{% url 'manager_employees' %}" class="btn btn-secondary">Powrót</a>
+        <a href="javascript:history.back()" class="btn btn-secondary">Powrót</a>
     </div>
 </div>
 
@@ -123,4 +123,5 @@ const config = {
 
 new Chart(document.getElementById('radarChart'), config);
 </script>
+
 {% endblock %}
