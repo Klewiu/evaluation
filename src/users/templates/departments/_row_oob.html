@@ -1,7 +1,7 @@
 <tr id="department-row-{{ d.pk }}" hx-swap-oob="outerHTML">
-  <td>{{ d.name }}</td>
-  <td>{{ d.user_count|default:0 }}</td>
-  <td class="text-end">
+  <td class="text-break">{{ d.name }}</td>
+  <td class="text-center text-nowrap">{{ d.user_count|default:0 }}</td>
+  <td class="text-end text-nowrap">
     <div class="btn-group btn-group-sm gap-1" role="group">
       <button
         type="button"

@@ -2,26 +2,29 @@
 
 {% block content %}
 <div class="container py-4">
-  <div class="d-flex align-items-center justify-content-between mb-4">
-    <h2 class="mb-0 d-flex align-items-center">
-      Lista użytkowników
-      <span class="ms-2">
-        <i class="bi bi-info-circle-fill text-warning fs-5"
-            role="img"
-            aria-label="Wskazówka"
-            data-bs-toggle="popover"
-            data-bs-placement="bottom"
-            data-bs-container="body"
-            data-bs-trigger="hover focus"
-            data-bs-html="true"
-            data-bs-title="Wskazówka"
-            data-bs-content="<div class='mb-1'><strong>Utwórz nowego użytkownika</strong>, zmodyfikuj lub usuń istniejącego użytkownika.</div>">
-        </i>
-      </span>
-    </h2>
 
-    <div class="d-flex align-items-center gap-2">
-      <!-- New: Go to Departments page -->
+  <!-- Header -->
+  <div class="row align-items-center g-2 mb-3">
+    <div class="col">
+      <h2 class="mb-0 d-flex align-items-center">
+        Użytkownicy
+        <span class="ms-2">
+          <i class="bi bi-info-circle-fill text-warning fs-5"
+             role="img"
+             aria-label="Wskazówka"
+             data-bs-toggle="popover"
+             data-bs-placement="bottom"
+             data-bs-container="body"
+             data-bs-trigger="hover focus"
+             data-bs-html="true"
+             data-bs-title="Wskazówka"
+             data-bs-content="<div class='mb-1'><strong>Utwórz nowego użytkownika</strong>, zmodyfikuj lub usuń istniejącego użytkownika.</div>">
+          </i>
+        </span>
+      </h2>
+    </div>
+
+    <div class="col-12 col-sm-auto d-flex flex-wrap gap-2">
       <a href="{% url 'departments_list' %}" class="btn btn-outline-secondary">
         <i class="bi bi-building"></i> Działy
       </a>
@@ -39,16 +42,17 @@
     </div>
   </div>
 
+  <!-- Table: all columns visible; horizontal scroll on small screens -->
   <div class="table-responsive">
-    <table class="table align-middle">
+    <table class="table table-sm align-middle table-hover mb-0">
       <thead class="table-light">
         <tr>
-          <th>Użytkownik</th>    {# Imię + Nazwisko + Email + (username) #}
-          <th>Rola</th>
-          <th>Dział</th>
-          <th>Admin</th>
-          <th>Ostatnie logowanie</th>  {# NOWA KOLUMNA — tylko data #}
-          <th class="text-end">Akcje</th>
+          <th class="text-center">Użytkownik</th>
+          <th class="text-center text-nowrap">Rola</th>
+          <th class="text-center text-nowrap">Dział</th>
+          <th class="text-center text-nowrap">Admin</th>
+          <th class="text-center text-nowrap">Ostatnie logowanie</th>
+          <th class="text-center text-nowrap">Akcje</th>
         </tr>
       </thead>
       <tbody id="user-table-body">
@@ -58,6 +62,7 @@
   </div>
 </div>
 
+<!-- CREATE Modal -->
 <div class="modal fade"
       id="createUserModal"
       tabindex="-1"
@@ -76,6 +81,7 @@
   </div>
 </div>
 
+<!-- EDIT Modal -->
 <div class="modal fade"
       id="editUserModal"
       tabindex="-1"
@@ -94,6 +100,7 @@
   </div>
 </div>
 
+<!-- DELETE Modal -->
 <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" id="confirm-delete-modal-content">

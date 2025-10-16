@@ -203,8 +203,10 @@ def department_create(request):
     d = form.save()
     messages.success(request, "Dział utworzony.")
 
+    # Ensure the row we append has a correct count (usually 0 for a new dept)
+    d.user_count = User.objects.filter(department=d).count()  # <-- added
+
     resp = render(request, "departments/_row_oob_append.html", {"d": d})
-    # Fire after-settle so OOB swaps/backdrop state are finalized, then close specific modal:
     payload = {"deptCreated": {"target": "#createDepartmentModal"}}
     resp["HX-Trigger"] = json.dumps(payload)
     resp["HX-Trigger-After-Settle"] = json.dumps(payload)
@@ -232,6 +234,9 @@ def department_update(request, pk):
 
     d = form.save()
     messages.success(request, "Dział zaktualizowany.")
+
+    # IMPORTANT: attach fresh user_count so the OOB row shows the right value immediately
+    d.user_count = User.objects.filter(department=d).count()  # <-- added
 
     resp = render(request, "departments/_row_oob.html", {"d": d})
     payload = {"deptUpdated": {"target": "#editDepartmentModal"}}
