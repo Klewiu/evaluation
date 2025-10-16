@@ -3,9 +3,18 @@ from django.contrib.auth import views as auth_views
 from . import views
 
 urlpatterns = [
-    path('login/',  auth_views.LoginView.as_view(template_name='users/login.html'), name='login'),
+    # AUTH
+    path(
+        'login/',
+        auth_views.LoginView.as_view(
+            template_name='users/login.html',
+            redirect_authenticated_user=True  # <— blocks logged-in users from seeing login page
+        ),
+        name='login'
+    ),
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
 
+    # USERS
     path('', views.users_list, name='users_list'),
 
     # CREATE

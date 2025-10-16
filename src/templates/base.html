@@ -83,10 +83,10 @@
                 <i class="bi bi-box-arrow-right"></i> Wyloguj
               </button>
             </li>
-        {% else %}
+        {% comment %} {% else %}
             <li class="nav-item">
               <a class="nav-link" href="{% url 'login' %}">Zaloguj</a>
-            </li>
+            </li> {% endcomment %}
         {% endif %}
       </ul>
     </div>
