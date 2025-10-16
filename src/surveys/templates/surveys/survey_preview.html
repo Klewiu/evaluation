@@ -13,6 +13,12 @@
             <li class="list-group-item mb-2" data-id="{{ sq.id }}">
                 <strong>{{ forloop.counter }}.</strong> {{ sq.question.text }}
 
+                {% if sq.question.competency %}
+                    <p class="text-info mb-1" style="font-size: 0.9em;">
+                        <em>Kompetencja: {{ sq.question.competency.name }}</em>
+                    </p>
+                {% endif %}
+
                 {% if sq.question.type == "scale" %}
                     <div class="mt-1">
                         {% for i in scale_range %}
