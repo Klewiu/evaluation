@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Brak dostępu{% endblock %}
+
+{% block content %}
+<div class="container mt-5 text-center">
+    <h1 class="display-4 text-danger">Brak dostępu</h1>
+    <p class="lead">Nie masz uprawnień do przeglądania tej strony.</p>
+    <a href="{% url 'home' %}" class="btn btn-primary mt-3">Powrót do strony głównej</a>
+</div>
+{% endblock %}

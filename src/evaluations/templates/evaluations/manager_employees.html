@@ -18,7 +18,8 @@
                         <th>Imię i nazwisko</th>
                         <th class="d-none d-md-table-cell">Dział</th>
                         <th class="d-none d-md-table-cell">Rola</th>
-                        <th>Status</th>
+                        <th>Status ankiety</th>
+                        <th>Status oceny</th>
                         <th>Akcje</th>
                     </tr>
                 </thead>
@@ -35,13 +36,25 @@
                                 {% endif %}
                             </td>
                             <td class="d-none d-md-table-cell">{{ item.employee.get_role_display }}</td>
+                            
+                            <!-- Status wypełnienia ankiety przez pracownika -->
                             <td>
                                 {% if item.has_survey %}
-                                    <i class="bi bi-check-lg text-success"></i>
+                                    <i class="bi bi-check-lg text-success" title="Wypełniona"></i>
                                 {% else %}
-                                    <i class="bi bi-x-lg text-danger"></i>
+                                    <i class="bi bi-x-lg text-danger" title="Nie wypełniona"></i>
                                 {% endif %}
                             </td>
+
+                            <!-- Status oceny przez managera -->
+                            <td>
+                                {% if item.manager_evaluated %}
+                                    <i class="bi bi-check-lg text-success" title="Oceniona przez managera"></i>
+                                {% else %}
+                                    <i class="bi bi-x-lg text-danger" title="Nie oceniona"></i>
+                                {% endif %}
+                            </td>
+
                             <td>
                                 <a href="{% url 'employee_surveys' item.employee.id %}" class="btn btn-sm btn-primary" title="Historia ankiet">
                                     <i class="bi bi-database"></i>

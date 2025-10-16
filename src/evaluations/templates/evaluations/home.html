@@ -7,8 +7,11 @@
     <table class="table table-bordered">
         <thead>
             <tr>
+                <th>Lp</th>
                 <th>Nazwa ankiety</th>
-                <th>Status</th>
+                <th>Rok ankiety</th>
+                <th>Status ankiety</th>
+                <th>Status oceny managera</th>
                 <th>Akcje</th>
             </tr>
         </thead>
@@ -16,7 +19,11 @@
             {% for item in surveys %}
             {% if item.survey %}
             <tr>
+                <td>{{ forloop.counter }}</td>
                 <td>{{ item.survey.name }}</td>
+                <td>{{ item.survey.year }}</td>
+                
+                <!-- Status ankiety -->
                 <td>
                     {% if item.response %}
                         {{ item.response.get_status_display }}
@@ -24,12 +31,21 @@
                         Do wypełnienia
                     {% endif %}
                 </td>
+
+                <!-- Status oceny managera -->
+                <td>
+                    {% if item.has_manager_evaluation %}
+                        <span class="text-success">Oceniona</span>
+                    {% else %}
+                        <span class="text-danger">Brak oceny</span>
+                    {% endif %}
+                </td>
+
+                <!-- Akcje -->
                 <td>
                     {% if not item.response %}
-                        <!-- Ankieta niewypełniona -->
                         <a href="{% url 'survey_fill' item.survey.id %}" class="btn btn-sm btn-success">Wypełnij</a>
                     {% elif item.response.status == "draft" %}
-                        <!-- Ankieta w trakcie wypełniania -->
                         <a href="{% url 'survey_edit_response' item.survey.id %}" class="btn btn-sm btn-warning">Edytuj</a>
                         <button class="btn btn-sm btn-primary" 
                                 data-bs-toggle="modal" 
@@ -38,24 +54,20 @@
                             Zakończ i wyślij
                         </button>
                     {% elif item.response.status == "submitted" or item.response.status == "closed" %}
-                        <!-- Ankieta zakończona -->
                         <a href="{% url 'survey_result' item.survey.id %}" class="btn btn-sm btn-info">Podgląd</a>
                         <a href="{% url 'survey_pdf' item.survey.id %}" target="_blank" class="btn btn-sm btn-secondary">PDF</a>
-                         
                         {% if item.has_manager_evaluation %}
                             <a href="{% url 'manager_survey_overview' item.response.id %}" class="btn btn-sm btn-outline-danger">
-                                Ocena managera
+                                Ocena
                             </a>
                         {% endif %}
-                    
-                    
-                        {% endif %}
+                    {% endif %}
                 </td>
             </tr>
             {% endif %}
             {% empty %}
             <tr>
-                <td colspan="3">Brak ankiet do wypełnienia.</td>
+                <td colspan="6">Brak ankiet do wypełnienia.</td>
             </tr>
             {% endfor %}
         </tbody>

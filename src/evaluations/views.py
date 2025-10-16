@@ -27,10 +27,32 @@ from surveys.models import SurveyResponse, SurveyAnswer
 from evaluations.models import EmployeeEvaluation  # dostosuj importy
 from django.contrib.auth import get_user_model
 
-
-
-
 from evaluations.models import EmployeeEvaluation  # dodaj import
+
+from django.core.exceptions import PermissionDenied
+
+
+
+from django.core.exceptions import PermissionDenied
+
+def can_view_manager_evaluation(request_user, survey_response):
+    target_user = survey_response.user
+
+    if request_user.role == "employee":
+        # pracownik może zobaczyć tylko swoje własne odpowiedzi
+        if target_user != request_user:
+            raise PermissionDenied("Nie masz dostępu do tej oceny.")
+
+    elif request_user.role == "manager":
+        # manager może zobaczyć tylko pracowników swojego działu
+        if target_user.department != request_user.department or target_user.role != "employee":
+            raise PermissionDenied("Nie masz dostępu do tej oceny.")
+
+    elif request_user.role in ["admin", "hr"] or request_user.is_superuser:
+        # admin i HR wszystko widzą
+        pass
+    else:
+        raise PermissionDenied("Nie masz dostępu do tej oceny.")
 
 @login_required
 def home(request):
@@ -38,7 +60,6 @@ def home(request):
     surveys_list = []
 
     if user.department:
-        # Filtrowanie ankiet zależnie od roli
         if user.role == 'employee':
             department_surveys = Survey.objects.filter(
                 department=user.department,
@@ -54,24 +75,34 @@ def home(request):
         else:
             department_surveys = Survey.objects.none()
 
-        # Sparuj ankiety z odpowiedziami użytkownika
         for survey in department_surveys:
             try:
                 response = SurveyResponse.objects.get(survey=survey, user=user)
             except SurveyResponse.DoesNotExist:
                 response = None
 
-            # 🔹 Sprawdź, czy są już oceny managera
-            has_manager_evaluation = False
+            # Sprawdzenie ocen managera
             if response:
-                has_manager_evaluation = EmployeeEvaluation.objects.filter(
-                    employee_response=response
-                ).exists()
+                if user.role == 'employee':
+                    # pracownik widzi wszystkie oceny managerów
+                    show_manager_evaluation = EmployeeEvaluation.objects.filter(
+                        employee_response=response
+                    ).exists()
+                elif user.role == 'manager':
+                    # manager widzi tylko jeśli ocenił admin
+                    show_manager_evaluation = EmployeeEvaluation.objects.filter(
+                        employee_response=response,
+                        manager__role='admin'  # zakładam, że CustomUser ma pole role
+                    ).exists()
+                else:
+                    show_manager_evaluation = False
+            else:
+                show_manager_evaluation = False
 
             surveys_list.append({
                 "survey": survey,
                 "response": response,
-                "has_manager_evaluation": has_manager_evaluation,  # <--- DODANE
+                "has_manager_evaluation": show_manager_evaluation
             })
 
     context = {
@@ -109,6 +140,7 @@ def manager_employees(request):
         ).order_by("-created_at").first()
 
         has_survey = False
+        manager_evaluated = False  # dodajemy status oceny przez managera
 
         if latest_survey:
             # Sprawdź, czy pracownik wypełnił tę ankietę
@@ -119,12 +151,16 @@ def manager_employees(request):
 
             if latest_survey_response:
                 has_survey = latest_survey_response.status in ["submitted", "closed"]
-            else:
-                has_survey = False  # nowa ankieta jeszcze nie wypełniona
+
+                # Sprawdź, czy manager ocenił ankietę
+                manager_evaluated = EmployeeEvaluation.objects.filter(
+                    employee_response=latest_survey_response
+                ).exists()
 
         employees_with_survey.append({
             "employee": emp,
             "has_survey": has_survey,
+            "manager_evaluated": manager_evaluated,
             "latest_survey": latest_survey
         })
 
@@ -132,7 +168,6 @@ def manager_employees(request):
         "employees_with_survey": employees_with_survey,
     }
     return render(request, "evaluations/manager_employees.html", context)
-
 
 
 @login_required
@@ -213,7 +248,10 @@ def manager_survey_overview(request, response_id):
     response_user = get_object_or_404(SurveyResponse, id=response_id)
     survey = response_user.survey
     viewed_user = response_user.user
-
+    survey_response = get_object_or_404(SurveyResponse, id=response_id)
+    
+    # sprawdzenie uprawnień
+    can_view_manager_evaluation(request.user, survey_response)
     # Odpowiedzi użytkownika
     answers_user = SurveyAnswer.objects.filter(response=response_user)
 

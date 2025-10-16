@@ -11,9 +11,10 @@
                 <thead>
                     <tr>
                         <th>Lp</th>
-                        <th>Nazwa ankiety</th>
+                        <th>Nazwa</th>
                         <th class="d-none d-md-table-cell">Rok</th>
-                        <th>Status</th>
+                        <th>Ankieta</th>
+                        <th>Ocena</th>
                         <th>Akcje</th>
                     </tr>
                 </thead>
@@ -33,40 +34,50 @@
                             {% endif %}
                         </td>
 
+                        <!-- Status oceny managera -->
+                        <td>
+                            {% if item.manager_evaluated %}
+                                <i class="bi bi-check-lg text-success"></i>
+                            {% else %}
+                                <i class="bi bi-x-lg text-danger"></i>
+                            {% endif %}
+                        </td>
+
                         <!-- Akcje -->
                         <td>
                             {% if item.has_survey %}
                                 <a class="btn btn-sm btn-primary" 
-                                href="{% url 'survey_result_for_user' survey_id=item.survey.id user_id=employee.id %}" 
-                                title="Podgląd wyników">
+                                   href="{% url 'survey_result_for_user' survey_id=item.survey.id user_id=employee.id %}" 
+                                   title="Podgląd wyników">
                                     <i class="bi bi-search"></i>
                                 </a>
                                 <a class="btn btn-sm btn-secondary" 
-                                href="{% url 'survey_pdf' survey_id=item.survey.id user_id=employee.id %}" 
-                                title="Pobierz PDF" target="_blank">
+                                   href="{% url 'survey_pdf' survey_id=item.survey.id user_id=employee.id %}" 
+                                   title="Pobierz PDF" target="_blank">
                                     <i class="bi bi-file-earmark-pdf"></i>
                                 </a>
+
                                 {% if item.response %}
                                     <a href="{% url 'manager_evaluate_employee' item.response.id %}" 
-                                    class="btn btn-sm btn-success" title="Ocena managera">
+                                       class="btn btn-sm btn-success" title="Ocena managera">
                                         <i class="bi bi-person-fill"></i>
                                     </a>
                                 {% endif %}
+
                                 {% if item.manager_evaluated %}
                                     <a href="{% url 'manager_survey_overview' item.response.id %}" 
-                                    class="btn btn-sm btn-warning" title="Podgląd oceny managera + wykres">
+                                       class="btn btn-sm btn-warning" title="Podgląd oceny managera + wykres">
                                         <i class="bi bi-bar-chart-line-fill"></i>
                                     </a>
-                                      <!-- NOWY PRZYCISK PDF -->
                                     <a href="{% url 'manager_survey_overview_pdf' item.response.id %}" 
-                                    class="btn btn-sm btn-dark" title="Pobierz PDF z wykresami">
+                                       class="btn btn-sm btn-dark" title="Pobierz PDF z wykresami">
                                         <i class="bi bi-file-earmark-pdf-fill"></i>
                                     </a>
                                 {% endif %}
                             {% else %}
                                 <span class="text-muted">Brak ankiety</span>
                             {% endif %}
-                    </td>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
