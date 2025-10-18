@@ -6,10 +6,10 @@
   <!-- Header (responsive row like Users) -->
   <div class="row align-items-center g-2 mb-3">
     <div class="col">
-      <h2 class="mb-0 d-flex align-items-center">
+      <h1 class="mb-0 d-flex align-items-center header-font text-primary">
         Lista działów
         <span class="ms-2">
-          <i class="bi bi-info-circle-fill text-warning fs-5"
+          <i class="bi bi-info-circle-fill text-secondary fs-5"
              role="img"
              aria-label="Wskazówka"
              data-bs-toggle="popover"
@@ -25,12 +25,12 @@
     </div>
 
     <div class="col-12 col-sm-auto d-flex flex-wrap gap-2">
-      <a href="{% url 'users_list' %}" class="btn btn-outline-secondary">
+      <a href="{% url 'users_list' %}" class="btn btn-dark">
         <i class="bi bi-people"></i> Użytkownicy
       </a>
       <button
         type="button"
-        class="btn btn-success"
+        class="btn btn-primary"
         data-bs-toggle="modal"
         data-bs-target="#createDepartmentModal"
         hx-get="{% url 'department_new' %}"
