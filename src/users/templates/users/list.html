@@ -25,13 +25,13 @@
     </div>
 
     <div class="col-12 col-sm-auto d-flex flex-wrap gap-2">
-      <a href="{% url 'departments_list' %}" class="btn btn-outline-secondary">
+      <a href="{% url 'departments_list' %}" class="btn btn-dark">
         <i class="bi bi-building"></i> Działy
       </a>
 
       <button
         type="button"
-        class="btn btn-success"
+        class="btn btn-primary"
         data-bs-toggle="modal"
         data-bs-target="#createUserModal"
         hx-get="{% url 'user_new' %}"
