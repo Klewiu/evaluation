@@ -1,18 +1,27 @@
 <tr id="user-row-{{ u.pk }}" hx-swap-oob="beforeend:#user-table-body" class="{% if not u.is_active %}opacity-50{% endif %}">
-  <td>
+  <td class="text-break">
     <div class="fw-semibold">
       {% if u.first_name or u.last_name %}
         {{ u.first_name }} {{ u.last_name }}
       {% else %} — {% endif %}
     </div>
-    <div class="text-muted small">{{ u.email|default:"brak e-maila" }}</div>
+    <div class="text-muted small text-break">{{ u.email|default:"brak e-maila" }}</div>
     <div class="text-muted small">({{ u.username }})</div>
   </td>
-  <td>{{ u.get_role_display|default:"—" }}</td>
-  <td>{{ u.department|default:"—" }}</td>
-  <td>{{ u.is_superuser|yesno:"Tak,Nie" }}</td>
-  <td class="text-end">
-    <div class="btn-group btn-group-sm" role="group">
+
+  <td class="text-nowrap">{{ u.get_role_display|default:"—" }}</td>
+  <td class="text-nowrap">{{ u.department|default:"—" }}</td>
+  <td class="text-nowrap">{{ u.is_superuser|yesno:"Tak,Nie" }}</td>
+  <td class="text-nowrap">
+    {% if u.last_login %}
+      {{ u.last_login|date:"Y-m-d" }}
+    {% else %}
+      <span class="text-muted">—</span>
+    {% endif %}
+  </td>
+
+  <td class="text-end text-nowrap">
+    <div class="btn-group btn-group-sm gap-1" role="group">
       <button
         type="button"
         class="btn btn-outline-primary"

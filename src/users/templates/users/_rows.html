@@ -1,19 +1,30 @@
 {% for u in users %}
 <tr id="user-row-{{ u.pk }}" class="{% if not u.is_active %}opacity-50{% endif %}">
-  <td>
+  <!-- Użytkownik (allow wrapping for long emails/names) -->
+  <td class="text-break">
     <div class="fw-semibold">
       {% if u.first_name or u.last_name %}
         {{ u.first_name }} {{ u.last_name }}
       {% else %} — {% endif %}
     </div>
-    <div class="text-muted small">{{ u.email|default:"brak e-maila" }}</div>
+    <div class="text-muted small text-break">{{ u.email|default:"brak e-maila" }}</div>
     <div class="text-muted small">({{ u.username }})</div>
   </td>
-  <td>{{ u.get_role_display|default:"—" }}</td>
-  <td>{{ u.department|default:"—" }}</td>
-  <td>{{ u.is_superuser|yesno:"Tak,Nie" }}</td>
-  <td class="text-end">
-    <div class="btn-group btn-group-sm" role="group">
+
+  <!-- Keep these on one line so they trigger horizontal scroll instead of collapsing -->
+  <td class="text-nowrap">{{ u.get_role_display|default:"—" }}</td>
+  <td class="text-nowrap">{{ u.department|default:"—" }}</td>
+  <td class="text-nowrap">{{ u.is_superuser|yesno:"Tak,Nie" }}</td>
+  <td class="text-nowrap">
+    {% if u.last_login %}
+      {{ u.last_login|date:"Y-m-d" }}
+    {% else %}
+      <span class="text-muted">—</span>
+    {% endif %}
+  </td>
+
+  <td class="text-end text-nowrap">
+    <div class="btn-group btn-group-sm gap-1" role="group">
       <!-- EDYTUJ -->
       <button
         type="button"
@@ -53,6 +64,6 @@
 </tr>
 {% empty %}
 <tr>
-  <td colspan="5" class="text-center text-muted">Brak użytkowników.</td>
+  <td colspan="6" class="text-center text-muted">Brak użytkowników.</td>
 </tr>
 {% endfor %}

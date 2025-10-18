@@ -3,19 +3,236 @@
 {% block title %}Logowanie{% endblock %}
 
 {% block content %}
-<div class="container mt-5" style="max-width: 400px;">
-    <h2 class="mb-4">Logowanie</h2>
-    
-    {% if form.errors %}
-        <div class="alert alert-danger">
-            Nieprawidłowa nazwa użytkownika lub hasło.
-        </div>
-    {% endif %}
+<style>
+  @import url("https://fonts.googleapis.com/css?family=Poppins:400,500,600,700,800,900&display=swap");
 
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-primary w-100">Zaloguj</button>
-    </form>
-</div>
+  :root{
+    --navbar-h: 56px;          /* will be updated by JS */
+    --wave-bg: #4973ff;
+    --wave-dark: rgba(20,20,20,1);
+    --wave-mid: rgba(20,20,20,0.5);
+  }
+
+  html, body { height: 100%; }
+  body {
+    font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: var(--wave-bg);
+    overflow: hidden; /* lock scrolling */
+  }
+
+  /* MAKE SURE NAVBAR IS ABOVE EVERYTHING */
+  nav.navbar {
+    position: relative;   /* create stacking context */
+    z-index: 1000;        /* higher than waves and content */
+  }
+
+  /* Full-screen waves behind content & navbar */
+  .login-hero .wave {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    background: var(--wave-bg);
+    box-shadow: inset 0 0 50px rgba(0,0,0,.35);
+    z-index: 0;           /* below section & navbar */
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .login-hero .wave span{
+    position: absolute;
+    width: 325vh;
+    height: 325vh;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -75%);
+  }
+  .login-hero .wave span:nth-child(1){
+    border-radius: 45%;
+    background: var(--wave-dark);
+    animation: wave-rotate 5s linear infinite;
+  }
+  .login-hero .wave span:nth-child(2){
+    border-radius: 40%;
+    background: var(--wave-mid);
+    animation: wave-rotate 10s linear infinite;
+  }
+  .login-hero .wave span:nth-child(3){
+    border-radius: 42.5%;
+    background: var(--wave-mid);
+    animation: wave-rotate 15s linear infinite;
+  }
+  @keyframes wave-rotate{
+    0%   { transform: translate(-50%, -75%) rotate(0deg); }
+    100% { transform: translate(-50%, -75%) rotate(360deg); }
+  }
+
+  /* Section fills exactly the viewport area below the navbar */
+  section.login-hero {
+    position: relative;
+    z-index: 1;                            /* above waves, below navbar */
+    width: 100%;
+    height: calc(100dvh - var(--navbar-h));
+    display: grid;
+    place-items: center;
+    padding: 1.5rem 1rem;
+  }
+
+  /* Card */
+  .login-card{
+    width: 100%;
+    max-width: 480px;
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 1rem 2rem rgba(0,0,0,.25);
+    overflow: hidden;
+    background-clip: padding-box;
+  }
+  .login-card .card-header{
+    border: none;
+    background: rgba(255,255,255,.1);
+    backdrop-filter: blur(6px);
+    color: #fff;
+  }
+  .login-card .card-body{
+    background: #fff;
+  }
+
+  /* Title styling */
+  .login-title{
+    color: var(--bs-primary);
+    font-weight: 700;
+    letter-spacing: .5px;
+    font-size: clamp(1.125rem, 1.2rem + 0.8vw, 1.75rem);
+  }
+
+  /* Inputs & helpers */
+  .form-label{ font-weight: 600; }
+
+  .pass-row{
+    display: flex;
+    gap: .5rem;
+    align-items: stretch;
+  }
+  .pass-row .form-control{
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .toggle-pass{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding-inline: .9rem .9rem;
+    border: 1px solid var(--bs-border-color, rgba(0,0,0,.125));
+    background: #fff;
+    border-radius: .375rem;
+    box-shadow: 0 .25rem .75rem rgba(0,0,0,.12);
+  }
+  .toggle-pass:focus{
+    outline: none;
+    box-shadow:
+      0 .25rem .75rem rgba(0,0,0,.12),
+      0 0 0 .2rem rgba(13,110,253,.25);
+  }
+
+  .login-note{
+    color: rgba(255,255,255,.95);
+    text-shadow: 0 1px 2px rgba(0,0,0,.35);
+  }
+</style>
+
+<!-- Measure real navbar height and set --navbar-h -->
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    const nav = document.querySelector('nav.navbar');
+    if (nav) {
+      const h = nav.getBoundingClientRect().height;
+      document.documentElement.style.setProperty('--navbar-h', h + 'px');
+    }
+  });
+</script>
+
+<section class="login-hero">
+  <div class="wave">
+    <span></span><span></span><span></span>
+  </div>
+
+  <div class="container px-3">
+    <div class="card login-card mx-auto">
+      <div class="card-header text-center py-3">
+        <h2 class="login-title mb-0 text-uppercase">Logowanie</h2>
+      </div>
+      <div class="card-body p-4">
+        {% if form.errors %}
+          <div class="alert alert-danger mb-4">
+            Nieprawidłowa nazwa użytkownika lub hasło.
+          </div>
+        {% endif %}
+
+        <form method="post" novalidate class="needs-validation" autocomplete="on">
+          {% csrf_token %}
+
+          <!-- Username -->
+          <div class="mb-3">
+            <label for="id_username" class="form-label">Nazwa użytkownika</label>
+            <input
+              type="text"
+              name="username"
+              id="id_username"
+              class="form-control {% if form.username.errors %}is-invalid{% endif %}"
+              value="{{ form.data.username|default:'' }}"
+              autocomplete="username"
+              autofocus
+              required
+            >
+            {% if form.username.errors %}
+              <div class="invalid-feedback">{{ form.username.errors|striptags }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Password -->
+          <div class="mb-4">
+            <label for="id_password" class="form-label">Hasło</label>
+            <div class="pass-row">
+              <input
+                type="password"
+                name="password"
+                id="id_password"
+                class="form-control {% if form.password.errors %}is-invalid{% endif %}"
+                autocomplete="current-password"
+                required
+              >
+              <button class="btn toggle-pass" type="button" aria-label="Pokaż/ukryj hasło">
+                <i class="bi bi-eye fs-5"></i>
+              </button>
+            </div>
+            {% if form.password.errors %}
+              <div class="invalid-feedback d-block">{{ form.password.errors|striptags }}</div>
+            {% endif %}
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100">
+            Zaloguj
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <p class="text-center mt-3 small login-note">Witaj ponownie! Zaloguj się, aby kontynuować.</p>
+  </div>
+</section>
+
+<script>
+  // Show/Hide password
+  (function(){
+    const btn = document.querySelector('.toggle-pass');
+    const input = document.getElementById('id_password');
+    if(btn && input){
+      btn.addEventListener('click', function(){
+        const isHidden = input.getAttribute('type') === 'password';
+        input.setAttribute('type', isHidden ? 'text' : 'password');
+        this.innerHTML = isHidden ? '<i class="bi bi-eye-slash fs-5"></i>' : '<i class="bi bi-eye fs-5"></i>';
+      });
+    }
+  })();
+</script>
 {% endblock %}

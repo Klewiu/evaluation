@@ -1,12 +1,13 @@
 # users/forms.py
 from django import forms
 from django.contrib.auth import get_user_model, password_validation
-from .models import Department  # ← added
+from .models import Department  # NEW for DepartmentForm
 
 User = get_user_model()
 
 
 class AdminUserUpdateForm(forms.ModelForm):
+    # Override email field to use Polish 'invalid' message (and disable native browser validation via TextInput)
     email = forms.EmailField(
         label="E-mail",
         widget=forms.TextInput(attrs={
@@ -16,6 +17,7 @@ class AdminUserUpdateForm(forms.ModelForm):
         }),
         error_messages={
             "invalid": "Błędny format e-mail",
+            # "required": "Adres e-mail jest wymagany.",
         },
         required=False,
     )
@@ -44,7 +46,7 @@ class AdminUserUpdateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["department"].required = False
-        self.fields["department"].empty_label = "-"
+        self.fields["department"].empty_label = "-"  # wybór "-" wyczyści dział
 
     def clean(self):
         cleaned = super().clean()
@@ -94,15 +96,17 @@ class AdminUserCreateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["department"].required = False
-        self.fields["department"].empty_label = "-"
+        self.fields["department"].empty_label = "-"  # "-" = brak działu
 
     def clean(self):
         cleaned = super().clean()
 
+        # Unique username (case-insensitive)
         username = cleaned.get("username", "").strip()
         if username and User.objects.filter(username__iexact=username).exists():
             self.add_error("username", "Ten login jest już zajęty.")
 
+        # Passwords match + strength
         p1 = cleaned.get("password1")
         p2 = cleaned.get("password2")
         if p1 or p2:
@@ -111,6 +115,7 @@ class AdminUserCreateForm(forms.ModelForm):
             else:
                 dummy = User(username=username or None)
                 password_validation.validate_password(p1, user=dummy)
+
         return cleaned
 
     def save(self, commit=True):
@@ -124,7 +129,7 @@ class AdminUserCreateForm(forms.ModelForm):
 
 
 # ======================================================
-# DEPARTMENT FORM
+# DEPARTMENT FORM (NEW)
 # ======================================================
 class DepartmentForm(forms.ModelForm):
     name = forms.CharField(
@@ -144,7 +149,10 @@ class DepartmentForm(forms.ModelForm):
         fields = ["name"]
 
     def clean_name(self):
-        name = self.cleaned_data.get("name", "").strip()
+        name = (self.cleaned_data.get("name") or "").strip()
+        if not name:
+            raise forms.ValidationError("Nazwa działu jest wymagana.")
+        # Ensure unique (case-insensitive) excluding current instance on edit
         if Department.objects.filter(name__iexact=name).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError("Taki dział już istnieje.")
         return name

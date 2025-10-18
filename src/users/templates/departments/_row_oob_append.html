@@ -1,0 +1,30 @@
+<tbody id="department-table-body" hx-swap-oob="beforeend">
+  <tr id="department-row-{{ d.pk }}">
+    <td class="text-break">{{ d.name }}</td>
+    <td class="text-center text-nowrap">{{ d.user_count|default:0 }}</td>
+    <td class="text-end text-nowrap">
+      <div class="btn-group btn-group-sm gap-1" role="group">
+        <button
+          type="button"
+          class="btn btn-outline-primary"
+          data-bs-toggle="modal"
+          data-bs-target="#editDepartmentModal"
+          hx-get="{% url 'department_edit' d.pk %}"
+          hx-target="#edit-department-modal-content"
+          hx-swap="innerHTML">
+          Edytuj
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-danger"
+          data-bs-toggle="modal"
+          data-bs-target="#confirmDeleteDepartmentModal"
+          hx-get="{% url 'department_confirm_delete' d.pk %}"
+          hx-target="#confirm-delete-department-modal-content"
+          hx-swap="innerHTML">
+          Usuń
+        </button>
+      </div>
+    </td>
+  </tr>
+</tbody>

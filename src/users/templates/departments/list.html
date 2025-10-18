@@ -2,29 +2,32 @@
 
 {% block content %}
 <div class="container py-4">
-  <div class="d-flex align-items-center justify-content-between mb-4">
-    <h2 class="mb-0 d-flex align-items-center">
-      Lista działów
-      <span class="ms-2">
-        <i class="bi bi-info-circle-fill text-warning fs-5"
-           role="img"
-           aria-label="Wskazówka"
-           data-bs-toggle="popover"
-           data-bs-placement="bottom"
-           data-bs-container="body"
-           data-bs-trigger="hover focus"
-           data-bs-html="true"
-           data-bs-title="Wskazówka"
-           data-bs-content="<div class='mb-1'>Zarządzaj działami: dodawaj, edytuj lub usuwaj działy.</div>">
-        </i>
-      </span>
-    </h2>
 
-    <div class="d-flex align-items-center gap-2">
+  <!-- Header (responsive row like Users) -->
+  <div class="row align-items-center g-2 mb-3">
+    <div class="col">
+      <h2 class="mb-0 d-flex align-items-center">
+        Lista działów
+        <span class="ms-2">
+          <i class="bi bi-info-circle-fill text-warning fs-5"
+             role="img"
+             aria-label="Wskazówka"
+             data-bs-toggle="popover"
+             data-bs-placement="bottom"
+             data-bs-container="body"
+             data-bs-trigger="hover focus"
+             data-bs-html="true"
+             data-bs-title="Wskazówka"
+             data-bs-content="<div class='mb-1'>Zarządzaj działami: dodawaj, edytuj lub usuwaj działy.</div>">
+          </i>
+        </span>
+      </h2>
+    </div>
+
+    <div class="col-12 col-sm-auto d-flex flex-wrap gap-2">
       <a href="{% url 'users_list' %}" class="btn btn-outline-secondary">
         <i class="bi bi-people"></i> Użytkownicy
       </a>
-
       <button
         type="button"
         class="btn btn-success"
@@ -38,21 +41,22 @@
     </div>
   </div>
 
+  <!-- Table: all columns visible; horizontal scroll on narrow screens -->
   <div class="table-responsive">
-    <table class="table align-middle">
+    <table class="table table-sm align-middle table-hover  mb-0">
       <thead class="table-light">
         <tr>
-          <th>Nazwa działu</th>
-          <th>Liczba użytkowników</th>
-          <th class="text-end">Akcje</th>
+          <th class="text-center text-nowrap">Nazwa działu</th>
+          <th class="text-center text-nowrap">Liczba użytkowników</th>
+          <th class="text-center text-nowrap">Akcje</th>
         </tr>
       </thead>
       <tbody id="department-table-body">
         {% for d in departments %}
         <tr id="department-row-{{ d.pk }}">
-          <td>{{ d.name }}</td>
-          <td>{{ d.user_count|default:0 }}</td>
-          <td class="text-end">
+          <td class="text-break">{{ d.name }}</td>
+          <td class="text-center text-nowrap">{{ d.user_count|default:0 }}</td>
+          <td class="text-end text-nowrap">
             <div class="btn-group btn-group-sm gap-1" role="group">
               <!-- Edit -->
               <button
@@ -129,7 +133,11 @@
 </div>
 
 <!-- DELETE Modal -->
-<div class="modal fade" id="confirmDeleteDepartmentModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade"
+     id="confirmDeleteDepartmentModal"
+     tabindex="-1"
+     aria-hidden="true"
+     hx-on="deptDeleted: bootstrap.Modal.getOrCreateInstance(this).hide()">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" id="confirm-delete-department-modal-content">
       <div class="modal-header">
@@ -142,4 +150,37 @@
     </div>
   </div>
 </div>
+
+<!-- Safety net: modal cleanup after custom events & manual close -->
+<script>
+  (function() {
+    function hideModalBySelector(sel) {
+      try {
+        const el = document.querySelector(sel);
+        if (!el) return;
+        const inst = bootstrap.Modal.getOrCreateInstance(el);
+        inst.hide();
+      } catch (_) {}
+      document.querySelectorAll('.modal-backdrop').forEach(n => n.remove());
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('padding-right');
+    }
+
+    document.addEventListener('deptCreated', e => {
+      hideModalBySelector((e.detail && e.detail.target) || '#createDepartmentModal');
+    });
+    document.addEventListener('deptUpdated', e => {
+      hideModalBySelector((e.detail && e.detail.target) || '#editDepartmentModal');
+    });
+    document.addEventListener('deptDeleted', e => {
+      hideModalBySelector((e.detail && e.detail.target) || '#confirmDeleteDepartmentModal');
+    });
+
+    document.addEventListener('hidden.bs.modal', () => {
+      document.querySelectorAll('.modal-backdrop').forEach(n => n.remove());
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('padding-right');
+    });
+  })();
+</script>
 {% endblock %}

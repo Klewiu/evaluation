@@ -1,38 +1,29 @@
+# users/views.py
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST
 from django.http import HttpResponse
 from django.contrib.auth import get_user_model
 from django.contrib import messages
-from django.db.models import Count
 import json
 
-from .forms import AdminUserUpdateForm, AdminUserCreateForm, DepartmentForm
+# ---- for departments ----
+from django.db.models import Count, OuterRef, Subquery, IntegerField
 from .models import Department
+from .forms import AdminUserUpdateForm, AdminUserCreateForm, DepartmentForm
+# -------------------------
 
 User = get_user_model()
 
-
-# ======================================================
-# HELPERS
-# ======================================================
 
 def is_admin_or_superuser(user):
     return user.is_authenticated and (user.is_superuser or getattr(user, "role", "") == "admin")
 
 
-# ======================================================
-# HOME
-# ======================================================
-
 @login_required
 def home(request):
     return render(request, 'evaluations/home.html', {'user': request.user})
 
-
-# ======================================================
-# USERS
-# ======================================================
 
 @login_required
 @user_passes_test(is_admin_or_superuser)
@@ -41,7 +32,7 @@ def users_list(request):
     return render(request, "users/list.html", {"users": users})
 
 
-# ---------- CREATE ----------
+# -------------------- CREATE --------------------
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def user_new(request):
@@ -55,18 +46,20 @@ def user_new(request):
 def user_create(request):
     form = AdminUserCreateForm(request.POST)
     if not form.is_valid():
+        # Re-render modal with field errors
         return render(request, "users/_create_form.html", {"form": form})
 
     user = form.save()
     messages.success(request, "Użytkownik utworzony.")
 
-    resp = render(request, "users/_row_oob_append.html", {"u": user})
-    resp["HX-Trigger"] = json.dumps({"userCreated": {"target": "#createUserModal"}})
+    users = User.objects.all().order_by("username")
+    resp = render(request, "users/_tbody_oob.html", {"users": users})
+    resp["HX-Trigger"] = json.dumps({"userCreated": True})
     return resp
-# ---------- /CREATE ----------
+# ------------------ /CREATE --------------------
 
 
-# ---------- EDIT ----------
+# --------------------- EDIT --------------------
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def user_edit(request, pk):
@@ -93,30 +86,34 @@ def user_update(request, pk):
     messages.success(request, "Użytkownik zaktualizowany.")
 
     resp = render(request, "users/_row_oob.html", {"u": user})
-    resp["HX-Trigger"] = json.dumps({"userUpdated": {"target": "#editUserModal"}})
+    resp["HX-Trigger"] = json.dumps({"userUpdated": True})
     return resp
-# ---------- /EDIT ----------
+# ------------------- /EDIT ---------------------
 
 
-# ---------- TOGGLE ACTIVE (BLOCK / UNBLOCK) ----------
+# ------------------- TOGGLE ACTIVE -------------
 @login_required
 @user_passes_test(is_admin_or_superuser)
 @require_POST
 def user_toggle_active(request, pk):
     user_obj = get_object_or_404(User, pk=pk)
+
+    if user_obj.pk == request.user.pk:
+        return HttpResponse("Nie możesz zablokować własnego konta.", status=400)
+
     user_obj.is_active = not user_obj.is_active
-    user_obj.save()
+    user_obj.save(update_fields=["is_active"])
 
-    status = "zablokowany" if not user_obj.is_active else "aktywny"
-    messages.success(request, f"Użytkownik {user_obj.username} jest teraz {status}.")
+    messages.success(
+        request,
+        "Użytkownik odblokowany." if user_obj.is_active else "Użytkownik zablokowany."
+    )
 
-    resp = render(request, "users/_row_oob.html", {"u": user_obj})
-    resp["HX-Trigger"] = json.dumps({"userUpdated": {"target": "#user-table-body"}})
-    return resp
-# ---------- /TOGGLE ACTIVE ----------
+    return render(request, "users/_row_oob.html", {"u": user_obj})
+# ----------------- /TOGGLE ACTIVE --------------
 
 
-# ---------- DELETE ----------
+# --------------------- DELETE ------------------
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def user_confirm_delete(request, pk):
@@ -134,7 +131,6 @@ def user_delete(request, pk):
     if user_obj.pk == request.user.pk:
         messages.error(request, "Nie możesz usunąć sam siebie.")
         return HttpResponse("Nie możesz usunąć samego siebie.", status=400)
-
     if user_obj.is_superuser and not request.user.is_superuser:
         messages.error(request, "Nie masz uprawnień do usunięcia superużytkownika.")
         return HttpResponse("Brak uprawnień.", status=403)
@@ -142,10 +138,9 @@ def user_delete(request, pk):
     user_obj.delete()
     messages.success(request, "Użytkownik usunięty.")
     return HttpResponse("")
-# ---------- /DELETE ----------
+# ------------------- /DELETE -------------------
 
 
-# ---------- CHECK USERNAME ----------
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def check_username(request):
@@ -161,18 +156,31 @@ def check_username(request):
         html = "<small class='text-success'>Login dostępny.</small>"
 
     return HttpResponse(html)
-# ---------- /CHECK USERNAME ----------
 
 
 # ======================================================
-# DEPARTMENTS (DZIAŁY)
+# DEPARTMENTS
 # ======================================================
 
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def departments_list(request):
-    related_name = User._meta.model_name
-    departments = Department.objects.annotate(user_count=Count(related_name)).order_by("name")
+    """
+    Lists departments with user counts via subquery (robust to any related_name).
+    """
+    count_qs = (
+        User.objects
+        .filter(department=OuterRef("pk"))
+        .values("department")
+        .annotate(c=Count("*"))
+        .values("c")
+    )
+    departments = (
+        Department.objects
+        .all()
+        .annotate(user_count=Subquery(count_qs, output_field=IntegerField()))
+        .order_by("name")
+    )
     return render(request, "departments/list.html", {"departments": departments})
 
 
@@ -192,10 +200,16 @@ def department_create(request):
     if not form.is_valid():
         return render(request, "departments/_create_form.html", {"form": form})
 
-    dept = form.save()
+    d = form.save()
     messages.success(request, "Dział utworzony.")
-    resp = render(request, "departments/_row_oob_append.html", {"d": dept})
-    resp["HX-Trigger"] = json.dumps({"deptCreated": {"target": "#createDepartmentModal"}})
+
+    # Ensure the row we append has a correct count (usually 0 for a new dept)
+    d.user_count = User.objects.filter(department=d).count()  # <-- added
+
+    resp = render(request, "departments/_row_oob_append.html", {"d": d})
+    payload = {"deptCreated": {"target": "#createDepartmentModal"}}
+    resp["HX-Trigger"] = json.dumps(payload)
+    resp["HX-Trigger-After-Settle"] = json.dumps(payload)
     return resp
 # ---------- /CREATE ----------
 
@@ -204,24 +218,30 @@ def department_create(request):
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def department_edit(request, pk):
-    dept = get_object_or_404(Department, pk=pk)
-    form = DepartmentForm(instance=dept)
-    return render(request, "departments/_edit_form.html", {"form": form, "dept": dept})
+    d = get_object_or_404(Department, pk=pk)
+    form = DepartmentForm(instance=d)
+    return render(request, "departments/_edit_form.html", {"form": form, "dept": d})
 
 
 @login_required
 @user_passes_test(is_admin_or_superuser)
 @require_POST
 def department_update(request, pk):
-    dept = get_object_or_404(Department, pk=pk)
-    form = DepartmentForm(request.POST, instance=dept)
+    d = get_object_or_404(Department, pk=pk)
+    form = DepartmentForm(request.POST, instance=d)
     if not form.is_valid():
-        return render(request, "departments/_edit_form.html", {"form": form, "dept": dept})
+        return render(request, "departments/_edit_form.html", {"form": form, "dept": d})
 
-    dept = form.save()
+    d = form.save()
     messages.success(request, "Dział zaktualizowany.")
-    resp = render(request, "departments/_row_oob.html", {"d": dept})
-    resp["HX-Trigger"] = json.dumps({"deptUpdated": {"target": "#editDepartmentModal"}})
+
+    # IMPORTANT: attach fresh user_count so the OOB row shows the right value immediately
+    d.user_count = User.objects.filter(department=d).count()  # <-- added
+
+    resp = render(request, "departments/_row_oob.html", {"d": d})
+    payload = {"deptUpdated": {"target": "#editDepartmentModal"}}
+    resp["HX-Trigger"] = json.dumps(payload)
+    resp["HX-Trigger-After-Settle"] = json.dumps(payload)
     return resp
 # ---------- /EDIT ----------
 
@@ -230,26 +250,28 @@ def department_update(request, pk):
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def department_confirm_delete(request, pk):
-    dept = get_object_or_404(Department, pk=pk)
-    related_name = User._meta.model_name
-    user_count = (
-        Department.objects.filter(pk=dept.pk)
-        .annotate(user_count=Count(related_name))
-        .first()
-        .user_count
-        if Department.objects.filter(pk=dept.pk).exists()
-        else 0
-    )
-    return render(request, "departments/_confirm_delete.html", {"dept": dept, "user_count": user_count})
+    d = get_object_or_404(Department, pk=pk)
+    user_count = User.objects.filter(department=d).count()
+    return render(request, "departments/_confirm_delete.html", {"dept": d, "user_count": user_count})
 
 
 @login_required
 @user_passes_test(is_admin_or_superuser)
 @require_POST
 def department_delete(request, pk):
-    dept = get_object_or_404(Department, pk=pk)
-    name = dept.name
-    dept.delete()
-    messages.success(request, f"Dział „{name}” został usunięty. Użytkownicy przypisani do niego otrzymali status BRAK DZIAŁU.")
-    return HttpResponse("")
+    d = get_object_or_404(Department, pk=pk)
+    row_id = f"department-row-{d.pk}"
+    name = d.name
+    d.delete()
+
+    messages.success(
+        request,
+        f"Dział „{name}” został usunięty. Użytkownicy przypisani do niego otrzymali status BRAK DZIAŁU."
+    )
+
+    resp = render(request, "departments/_row_oob_delete.html", {"row_id": row_id})
+    payload = {"deptDeleted": {"target": "#confirmDeleteDepartmentModal"}}
+    resp["HX-Trigger"] = json.dumps(payload)
+    resp["HX-Trigger-After-Settle"] = json.dumps(payload)
+    return resp
 # ---------- /DELETE ----------
