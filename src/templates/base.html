@@ -9,45 +9,33 @@
     <title>{% block title %}System Oceny{% endblock %}</title>
 
     <link rel="stylesheet" href="{% static 'styles.css' %}">
-    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
-    
-
-
-<script>
-    // Init popovers after Bootstrap is loaded
-    document.addEventListener('DOMContentLoaded', function () {
-      new bootstrap.Popover(document.body, {
-        selector: '[data-bs-toggle="popover"]',
-        container: 'body',
-        html: true,
-        trigger: 'hover focus'
-      });
-    });
-</script>
-
-
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+          new bootstrap.Popover(document.body, {
+            selector: '[data-bs-toggle="popover"]',
+            container: 'body',
+            html: true,
+            trigger: 'hover focus'
+          });
+        });
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.7/dist/htmx.min.js"></script>
-    
     <script src="https://unpkg.com/hyperscript.org@0.9.12"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    
 <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
   <div class="container-fluid">
-    <a class="navbar-brand fw-bold" href="{% url 'home' %}">
-      <img src="{% static 'ats_logo.png' %}" alt="Logo" width="40" class="d-inline-block align-text-top"> 
-      OCENY PRACOWNICZE
+    <a class="navbar-brand header-font d-flex  align-items-center" href="{% url 'home' %}">
+      <img src="{% static 'ats_logo.png' %}" alt="Logo" width="60" class="d-inline-block align-text-top"> 
+        <span class="px-1">OCENY PRACOWNICZE</span>
     </a>
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
@@ -75,7 +63,7 @@
             {% endif %}
             {% if user.role == 'hr' or user.role == 'manager' or user.role == 'admin' or user.is_superuser %}
             <li class="nav-item">
-              <a class="nav-link" href="">Raporty</a>
+              <a class="nav-link" href="#">Raporty</a>
             </li>
             {% endif %}
             <li class="nav-item">
@@ -83,20 +71,17 @@
                 <i class="bi bi-box-arrow-right"></i> Wyloguj
               </button>
             </li>
-        {% comment %} {% else %}
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'login' %}">Zaloguj</a>
-            </li> {% endcomment %}
         {% endif %}
       </ul>
     </div>
   </div>
 </nav>
 
-<div class="container">
-    {% block content %}{% endblock %}
-</div>
+<main class="container mt-4 flex-grow-1">
+  {% block content %}{% endblock %}
+</main>
 
+<!-- Modal wylogowania -->
 <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -118,41 +103,34 @@
   </div>
 </div>
 
+{% include 'toasts.html' %}
+<script src="{% static 'toasts.js' %}"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-  // This script runs AFTER Bootstrap has loaded, ensuring 'bootstrap.Modal' is available.
   function closeAllModalsAndClean() {
-    // 1. Hide all visible Bootstrap modals using the instance API
     document.querySelectorAll('.modal.show').forEach(m => {
-      // Use getInstance if it exists, otherwise getOrCreateInstance
       const modalInstance = bootstrap.Modal.getInstance(m) || bootstrap.Modal.getOrCreateInstance(m);
-      if (modalInstance) {
-        modalInstance.hide();
-      }
+      if (modalInstance) modalInstance.hide();
     });
-    
-    // 2. Aggressively clean up the body element's state
     const body = document.body;
-    // Remove the class that prevents scrolling/shifts content
-    body.classList.remove('modal-open'); 
-    // Remove the inline style that often causes the visual "border" (scrollbar padding)
+    body.classList.remove('modal-open');
     body.style.removeProperty('padding-right');
     body.style.removeProperty('overflow');
-    
-    // 3. Clean up any residual modal backdrops
     document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
   }
-
-  // Attach to your custom htmx events emitted by Django
   document.body.addEventListener('userCreated', () => closeAllModalsAndClean());
   document.body.addEventListener('userUpdated', () => closeAllModalsAndClean());
 </script>
-{% comment %} htmx toast messages {% endcomment %}
-{% include 'toasts.html' %}
- <script src="{% static 'toasts.js' %}"></script>
 
 {% block extra_js %}{% endblock %}
 
+<footer class="footer-wave mt-4">
+  <div class="wave"><span></span><span></span><span></span></div>
+  <div class="footer-text text-center text-white small p-5">
+    © 2025 ATS Display Sp. z o.o. | Wszystkie prawa zastrzeżone
+  </div>
+</footer>
 </body>
 </html>

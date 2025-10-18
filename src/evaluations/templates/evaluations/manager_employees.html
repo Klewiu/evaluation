@@ -4,14 +4,14 @@
 {% block content %}
 <div class="container">
     {% if request.user.role == "manager" %}
-        <h2 class="mb-4">Pracownicy działu {{ request.user.department.name }}</h2>
+        <h2 class="mb-4 header-font">Pracownicy działu <span class="text-primary">{{ request.user.department.name }}</span></h2>
     {% else %}
-        <h2 class="mb-4">Oceny pracowników</h2>
+        <h2 class="mb-4 header-font text-primary">Oceny pracowników</h2>
     {% endif %}
 
     {% if employees_with_survey %}
         <div class="table-responsive">
-            <table class="table table-striped">
+            <table class="table table-striped table-bordered align-middle text-center">
                 <thead>
                     <tr>
                         <th>Lp</th>

@@ -1,0 +1,114 @@
+@import url('https://fonts.googleapis.com/css2?family=Megrim&display=swap');
+
+.header-font {
+  font-family: "Megrim", system-ui;
+  font-weight: 400;
+  font-style: normal;
+}
+
+
+/* Domyślnie 100% szerokości na mobile */
+.responsive-btn {
+  width: 100%;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Od dużych ekranów (≥992px) szerokość 25% */
+@media (min-width: 992px) {
+  .responsive-btn {
+    width: 25%;
+  }
+}
+
+/* ====== STICKY FOOTER LAYOUT ====== */
+html, body {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+main {
+  flex: 1 0 auto;
+}
+footer {
+  flex-shrink: 0;
+}
+
+/* === STOPKA Z CZARNYM TŁEM I FALAMI FIOLETOWO-NIEBIESKIMI === */
+.footer-wave {
+  position: relative;
+  width: 100%;
+  height: 140px; /* wysokość stopki desktop */
+  background: #000; /* czarne tło */
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.footer-wave .wave {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.footer-wave .wave span {
+  position: absolute;
+  width: 300vw;
+  height: 300vw;
+  top: -220%; /* top dla desktop */
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 45%;
+}
+
+/* Fale w kolorach jak w login page */
+.footer-wave .wave span:nth-child(1) {
+  background: rgba(73, 115, 255, 0.6); /* niebiesko-fioletowa */
+  animation: footer-rotate 8s linear infinite;
+}
+
+.footer-wave .wave span:nth-child(2) {
+  background: rgba(73, 115, 255, 0.3);
+  animation: footer-rotate 14s linear infinite reverse;
+}
+
+.footer-wave .wave span:nth-child(3) {
+  background: rgba(73, 115, 255, 0.15);
+  animation: footer-rotate 20s linear infinite;
+}
+
+@keyframes footer-rotate {
+  0% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+  100% {
+    transform: translateX(-50%) rotate(360deg);
+  }
+}
+
+.footer-wave .footer-text {
+  position: relative;
+  z-index: 2;
+  padding-bottom: 10px;
+  color: white;
+  font-size: 0.85rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* ====== MOBILE FIX – fale lepiej widoczne ====== */
+@media (max-width: 767px) {
+  .footer-wave {
+    height: 180px; /* wysokość stopki */
+  }
+  .footer-wave .wave span {
+    width: 200%;      /* mniejsza niż 500vw, żeby fale były bardziej „zbite” */
+    height: 200%;     /* zmniejszona wysokość, aby mieściło się w stopce */
+    top: -100%;       /* przesunięcie do góry zmniejszone */
+    border-radius: 50%; /* bardziej okrągłe fale */
+  }
+}

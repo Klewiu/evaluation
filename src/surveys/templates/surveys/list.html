@@ -2,24 +2,49 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2>Ankiety pracownicze</h2>
-    <p>Moduł dla kadr do przygotowania ankiet dla pracowników.</p>
-    <h6>Krok 1 - dodawanie kompetencji i pytań</h6>
-    <a href="{% url 'questions_list' %}" class="btn btn-primary mt-1">
-        Zarządzaj pytaniami
-    </a>
+    <h1 class="header-font text-primary mb-2">Ankiety pracownicze</h1>
+    <p class="mb-5">Moduł dla kadr do przygotowania ankiet dla pracowników. Utwórz kompetencje, pytania i wygeneruj ankiety.</p>
 
-    <a href="{% url 'competencies_list' %}" class="btn btn-primary mt-1">
-        Zarządzaj kompetencjami
-    </a>
-    <br>
-    <h6 class="mt-3">Krok 2 - tworzenie ankiet i zarządzanie ankietami.</h6>
-    <a href="{% url 'surveys_list' %}" class="btn btn-success mt-1">Menu ankiety</a>
-  
-    {% comment %} <a href="{% url 'survey_add' %}" class="btn btn-primary">
-        Utwórz nową ankietę
-    </a> {% endcomment %}
+    <div class="row mt-5 g-3">
+        <!-- Kolumna 1 -->
+        <div class="col-12 col-md-4 text-center">
+            <h6>1. Dodawanie kompetencji</h6>
+            <a href="{% url 'competencies_list' %}" class="btn btn-primary w-100 mt-2">
+                KOMPETENCJE
+            </a>
+        </div>
 
+        <!-- Kolumna 2 -->
+        <div class="col-12 col-md-4 text-center">
+            <h6>2. Dodawanie pytań</h6>
+            <a href="{% url 'questions_list' %}" class="btn btn-secondary w-100 mt-2">
+                PYTANIA
+            </a>
+        </div>
+
+        <!-- Kolumna 3 -->
+        <div class="col-12 col-md-4 text-center">
+            <h6>3. Tworzenie ankiet i zarządzanie ankietami</h6>
+            <a href="{% url 'surveys_list' %}" class="btn btn-dark w-100 mt-2">
+                ANKIETY
+            </a>
+        </div>
+    </div>
+
+    <!-- Karta z opisem -->
+    <div class="card shadow-sm mt-5">
+        <div class="card-body">
+            <h5 class="card-title">Jak działa tworzenie ankiety ?</h5>
+            <p class="card-text text-small" style="text-align: justify; text-indent: 1.5em;" >
+                Najpierw należy dodać kompetencje, które będą podstawą oceny pracowników.
+                Pamiętaj, że konieczne jest dodanie co najmniej 3 kompetencji, aby możliwe było wygenerowanie wykresu kompetencji oraz przeprowadzenie oceny ilościowej.
+                Następnie dodaj pytania. Pytania możesz powiązać z kompetencjami, działami oraz rolą użytkownika (np. manager danego działu lub pracownik).
+                Każde pytanie może mieć jeden z trzech typów: Skala, Skala i opis, pytanie opisowe.
+                Kompetencje mogą być powiązane wyłącznie z pytaniami typu skala lub skala i opis.
+                Pytania wyłącznie opisowe nie łączą się z kompetencjami i nie wpływają na wykres kompetencji ani na ocenę ilościową.
+            </p>
+        </div>
+    </div>
 
 </div>
 {% endblock %}

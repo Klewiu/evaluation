@@ -5,7 +5,7 @@
 {% block content %}
 
 <div class="container">
-    <h2 class="mb-2">Moduł zarządzania pytaniami</h2>
+    <h1 class="mb-2 header-font text-primary">Moduł zarządzania pytaniami</h1>
     
     {# MENU - Buttony akcji #}
     <h6>Menu:</h6>
@@ -47,7 +47,7 @@
             {% for question in questions %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     <div>
-                        <span class="text-secondary">{{ question.text }}</span>
+                        <span class="text-secondary fs-5">{{ question.text }}</span>
                         {% if not question.is_active %}
                             <span class="badge bg-secondary ms-1">Nieaktywne</span>
                         {% endif %}
@@ -58,7 +58,7 @@
                         <br><small class="font-weight-light text-info">Dla: {{ question.get_role_display }}</small>
                     </div>
                     <div class="btn-group">
-                        <a href="{% url 'question_edit' question.id %}" class="btn btn-sm btn-warning">Edytuj</a>
+                        <a href="{% url 'question_edit' question.id %}" class="btn btn-sm btn-dark">Edytuj</a>
                         <button class="btn btn-sm btn-danger"
                                 data-bs-toggle="modal"
                                 data-bs-target="#deleteQuestionModal"
@@ -91,7 +91,7 @@
                         <br><small class="font-weight-light text-info">Dla: {{ question.get_role_display }}</small>
                     </div>
                     <div class="btn-group">
-                        <a href="{% url 'question_edit' question.id %}" class="btn btn-sm btn-warning">Edytuj</a>
+                        <a href="{% url 'question_edit' question.id %}" class="btn btn-sm btn-dark">Edytuj</a>
                         <button class="btn btn-sm btn-danger"
                                 data-bs-toggle="modal"
                                 data-bs-target="#deleteQuestionModal"

@@ -4,6 +4,7 @@
 {% block content %}
 
 <style>
+/* Custom Radio Buttons */
 .custom-radio input[type="radio"] {
   display: none;
 }
@@ -14,24 +15,23 @@
   height: 20px;
   border-radius: 50%;
   border: 2px solid #ccc;
-  margin-right: 0px;
+  margin-right: 5px;
   vertical-align: middle;
   position: relative;
   transition: background-color 0.2s, border-color 0.2s;
 }
 
 .custom-radio input[type="radio"]:checked + span.radio-circle {
-  background-color: green;
-  border-color: green;
+  background-color: #0d6efd; /* Bootstrap primary color */
+  border-color: #0d6efd;
 }
 
 .custom-radio span.radio-label {
-  margin-right: 5px;
   vertical-align: middle;
 }
 
 .radio-group {
-  margin-bottom: 10px;
+  margin-bottom: 15px;
 }
 
 .radar-container {
@@ -40,74 +40,83 @@
   margin: auto;
 }
 
-.custom-radio span.radio-circle:hover {
-  cursor: pointer;
+.table-container {
+  max-width: 700px;
+  margin: 20px auto;
 }
 
-.table-container {
-  max-width: 600px;
-  margin: 30px auto;
+.custom-radio span.radio-circle:hover {
+  cursor: pointer;
 }
 </style>
 
 <div class="container mt-4">
-    <p><small class="text-muted"><u>Data wypełnienia: {{survey.created_at|date:"d.m.Y H:i" }}</u></small></p>
-    <p class="m-0 text-secondary"><u>Nazwa ankiety:</u></p>
-    <h2 class="mb-2">{{ survey.name }}</h2>
-    <p class="m-0 text-secondary"><u>Pracownik:</u></p>
-    <h3 class="mb-2 text-info"> {{ viewed_user.get_full_name }}</h3>
-    <p class="m-0 text-secondary"><u>Dział:</u></p>
-    <h4 class="mb-4 text-secondary"> {{ viewed_user.department.name }}</h3>
-    
-    <p class="my-1 text-secondary"><u>Pytania:</u></p>    
+
+    <!-- Nagłówek jako karta -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="card-title mb-3">{{ survey.name }}</h2>
+
+            <p class="mb-1 text-muted"><strong>Użytkownik:</strong></p>
+            <h4 class="text-primary mb-2"><i class="bi bi-person-vcard"></i> {{ viewed_user.get_full_name }}</h4>
+
+            <p class="mb-1 text-muted"><strong>Dział:</strong></p>
+            <h5 class="text-secondary mb-2">{{ viewed_user.department.name }}</h5>
+
+            <p class="mb-0 text-muted"><strong>Data wypełnienia:</strong> {{ survey.created_at|date:"d.m.Y H:i" }}</p>
+        </div>
+    </div>
+
+    <!-- Sekcja pytań -->
+    <h4 class="text-secondary mb-3">Pytania:</h4>
     <form>
         {% for sq in survey.surveyquestion_set.all %}
-            <div class="mb-3">
-                <!-- Numeracja pytań -->
-                <label><strong>{{ forloop.counter }}. {{ sq.question.text }}</strong></label>
+        <div class="mb-4 p-3 border rounded shadow-sm bg-light">
+            <label><strong>{{ forloop.counter }}. {{ sq.question.text }}</strong></label>
 
-                {% if sq.question.type == "scale" or sq.question.type == "both" %}
-                    <div class="radio-group mt-1">
-                        {% for i in scale_range %}
-                            {% for ans in answers %}
-                                {% if ans.question.id == sq.question.id %}
-                                    <label class="custom-radio">
-                                        <input type="radio" name="q{{ sq.question.id }}_scale" value="{{ i }}"
-                                            {% if ans.scale_value|stringformat:"s" == i|stringformat:"s" %}checked{% endif %}
-                                            disabled
-                                        >
-                                        <span class="radio-circle"></span>
-                                        <span class="radio-label">{{ i }}</span>
-                                    </label>
-                                {% endif %}
-                            {% endfor %}
-                        {% endfor %}
-                    </div>
-                {% endif %}
-
-                {% if sq.question.type == "text" or sq.question.type == "both" %}
+            {% if sq.question.type == "scale" or sq.question.type == "both" %}
+            <div class="radio-group mt-2">
+                {% for i in scale_range %}
                     {% for ans in answers %}
                         {% if ans.question.id == sq.question.id %}
-                            <textarea class="form-control mt-2" disabled>{{ ans.text_value }}</textarea>
+                        <label class="custom-radio me-2">
+                            <input type="radio" name="q{{ sq.question.id }}_scale" value="{{ i }}"
+                                {% if ans.scale_value|stringformat:"s" == i|stringformat:"s" %}checked{% endif %}
+                                disabled
+                            >
+                            <span class="radio-circle"></span>
+                            <span class="radio-label">{{ i }}</span>
+                        </label>
                         {% endif %}
                     {% endfor %}
-                {% endif %}
+                {% endfor %}
             </div>
+            {% endif %}
+
+            {% if sq.question.type == "text" or sq.question.type == "both" %}
+                {% for ans in answers %}
+                    {% if ans.question.id == sq.question.id %}
+                        <textarea class="form-control mt-2" rows="2" disabled>{{ ans.text_value }}</textarea>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        </div>
         {% empty %}
-            <p>Brak odpowiedzi</p>
+        <p>Brak odpowiedzi</p>
         {% endfor %}
     </form>
 
+    <!-- Radar Chart -->
     {% if show_radar %}
-    <div class="mt-4 radar-container text-center">
-        <h3 class="my-5">Wykres kompetencji</h3>
+    <div class="mt-5 radar-container text-center">
+        <h3 class="mb-4">Wykres kompetencji</h3>
         <canvas id="radarChart"></canvas>
     </div>
 
-    <!-- Tabela z wartościami pod wykresem -->
-    <div class="table-container mt-1">
+    <!-- Tabela z wartościami -->
+    <div class="table-container mt-3">
         <table class="table table-bordered text-center">
-            <thead>
+            <thead class="table-light">
                 <tr>
                     <th>Kompetencja</th>
                     <th>Procent [%]</th>
@@ -125,16 +134,15 @@
     </div>
     {% endif %}
 
-    <!-- Przycisk powrót pod tabelą -->
-    <div class="text-center my-2">
-        <button
-            class="btn btn-secondary"
-            type="button"
-            onclick="if (document.referrer) { window.history.back(); } else { window.location.href = '{% url 'home' %}'; }"
-            >
+    <!-- Przycisk powrotu -->
+    <div class="text-center my-4">
+        <button class="btn btn-secondary"
+                type="button"
+                onclick="if (document.referrer) { window.history.back(); } else { window.location.href = '{% url 'home' %}'; }">
             Powrót
-            </button>
+        </button>
     </div>
+
 </div>
 
 {% if show_radar %}
@@ -143,19 +151,18 @@
 const labels = {{ radar_labels|safe }};
 const values = {{ radar_values|safe }};
 
-// Radar Chart
 const data = {
-    labels: labels.map(label => label.substring(0,7) + (label.length>7 ? "…" : "")),
+    labels: labels.map(label => label.length > 7 ? label.substring(0,7) + '…' : label),
     datasets: [{
         label: 'Twoja ocena [%]',
         data: values,
         fill: true,
-        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-        borderColor: 'rgba(54, 162, 235, 1)',
-        pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+        backgroundColor: 'rgba(13, 110, 253, 0.2)',
+        borderColor: 'rgba(13, 110, 253, 1)',
+        pointBackgroundColor: 'rgba(13, 110, 253, 1)',
         pointBorderColor: '#fff',
         pointHoverBackgroundColor: '#fff',
-        pointHoverBorderColor: 'rgba(54, 162, 235, 1)'
+        pointHoverBorderColor: 'rgba(13, 110, 253, 1)'
     }]
 };
 

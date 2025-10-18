@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="container">
-    <h2 class="mb-4">Lista kompetencji</h2>
+    <h1 class="mb-4 header-font text-primary">Lista kompetencji</h1>
 
     <a href="{% url 'competency_add' %}" class="btn btn-primary mb-3">Dodaj kompetencję</a>
     <a href="{% url 'surveys_home' %}" class="btn btn-secondary mb-3">Wróć</a>
@@ -19,7 +19,7 @@
                         {% endif %}
                     </div>
                     <div class="btn-group">
-                        <a href="{% url 'competency_edit' competency.id %}" class="btn btn-sm btn-warning">Edycja</a>
+                        <a href="{% url 'competency_edit' competency.id %}" class="btn btn-sm btn-dark">Edycja</a>
                         <button class="btn btn-sm btn-danger"
                                 data-bs-toggle="modal"
                                 data-bs-target="#deleteModal"
