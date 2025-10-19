@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'users',
     'evaluations',
     'surveys',
+    'reports',
     'htmx_messages',
     'widget_tweaks',
     'wkhtmltopdf',

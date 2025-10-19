@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Raporty{% endblock %}
+{% block content %}
+<div class="container">
+  <h1 class="mb-5 text-center header-font text-primary">Panel Raportów</h1>
+  <div class="row g-4 justify-content-center mt-1">
+
+    <!-- Karta 1: Raporty działu -->
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body text-center bg-light">
+          <h3 class="card-title mb-3 header-font">Raporty działu</h3>
+          <form>
+            <div class="mb-3">
+              <label for="dzial" class="form-label">Wybierz dział:</label>
+              <select class="form-select" id="dzial" name="department">
+                <option selected disabled value="">Wybierz...</option>
+                {% for dep in departments %}
+                  <option value="{{ dep.id }}">{{ dep.name }}</option>
+                {% empty %}
+                  <option disabled>Brak działów</option>
+                {% endfor %}
+              </select>
+            </div>
+            <button type="button" class="btn btn-primary w-100">OK</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Karta 2: Porównanie ankiet pracownika -->
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body text-center bg-light">
+          <h4 class="card-title mb-3 header-font">Porównanie ankiet pracownika</h4>
+          <form>
+            <div class="mb-3">
+              <label for="pracownik" class="form-label">Wybierz pracownika:</label>
+              <select class="form-select" id="pracownik" name="employee">
+                <option selected disabled value="">Wybierz...</option>
+                {% for emp in employees %}
+                  <option value="{{ emp.id }}">{{ emp.first_name }} {{ emp.last_name }}</option>
+                {% empty %}
+                  <option disabled>Brak pracowników</option>
+                {% endfor %}
+              </select>
+            </div>
+            <button type="button" class="btn btn-primary w-100">OK</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Karta 3: Porównanie działów -->
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body text-center bg-light">
+          <h3 class="card-title mb-3 header-font">Porównanie działów</h3>
+          <form>
+            <div class="mb-4">
+              <p>Zestawienie porównawcze wszystkich działów w firmie</p>
+            </div>
+            <button type="button" class="btn btn-primary w-100">OK</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

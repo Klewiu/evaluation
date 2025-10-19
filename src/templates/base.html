@@ -63,7 +63,7 @@
             {% endif %}
             {% if user.role == 'hr' or user.role == 'manager' or user.role == 'admin' or user.is_superuser %}
             <li class="nav-item">
-              <a class="nav-link" href="#">Raporty</a>
+              <a class="nav-link" href="{% url 'reports_home' %}">Raporty</a>
             </li>
             {% endif %}
             <li class="nav-item">
