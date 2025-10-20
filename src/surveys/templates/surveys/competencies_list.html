@@ -32,7 +32,10 @@
             {% endfor %}
         </ul>
     {% else %}
-        <p class="text-muted">Brak dodanych kompetencji.</p>
+        <div class="alert alert-secondary mt-3">
+             Obecnie nie zostały dodane żadne kompetencje.
+             Utwórz minimum 3 kompetencje, aby móc tworzyć ankiety z wykresami.
+        </div>
     {% endif %}
 </div>
 
