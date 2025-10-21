@@ -4,22 +4,98 @@
 </div>
 
 <div class="modal-body">
-  <p>
+  <p class="mb-2">
     Czy na pewno chcesz usunąć użytkownika
-    <strong>{{ user_obj.username }}</strong>?
+    <strong class="fs-5">{{ user_obj.username }}</strong>?
   </p>
+  <p class="mb-0"> <span class="text-danger">Uwaga!</span> Po usunięciu nie będzie można przywrócić danych użytkownika!</p>
 </div>
 
 <div class="modal-footer">
   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
 
   <form
+    id="confirm-delete-user-form-{{ user_obj.pk }}"
     hx-post="{% url 'user_delete' user_obj.pk %}"
     hx-target="#user-row-{{ user_obj.pk }}"
-    hx-swap="delete">   
+    hx-swap="delete"
+    hx-disabled-elt="#user-confirm-delete-btn"
+    class="d-inline">
     {% csrf_token %}
-    <button type="submit" class="btn btn-danger" data-bs-dismiss="modal">
-      Usuń
+    <button id="user-confirm-delete-btn" type="submit" class="btn btn-danger" disabled>
+      Usuń (<span id="user-delete-countdown">5</span>)
     </button>
   </form>
 </div>
+
+<script>
+(function () {
+  // ----- countdown -----
+  const btn   = document.getElementById('user-confirm-delete-btn');
+  const cnt   = document.getElementById('user-delete-countdown');
+  const form  = document.getElementById('confirm-delete-user-form-{{ user_obj.pk }}');
+  if (!btn || !cnt || !form) return;
+
+  const modal = form.closest('.modal');
+  if (!modal) return;
+
+  // cancel any previous timer listeners for this modal instance
+  if (modal.__deleteTimerCleanup) { modal.__deleteTimerCleanup(); modal.__deleteTimerCleanup = null; }
+
+  let remaining = 15;
+  let timerId   = null;
+
+  function setUI(sec) {
+    cnt.textContent = String(sec);
+    btn.textContent = sec > 0 ? `Usuń (${sec})` : 'Usuń';
+    btn.disabled = sec > 0;
+  }
+
+  function start() {
+    setUI(remaining);
+    timerId = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(timerId); timerId = null;
+        setUI(0);
+        return;
+      }
+      setUI(remaining);
+    }, 1000);
+  }
+
+  function reset() {
+    if (timerId) { clearInterval(timerId); timerId = null; }
+    remaining = 5;
+    setUI(remaining);
+  }
+
+  // reset when modal hides; ensures fresh start on reopen
+  function onHidden() { reset(); }
+  modal.addEventListener('hidden.bs.modal', onHidden);
+
+  // close modal after successful HTMX response (2xx)
+  function onAfterRequest(e) {
+    try {
+      const xhr = e.detail && e.detail.xhr;
+      if (xhr && xhr.status >= 200 && xhr.status < 300) {
+        const m = form.closest('.modal');
+        if (m && window.bootstrap && bootstrap.Modal) {
+          bootstrap.Modal.getOrCreateInstance(m).hide();
+        }
+      }
+    } catch (_) {}
+  }
+  form.addEventListener('htmx:afterRequest', onAfterRequest);
+
+  // expose cleanup so a subsequent swap can remove listeners/intervals
+  modal.__deleteTimerCleanup = function(){
+    modal.removeEventListener('hidden.bs.modal', onHidden);
+    form.removeEventListener('htmx:afterRequest', onAfterRequest);
+    if (timerId) { clearInterval(timerId); timerId = null; }
+  };
+
+  // kick off
+  start();
+})();
+</script>
