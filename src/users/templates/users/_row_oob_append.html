@@ -39,7 +39,7 @@
         {% csrf_token %}
         <button type="submit"
                 class="btn {% if u.is_active %}btn-outline-secondary{% else %}btn-warning{% endif %}">
-          {% if u.is_active %}Zablokuj{% else %}ZABLOKOWANY{% endif %}
+          {% if u.is_active %}Zablokuj{% else %}BLOKADA{% endif %}
         </button>
       </form>
 

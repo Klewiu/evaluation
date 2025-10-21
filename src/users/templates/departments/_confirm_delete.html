@@ -2,23 +2,109 @@
   <h5 class="modal-title">Potwierdź usunięcie</h5>
   <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
 </div>
+
 <div class="modal-body">
   <p class="mb-2">
-    Czy na pewno chcesz usunąć dział <strong>„{{ dept.name }}”</strong>?
+    Czy na pewno chcesz usunąć dział
+    <strong class="text-danger fs-5">„{{ dept.name }}”</strong>?
   </p>
-  <p class="text-muted mb-0">
-    Liczba użytkowników przypisanych do tego działu: <strong>{{ user_count|default:0 }}</strong>.
+  <p class="mb-0">
+    Liczba użytkowników przypisanych do tego działu:
+    <strong>{{ user_count|default:0 }}</strong>.
+  </p>
+  <p class="text-danger mb-0">
+    Uwaga: Po usunięciu nie będzie można przywrócić ankiet przypisanych do działu.
   </p>
 </div>
+
 <div class="modal-footer">
   <button type="button" class="btn btn-light" data-bs-dismiss="modal">Anuluj</button>
+
   <form
+    id="confirm-delete-dept-form-{{ dept.pk }}"
     hx-post="{% url 'department_delete' dept.pk %}"
     hx-target="#confirm-delete-department-modal-content"
     hx-swap="none"
-    class="d-inline"
-  >
+    hx-disabled-elt="#dept-confirm-delete-btn"
+    class="d-inline">
     {% csrf_token %}
-    <button type="submit" class="btn btn-danger">Usuń</button>
+    <button id="dept-confirm-delete-btn" type="submit" class="btn btn-danger" disabled>
+      Usuń (<span id="dept-delete-countdown">10</span>)
+    </button>
   </form>
 </div>
+
+<script>
+(function () {
+  // ----- countdown -----
+  const btn  = document.getElementById('dept-confirm-delete-btn');
+  const cnt  = document.getElementById('dept-delete-countdown');
+  const form = document.getElementById('confirm-delete-dept-form-{{ dept.pk }}');
+  if (!btn || !cnt || !form) return;
+
+  const modal = form.closest('.modal');
+  if (!modal) return;
+
+  // prevent duplicate listeners/intervals on re-open
+  if (modal.__deptDeleteTimerCleanup) {
+    modal.__deptDeleteTimerCleanup();
+    modal.__deptDeleteTimerCleanup = null;
+  }
+
+  let remaining = 15;   // <- change delay here if needed
+  let timerId   = null;
+
+  function setUI(sec) {
+    cnt.textContent = String(sec);
+    btn.textContent = sec > 0 ? `Usuń (${sec})` : 'Usuń';
+    btn.disabled = sec > 0;
+  }
+
+  function start() {
+    setUI(remaining);
+    timerId = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(timerId); timerId = null;
+        setUI(0);
+        return;
+      }
+      setUI(remaining);
+    }, 1000);
+  }
+
+  function reset() {
+    if (timerId) { clearInterval(timerId); timerId = null; }
+    remaining = 10;  // <- keep in sync with initial value
+    setUI(remaining);
+  }
+
+  // reset when modal hides; ensures fresh start on reopen
+  function onHidden() { reset(); }
+  modal.addEventListener('hidden.bs.modal', onHidden);
+
+  // close modal after successful HTMX response (2xx)
+  function onAfterRequest(e) {
+    try {
+      const xhr = e.detail && e.detail.xhr;
+      if (xhr && xhr.status >= 200 && xhr.status < 300) {
+        const m = form.closest('.modal');
+        if (m && window.bootstrap && bootstrap.Modal) {
+          bootstrap.Modal.getOrCreateInstance(m).hide();
+        }
+      }
+    } catch (_) {}
+  }
+  form.addEventListener('htmx:afterRequest', onAfterRequest);
+
+  // expose cleanup for subsequent swaps
+  modal.__deptDeleteTimerCleanup = function () {
+    modal.removeEventListener('hidden.bs.modal', onHidden);
+    form.removeEventListener('htmx:afterRequest', onAfterRequest);
+    if (timerId) { clearInterval(timerId); timerId = null; }
+  };
+
+  // kick off
+  start();
+})();
+</script>
