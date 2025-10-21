@@ -1,130 +1,91 @@
-{# templates/users/_edit_form.html #}
-
 <style>
-  ::placeholder { font-style: italic; opacity: .8; }
+::placeholder { font-style: italic; opacity: .8; }
 </style>
-
 <div class="modal-header">
-  <h5 class="modal-title d-flex align-items-center">
-    Edytuj użytkownika: {{ user_obj.username }}
-    <span class="ms-2">
-      <i class="bi bi-info-circle-fill text-secondary"
-         role="img"
-         data-bs-toggle="popover"
-         data-bs-placement="bottom"
-         data-bs-container="body"
-         data-bs-trigger="hover focus"
-         data-bs-html="true"
-         data-bs-title="Wskazówka"
-         data-bs-content="<div class='mb-1'>Zaktualizuj pola użytkownika i kliknij <strong>Zapisz</strong>.</div><div class='fw-light mb-0'>Możesz zaktualizować dowolne pole, a resztę pól pozostawić bez zmian.</div>">
-      </i>
-    </span>
-  </h5>
-  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+<h5 class="modal-title d-flex align-items-center">
+Edytuj użytkownika: {{ user_obj.username }}
+<span class="ms-2">
+<i class="bi bi-info-circle-fill text-secondary"
+role="img"
+data-bs-toggle="popover"
+data-bs-placement="bottom"
+data-bs-container="body"
+data-bs-trigger="hover focus"
+data-bs-html="true"
+data-bs-title="Wskazówka"
+data-bs-content="<div class='mb-1'>Zaktualizuj pola użytkownika i kliknij <strong>Zapisz</strong>.</div><div class='fw-light mb-0'>Możesz zaktualizować dowolne pole, a resztę pól pozostawić bez zmian.</div>">
+</i>
+</span>
+</h5>
+<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
 </div>
-
 <div class="modal-body">
-  <form
-    novalidate
-    hx-post="{% url 'user_update' user_obj.pk %}"
-    hx-target="#edit-user-modal-content"
-    hx-swap="innerHTML">
-    {% csrf_token %}
-
-    <div class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label">Imię</label>
-        {{ form.first_name }}
-        {% if form.first_name.errors %}
-          <div class="text-danger small">{{ form.first_name.errors|striptags }}</div>
-        {% endif %}
-      </div>
-
-      <div class="col-md-6">
-        <label class="form-label">Nazwisko</label>
-        {{ form.last_name }}
-        {% if form.last_name.errors %}
-          <div class="text-danger small">{{ form.last_name.errors|striptags }}</div>
-        {% endif %}
-      </div>
-
-      <div class="col-12">
-        <label class="form-label">E-mail</label>
-        {{ form.email }}
-        {% if form.email.errors %}
-          <div class="text-danger small">{{ form.email.errors|striptags }}</div>
-        {% endif %}
-      </div>
-
-      <div class="col-12">
-        <label class="form-label">Dział</label>
-        {{ form.department }}
-        <div class="form-text">Aktualnie: {{ user_obj.department|default:"BRAK DZIAŁU" }}. Wybierz „-”, aby wyczyścić.</div>
-        {% if form.department.errors %}
-          <div class="text-danger small">{{ form.department.errors|striptags }}</div>
-        {% endif %}
-      </div>
-
-      <hr class="mt-2 mb-1">
-
-      <div class="col-12 d-flex align-items-center gap-2">
-        <button type="button"
-                class="btn btn-outline-danger btn-sm"
-                _="on click toggle .d-none on #pw-section-{{ user_obj.pk }}">
-          ZMIANA HASŁA
-        </button>
-        <small class="text-muted">Opcjonalne — kliknij tylko, jeśli chcesz zmienić hasło.</small>
-      </div>
-
-      {% if form.errors %}
-        <div class="col-12">
-          <div class="alert alert-danger py-2 mb-0 small">Popraw błędy w formularzu.</div>
-        </div>
-      {% endif %}
-
-      {% with pw1=form.password1.value pw2=form.password2.value %}
-      <div id="pw-section-{{ user_obj.pk }}"
-           class="row g-3 mt-1 {% if not pw1 and not pw2 and not form.password1.errors and not form.password2.errors %}d-none{% endif %}">
-        <div class="col-md-6">
-          <label class="form-label d-flex align-items-center gap-2">
-            Nowe hasło
-            <i class="bi bi-exclamation-triangle-fill text-danger"
-               role="img"
-               aria-label="Awaryjna zmiana hasła"
-               tabindex="0"
-               data-bs-toggle="popover"
-               data-bs-trigger="hover focus"
-               data-bs-placement="top"
-               data-bs-container="body"
-               data-bs-html="true"
-               data-bs-title="<span class='text-danger'>Awaryjna zmiana hasła</span>"
-               data-bs-content="Każdy użytkownik może samodzielnie zresetować swoje hasło w panelu logowania, wysyłając na swój adres e-mail link resetu hasła. Traktuj tę opcję jako ostateczność, np. gdy użytkownik nie ma dostępu do swojej poczty lub w wyjątkowych przypadkach.">
-            </i>
-          </label>
-          {{ form.password1 }}
-          {% if form.password1.errors %}
-            <div class="text-danger small">{{ form.password1.errors|striptags }}</div>
-          {% endif %}
-        </div>
-
-        <div class="col-md-6">
-          <label class="form-label">Powtórz hasło</label>
-          {{ form.password2 }}
-          {% if form.password2.errors %}
-            <div class="text-danger small">{{ form.password2.errors|striptags }}</div>
-          {% endif %}
-        </div>
-      </div>
-      {% endwith %}
-
-      {% if form.non_field_errors %}
-        <div class="col-12 text-danger small">{{ form.non_field_errors|striptags }}</div>
-      {% endif %}
-    </div>
-
-    <div class="modal-footer px-2 mt-5">
-      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
-      <button type="submit" class="btn btn-primary">Zapisz</button>
-    </div>
-  </form>
+<form
+novalidate
+hx-post="{% url 'user_update' user_obj.pk %}"
+hx-target="#edit-user-modal-content"
+hx-swap="innerHTML">
+{% csrf_token %}
+<div class="row g-3">
+<div class="col-md-6">
+<label class="form-label">Imię</label>
+{{ form.first_name }}
+{% if form.first_name.errors %}
+<div class="text-danger small">{{ form.first_name.errors|striptags }}</div>
+{% endif %}
+</div>
+<div class="col-md-6">
+<label class="form-label">Nazwisko</label>
+{{ form.last_name }}
+{% if form.last_name.errors %}
+<div class="text-danger small">{{ form.last_name.errors|striptags }}</div>
+{% endif %}
+</div>
+<div class="col-12">
+<label class="form-label">E-mail</label>
+{{ form.email }}
+{% if form.email.errors %}
+<div class="text-danger small">{{ form.email.errors|striptags }}</div>
+{% endif %}
+</div>
+<div class="col-12">
+<label class="form-label">Dział</label>
+{{ form.department }}
+<div class="form-text">Aktualnie: {{ user_obj.department|default:"BRAK DZIAŁU" }}. Wybierz „-”, aby wyczyścić.</div>
+{% if form.department.errors %}
+<div class="text-danger small">{{ form.department.errors|striptags }}</div>
+{% endif %}
+</div>
+<hr class="mt-2 mb-1">
+<div class="col-12 d-flex align-items-center gap-2">
+<button type="button"
+class="btn btn-outline-danger btn-sm"
+_="on click
+toggle .d-none on #pw-section-{{ user_obj.pk }}
+then set #id_password1's value to ''
+then set #id_password2's value to ''">
+ZMIANA HASŁA
+</button>
+<small class="text-muted">Opcjonalne — kliknij tylko, jeśli chcesz zmienić hasło.</small>
+</div>
+{% if form.errors %}
+<div class="col-12">
+<div class="alert alert-danger py-2 mb-0 small">Popraw błędy w formularzu.</div>
+</div>
+{% endif %}
+{% with pw1=form.password1.value pw2=form.password2.value %}
+<div id="pw-section-{{ user_obj.pk }}"
+class="row g-3 mt-1 {% if not pw1 and not pw2 and not form.password1.errors and not form.password2.errors %}d-none{% endif %}">
+<!-- PASSWORD ACTIONS BLOCK --> <div class="col-12 d-flex align-items-center justify-content-end"> <div class="btn-group btn-group-sm" role="group" aria-label="Password actions"> <button type="button" class="btn btn-outline-secondary" id="toggle-passwords" _=" on click if #id_password1's type is 'password' set #id_password1's type to 'text' set #id_password2's type to 'text' put 'Ukryj hasło' into me.innerText else set #id_password1's type to 'password' set #id_password2's type to 'password' put 'Pokaż hasło' into me.innerText end " > Pokaż hasło </button> </div> </div> <!-- END PASSWORD ACTIONS BLOCK --> <div class="col-md-6"> <label class="form-label d-flex align-items-center gap-2"> Nowe hasło <i class="bi bi-exclamation-triangle-fill text-danger" role="img" aria-label="Awaryjna zmiana hasła" tabindex="0" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-placement="top" data-bs-container="body" data-bs-html="true" data-bs-title="<span class='text-danger'>Awaryjna zmiana hasła</span>" data-bs-content="Każdy użytkownik może samodzielnie zresetować swoje hasło w panelu logowania, wysyłając na swój adres e-mail link resetu hasła. Traktuj tę opcję jako ostateczność, np. gdy użytkownik nie ma dostępu do swojej poczty lub w wyjątkowych przypadkach."> </i> </label> {{ form.password1 }} {% if form.password1.errors %} <div class="text-danger small">{{ form.password1.errors|striptags }}</div> {% endif %} </div> <div class="col-md-6"> <label class="form-label">Powtórz hasło</label> {{ form.password2 }} {% if form.password2.errors %} <div class="text-danger small">{{ form.password2.errors|striptags }}</div> {% endif %} </div> 
+</div>
+{% endwith %}
+{% if form.non_field_errors %}
+<div class="col-12 text-danger small">{{ form.non_field_errors|striptags }}</div>
+{% endif %}
+</div>
+<div class="modal-footer px-2 mt-5">
+<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+<button type="submit" class="btn btn-primary">Zapisz</button>
+</div>
+</form>
 </div>
