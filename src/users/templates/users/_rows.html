@@ -23,12 +23,12 @@
     {% endif %}
   </td>
 
-  <td class="text-end text-nowrap text-center">
+  <td class="text-end text-nowrap">
     <div class="btn-group btn-group-sm gap-1" role="group">
       <!-- EDYTUJ -->
       <button
         type="button"
-        class="btn btn-primary"
+        class="btn btn-outline-primary"
         data-bs-toggle="modal"
         data-bs-target="#editUserModal"
         hx-get="{% url 'user_edit' u.pk %}"
@@ -43,15 +43,15 @@
             hx-swap="none">
         {% csrf_token %}
         <button type="submit"
-                class="btn {% if u.is_active %}btn-secondary{% else %}btn-warning{% endif %}">
-          {% if u.is_active %}Zablokuj{% else %}ZABLOKOWANY{% endif %}
+                class="btn {% if u.is_active %}btn-outline-secondary{% else %}btn-warning{% endif %}">
+          {% if u.is_active %}Zablokuj{% else %}BLOKADA{% endif %}
         </button>
       </form>
 
       <!-- USUŃ -->
       <button
         type="button"
-        class="btn btn-danger"
+        class="btn btn-outline-danger"
         data-bs-toggle="modal"
         data-bs-target="#confirmDeleteModal"
         hx-get="{% url 'user_confirm_delete' u.pk %}"

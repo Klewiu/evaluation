@@ -6,7 +6,7 @@
   <!-- Header -->
   <div class="row align-items-center g-2 mb-3">
     <div class="col">
-      <h1 class="mb-0 d-flex align-items-center header-font text-primary">
+      <h2 class="mb-0 d-flex align-items-center header-font text-primary">
         Użytkownicy
         <span class="ms-2">
           <i class="bi bi-info-circle-fill text-secondary fs-5"
@@ -21,11 +21,11 @@
              data-bs-content="<div class='mb-1'><strong>Utwórz nowego użytkownika</strong>, zmodyfikuj lub usuń istniejącego użytkownika.</div>">
           </i>
         </span>
-      </h1>
+      </h2>
     </div>
 
     <div class="col-12 col-sm-auto d-flex flex-wrap gap-2">
-      <a href="{% url 'departments_list' %}" class="btn btn-dark">
+      <a href="{% url 'departments_list' %}" class="btn btn btn-dark">
         <i class="bi bi-building"></i> Działy
       </a>
 
@@ -44,14 +44,14 @@
 
   <!-- Table: all columns visible; horizontal scroll on small screens -->
   <div class="table-responsive">
-    <table class="table table-striped table-bordered align-middle text-center">
+    <table class="table table-sm align-middle table-hover mb-0">
       <thead class="table-light">
         <tr>
           <th class="text-center">Użytkownik</th>
           <th class="text-center text-nowrap">Rola</th>
           <th class="text-center text-nowrap">Dział</th>
           <th class="text-center text-nowrap">Admin</th>
-          <th class="text-center text-nowrap">Ostatnie logowanie</th>
+          <th class="text-center text-nowrap">Ostatnie Logowanie</th>
           <th class="text-center text-nowrap">Akcje</th>
         </tr>
       </thead>
