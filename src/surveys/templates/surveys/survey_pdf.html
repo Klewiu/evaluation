@@ -1,67 +1,101 @@
 {% block content %}
-
 <style>
 body {
+  background-color: #fff;
   font-family: "Segoe UI", "Inter", sans-serif;
-  background-color: #fefefe;
-  color: #333;
+  color: #212529;
 }
 
-p {
-  font-size: 14px;
-  margin-bottom: 4px;  /* mniejszy margines dla nagłówków ankiety i pracownika */
+.container {
+  max-width: 900px;
+  margin: 0 auto 0 auto;
+  padding: 5px;
 }
 
-/* --- Nagłówek ankiety --- */
-h2 {
-  font-size: 24px;
+/* Karty */
+.card {
+  border: none;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.card-body {
+  padding: 24px;
+
+}
+
+/* Nagłówek */
+.header-card h2 {
+  font-size: 26px;
   font-weight: 600;
-  margin-bottom: 4px;
+  color: #212529;
+  margin-bottom: 14px;
 }
 
-h3 {
+.header-card h4 {
+  font-size: 20px;
+  font-weight: 500;
+  color: #0d6efd;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
+.header-card h5 {
   font-size: 18px;
   font-weight: 500;
-  margin-bottom: 28px;  /* większy margines przed pytaniami */
-  color: #17a2b8;
+  color: #495057;
+  margin-top: 0;
+  margin-bottom: 6px;
 }
 
-/* --- Sekcja pytania --- */
-.mb-3 {
-  margin-bottom: 28px;
+.header-card p {
+  font-size: 15px;
+  margin-bottom: 2px;
+  color: #6c757d;
 }
 
-label strong {
-  font-size: 17px;
+
+/* Pytania w kartach */
+.question-card {
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+
+.question-card label {
+  font-size: 15px;
   font-weight: 500;
-  display: block;
-  margin-bottom: 10px;
+  color: #212529;
 }
 
-/* --- Ukrycie oryginalnych radio --- */
+/* Custom Radio Buttons */
 .custom-radio input[type="radio"] {
   display: none;
 }
 
-/* --- Widoczny krąg --- */
-.custom-radio span {
+.custom-radio span.radio-circle {
   display: inline-block;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  border: 2px solid #bbb;
-  margin-right: 6px;
+  border: 2px solid #adb5bd;
+  margin-right: 5px;
   vertical-align: middle;
-  background-color: #fff;
   transition: all 0.2s ease;
 }
 
-.custom-radio input[type="radio"]:checked + span {
-  background-color: #28a745;
-  border-color: #28a745;
+.custom-radio input[type="radio"]:checked + span.radio-circle {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
 }
 
-/* --- Radio z tekstem obok --- */
 .custom-radio {
   font-size: 15px;
   display: inline-flex;
@@ -69,140 +103,167 @@ label strong {
   margin-right: 10px;
 }
 
-/* --- Kontener przycisków --- */
 .radio-group {
+  margin-top: 10px;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 6px;
 }
 
-/* --- Textarea --- */
+/* Textarea */
 textarea.form-control {
   width: 100%;
-  min-height: 60px;
+  min-height: 70px;
   resize: none;
   border-radius: 6px;
-  border: 1px solid #ccc;
+  border: 1px solid #dee2e6;
   padding: 8px;
   font-size: 15px;
-  background-color: #f9f9f9;
+  background-color: #fff;
   margin-top: 12px;
 }
 
-/* --- Radar container --- */
+/* Radar + tabela */
 .radar-container {
   max-width: 800px;
   margin: 40px auto;
   text-align: center;
+  background: #fff;
+  padding: 20px;
 }
 
-.radar-container h3 {
-  font-size: 18px;
-  font-weight: 500;
-  margin-bottom: 16px;
+.radar-container h4 {
+    margin-bottom: 10px;
+    font-size: 18px;
+    font-weight: 600;
 }
 
-/* --- Tabela pod wykresem --- */
 .table-container {
   max-width: 400px;
-  margin: 20px auto 0 auto;
-  margin-top: 50px;
+  margin: 30px auto 0 auto;
 }
 
 .table-container table {
   width: 100%;
   border-collapse: collapse;
   text-align: center;
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 .table-container th,
 .table-container td {
-  border: 1px solid #333;
+  border: 1px solid #ccc;
   padding: 6px;
+  font-size: 14px;
+}
+
+.table-container th {
+  background-color: #f1f3f5;
+  font-weight: 600;
+}
+h4.text-center {
+    text-align: center;
 }
 </style>
 
-<div class="container mt-4">
-   <p><small class="text-muted"><u>Data wypełnienia: {{ survey.created_at|date:"d.m.Y H:i" }}</u></small></p>
-    <p class="m-0 text-secondary"><u>Nazwa ankiety:</u></p>
-    <h2 class="mb-2">{{ survey.name }}</h2>
+<div class="container">
 
-    <p class="m-0 text-secondary"><u>Pracownik:</u></p>
-    <h3 class="mb-2 text-info">{{ user.get_full_name }}</h3>
+  <!-- Nagłówek jako karta -->
+  <div class="card shadow-sm mb-4 header-card">
+    <div class="card-body">
+      <h2 class="card-title mb-3">{{ survey.name }}</h2>
 
-    <p class="m-0 text-secondary"><u>Dział:</u></p>
-    <h4 class="mb-4 text-secondary">
-        {% if user.department %}
-            {{ user.department.name }}
+      <!-- Użytkownik -->
+      <p><strong>Użytkownik:</strong></p>
+      <h4>
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#0d6efd" viewBox="0 0 16 16">
+        <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+        </svg>
+
+        {% if viewed_user %}{{ viewed_user.get_full_name }}
+        {% elif user %}{{ user.get_full_name }}
+        {% else %}Nieznany użytkownik{% endif %}
+      </h4>
+
+      <!-- Dział -->
+      <p><strong>Dział:</strong></p>
+      <h5>
+        {% if viewed_user and viewed_user.department %}
+          {{ viewed_user.department.name }}
+        {% elif user and user.department %}
+          {{ user.department.name }}
         {% else %}
-            Brak przypisanego działu
+          Brak przypisanego działu
         {% endif %}
-    </h4>
+      </h5>
 
-    <p class="my-1 text-secondary"><u>Pytania:</u></p>   
+      <!-- Data -->
+      <p><strong>Data wypełnienia:</strong> {{ survey.created_at|date:"d.m.Y H:i" }}</p>
+    </div>
+  </div>
 
-    <form>
-      {% for sq in survey.surveyquestion_set.all %}
-        <div class="mb-3">
-          <!-- Numeracja pytań -->
-          <label><strong>{{ forloop.counter }}. {{ sq.question.text }}</strong></label>
+  <!-- Sekcja pytań -->
+  <h4 class="text-secondary mb-3 text-center">ODPOWIEDZI PRACOWNIKA</h4>
+  <form>
+    {% for sq in survey.surveyquestion_set.all %}
+    <div class="question-card">
+      <label><strong>{{ forloop.counter }}. {{ sq.question.text }}</strong></label>
 
-          {% if sq.question.type == "scale" or sq.question.type == "both" %}
-            <div class="radio-group">
-              {% for i in scale_range %}
-                {% for ans in answers %}
-                  {% if ans.question.id == sq.question.id %}
-                    <label class="custom-radio">
-                      <input type="radio" name="q{{ sq.question.id }}_scale" value="{{ i }}"
-                        {% if ans.scale_value|stringformat:"s" == i|stringformat:"s" %}checked{% endif %}
-                        disabled>
-                      <span></span> {{ i }}
-                    </label>
-                  {% endif %}
-                {% endfor %}
-              {% endfor %}
-            </div>
+      {% if sq.question.type == "scale" or sq.question.type == "both" %}
+      <div class="radio-group">
+        {% for i in scale_range %}
+          {% for ans in answers %}
+            {% if ans.question.id == sq.question.id %}
+            <label class="custom-radio">
+              <input type="radio" name="q{{ sq.question.id }}_scale" value="{{ i }}"
+                {% if ans.scale_value|stringformat:"s" == i|stringformat:"s" %}checked{% endif %}
+                disabled>
+              <span class="radio-circle"></span> {{ i }}
+            </label>
+            {% endif %}
+          {% endfor %}
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if sq.question.type == "text" or sq.question.type == "both" %}
+        {% for ans in answers %}
+          {% if ans.question.id == sq.question.id %}
+            <textarea class="form-control" disabled>{{ ans.text_value }}</textarea>
           {% endif %}
-
-          {% if sq.question.type == "text" or sq.question.type == "both" %}
-            {% for ans in answers %}
-              {% if ans.question.id == sq.question.id %}
-                <textarea class="form-control" disabled>{{ ans.text_value }}</textarea>
-              {% endif %}
-            {% endfor %}
-          {% endif %}
-        </div>
-      {% empty %}
-        <p>Brak odpowiedzi</p>
-      {% endfor %}
-    </form>
+        {% endfor %}
+      {% endif %}
+    </div>
+    {% empty %}
+    <p>Brak odpowiedzi</p>
+    {% endfor %}
+  </form>
 
     {% if radar_image %}
-      <div class="radar-container">
-        <img src="data:image/png;base64,{{ radar_image }}" style="max-width:100%; height:auto;">
+    <div class="radar-container">
+      <img src="data:image/png;base64,{{ radar_image }}" style="max-width:100%; height:auto;">
 
-        <!-- Tabela z wartościami pod wykresem -->
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Kompetencja</th>
-                        <th>Procent [%]</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for label, value in radar_data %}
-                    <tr>
-                        <td>{{ label }}</td>
-                        <td>{{ value }}%</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Kompetencja</th>
+              <th>Procent [%]</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for label, value in radar_data %}
+            <tr>
+              <td>{{ label }}</td>
+              <td>{{ value }}%</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-    {% endif %}
+    </div>
+  {% endif %}
 </div>
 
 {% endblock %}

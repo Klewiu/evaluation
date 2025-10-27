@@ -482,6 +482,14 @@ def save_question_order(request, pk):
 class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
     template_name = "surveys/survey_pdf.html"
 
+    cmd_options = {
+        'footer-right': 'Strona [page] z [topage]',
+        'footer-font-size': '8',
+        'footer-spacing': '5',
+        'margin-bottom': '15mm',
+    }
+
+
     def get_user(self):
         user_id = self.kwargs.get("user_id")
         if user_id:
@@ -561,7 +569,7 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         ax.set_ylim(0, 100)
         ax.set_rlabel_position(0)
         ax.grid(True)
-        ax.set_title("Wykres kompetencji", va='bottom')
+        ax.set_title("WYKRES KOMPETENCJI", va='bottom', fontsize=14, fontweight='bold', pad=34)
 
         for angle in angles:
             ax.plot([angle, angle], [0, 100], color='gray', linewidth=0.5, linestyle='dashed')
