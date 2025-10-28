@@ -449,19 +449,18 @@ def survey_edit_response(request, pk):
     if request.method == "POST":
         form = SurveyFillForm(survey, request.POST)
         if form.is_valid():
-            # Zapisz odpowiedzi
-            for field_name, value in form.cleaned_data.items():
-                qid = int(field_name.split('q')[1].split('_')[0])
-                question = Question.objects.get(id=qid)
-                scale_val = value if '_scale' in field_name else None
-                text_val = value if '_text' in field_name else ""
-                
+            # Zapisz odpowiedzi – poprawione dla typu BOTH
+            for sq in survey.surveyquestion_set.select_related("question").all():
+                q = sq.question
+                scale_val = form.cleaned_data.get(f"q{q.id}_scale")
+                text_val = form.cleaned_data.get(f"q{q.id}_text", "")
+
                 SurveyAnswer.objects.update_or_create(
                     response=response,
-                    question=question,
+                    question=q,
                     defaults={
-                        "scale_value": scale_val,
-                        "text_value": text_val
+                        "scale_value": scale_val if scale_val else None,
+                        "text_value": text_val if text_val else ""
                     }
                 )
             return redirect("home")
