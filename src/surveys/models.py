@@ -57,7 +57,7 @@ class Survey(models.Model):
     year = models.PositiveIntegerField(blank=True, null=True)
 
     ROLE_CHOICES = [
-        ("both", "Pracownik i Manager"),
+        # ("both", "Pracownik i Manager"),
         ("manager", "Manager"),
         ("employee", "Pracownik"),
     ]
