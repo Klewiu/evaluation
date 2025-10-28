@@ -1,5 +1,6 @@
 from django import forms
 from .models import Competency, Question, Survey, SurveyQuestion
+from django.core.validators import MinLengthValidator, MaxLengthValidator
 
 # Formularz do dodawania/edycji kompetencji
 class CompetencyForm(forms.ModelForm):
@@ -89,3 +90,56 @@ class SurveyForm(forms.ModelForm):
                 'hx-trigger': 'change'
             }),
         }
+
+
+class SurveyFillForm(forms.Form):
+    def __init__(self, survey, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.survey = survey
+
+        for sq in survey.surveyquestion_set.select_related("question").all():
+            q = sq.question
+            field_name_scale = f"q{q.id}_scale"
+            field_name_text = f"q{q.id}_text"
+
+            if q.type == Question.SCALE:
+                self.fields[field_name_scale] = forms.ChoiceField(
+                    choices=[(i, str(i)) for i in range(1, 11)],
+                    widget=forms.RadioSelect(attrs={"class": "form-check-input me-1"}),
+                    label=q.text,
+                    required=True
+                )
+            elif q.type == Question.TEXT:
+                self.fields[field_name_text] = forms.CharField(
+                    widget=forms.Textarea(attrs={
+                        "class": "form-control form-control-sm mt-2",
+                        "rows": 2,
+                        "placeholder": "Odpowiedź opisowa..."
+                    }),
+                    label=q.text,
+                    required=True,
+                    validators=[
+                        MinLengthValidator(10, message="Odpowiedź musi mieć co najmniej 10 znaków."),
+                        MaxLengthValidator(500, message="Odpowiedź nie może przekraczać 500 znaków.")
+                    ]
+                )
+            elif q.type == Question.BOTH:
+                self.fields[field_name_scale] = forms.ChoiceField(
+                    choices=[(i, str(i)) for i in range(1, 11)],
+                    widget=forms.RadioSelect(attrs={"class": "form-check-input me-1"}),
+                    label=q.text + " (skala)",
+                    required=True
+                )
+                self.fields[field_name_text] = forms.CharField(
+                    widget=forms.Textarea(attrs={
+                        "class": "form-control form-control-sm mt-2",
+                        "rows": 2,
+                        "placeholder": "Odpowiedź opisowa..."
+                    }),
+                    label=q.text + " (uzasadnij powyższą ocenę)",
+                    required=True,
+                    validators=[
+                        MinLengthValidator(20, message="Odpowiedź musi mieć co najmniej 20 znaków."),
+                        MaxLengthValidator(800, message="Odpowiedź nie może przekraczać 800 znaków.")
+                    ]
+                )

@@ -28,7 +28,7 @@
                     <!-- Status ankiety -->
                     <td class="d-none d-md-table-cell">
                         {% if item.response %}
-                            {{ item.response.get_status_display }}
+                             <span class="text-primary">{{ item.response.get_status_display }}</span>
                         {% else %}
                             Do wypełnienia
                         {% endif %}

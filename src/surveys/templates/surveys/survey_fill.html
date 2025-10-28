@@ -4,18 +4,30 @@
 
 <style>
 .list-group-item {
-  border-top: 1px solid rgba(0, 0, 0, 0.125) !important; /* przywraca górną ramkę */
-  border-radius: 6px !important; /* zaokrąglenie dla spójności */
+  border-top: 1px solid rgba(0, 0, 0, 0.125) !important;
+  border-radius: 6px !important;
+}
+
+/* Poziome ułożenie radiobuttonów */
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem; /* odstęp między buttonami */
+}
+
+.radio-group .form-check {
+  display: flex;
+  align-items: center;
 }
 </style>
 
 <div class="container mt-4">
     <h2>{{ survey.name }} <small class="text-muted">({{ survey.department.name }})</small></h2>
-    <!-- 📘 Karta z instrukcją -->
+
     <div class="card border shadow-sm bg-light mb-4">
         <div class="card-body">
             <h6 class="card-title text-primary fw-semibold">Instrukcja wypełnienia ankiety</h6>
-            <p class="card-text mb-0 "><small>Pytania dzielą się na 3 typy: <em>opisowe</em>, <em>skala</em>, <em>skala + opis</em>.</small></p>
+            <p class="card-text mb-0"><small>Pytania dzielą się na 3 typy: <em>opisowe</em>, <em>skala</em>, <em>skala + opis</em>.</small></p>
             <p class="card-text mb-0"><small>Pytania opisowe nie mogą pozostać puste.</small></p>
             <p class="card-text mb-0"><small>Pytania w skali oceniane są od <strong>1</strong> do <strong>10</strong>, gdzie <strong>1</strong> to najniższa, a <strong>10</strong> najwyższa ocena.</small></p>
             <p class="card-text mb-0"><small>Na końcu proszę zatwierdzić ankietę przyciskiem <strong>zapisz odpowiedzi.</strong></small></p>
@@ -24,39 +36,52 @@
 
     <form method="post">
         {% csrf_token %}
-        <ul class="list-group mb-3">
-            {% for sq in questions %}
-            <li class="list-group-item mb-3">
-                <strong>{{ forloop.counter }}.</strong> {{ sq.question.text }}
 
-                {% if sq.question.type == "scale" %}
-                    <div class="mt-2">
-                        {% for i in scale_range %}
-                            <label class="me-2">
-                                <input type="radio" name="q{{ sq.question.id }}_scale" value="{{ i }}">
-                                {{ i }}
-                            </label>
-                        {% endfor %}
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <ul class="list-group mb-3">
+            {% for field in form %}
+            <li class="list-group-item mb-3">
+                <strong>{{ forloop.counter }}.</strong> {{ field.label }}
+
+                {% comment %}
+                Jeśli pole jest radiobuttonami, to ma klasę form-check-input,
+                więc owiniemy je w kontener .radio-group dla poziomego ułożenia
+                {% endcomment %}
+                {% if "form-check-input" in field.field.widget.attrs.class %}
+                <div class="radio-group mt-2">
+                    {% for subwidget in field %}
+                    <div class="form-check">
+                        {{ subwidget.tag }} 
+                        <label class="form-check-label ms-1">{{ subwidget.choice_label }}</label>
                     </div>
-                {% elif sq.question.type == "both" %}
-                    <div class="mt-2">
-                        {% for i in scale_range %}
-                            <label class="me-2">
-                                <input type="radio" name="q{{ sq.question.id }}_scale" value="{{ i }}">
-                                {{ i }}
-                            </label>
-                        {% endfor %}
-                    </div>
-                    <textarea class="form-control form-control-sm mt-2" name="q{{ sq.question.id }}_text" rows="2"
-                              placeholder="Odpowiedź opisowa..."></textarea>
+                    {% endfor %}
+                </div>
                 {% else %}
-                    <textarea class="form-control form-control-sm mt-2" name="q{{ sq.question.id }}_text" rows="2"
-                              placeholder="Odpowiedź opisowa..."></textarea>
+                    {{ field }}
+                {% endif %}
+
+                {% if field.errors %}
+                <div class="text-danger mt-1">
+                    {% for error in field.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
                 {% endif %}
             </li>
             {% endfor %}
         </ul>
+
         <button type="submit" class="btn btn-primary">Zapisz odpowiedzi</button>
+        <a href="{% url 'home' %}" class="btn btn-secondary">Wróć</a>
     </form>
 </div>
 {% endblock %}
