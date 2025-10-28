@@ -1,10 +1,26 @@
 {% extends "base.html" %}
 {% block title %}Wypełnij ankietę{% endblock %}
-
 {% block content %}
+
+<style>
+.list-group-item {
+  border-top: 1px solid rgba(0, 0, 0, 0.125) !important; /* przywraca górną ramkę */
+  border-radius: 6px !important; /* zaokrąglenie dla spójności */
+}
+</style>
+
 <div class="container mt-4">
     <h2>{{ survey.name }} <small class="text-muted">({{ survey.department.name }})</small></h2>
-    <p>Proszę wypełnić wszystkie pytania i zatwierdzić.</p>
+    <!-- 📘 Karta z instrukcją -->
+    <div class="card border shadow-sm bg-light mb-4">
+        <div class="card-body">
+            <h6 class="card-title text-primary fw-semibold">Instrukcja wypełnienia ankiety</h6>
+            <p class="card-text mb-0 "><small>Pytania dzielą się na 3 typy: <em>opisowe</em>, <em>skala</em>, <em>skala + opis</em>.</small></p>
+            <p class="card-text mb-0"><small>Pytania opisowe nie mogą pozostać puste.</small></p>
+            <p class="card-text mb-0"><small>Pytania w skali oceniane są od <strong>1</strong> do <strong>10</strong>, gdzie <strong>1</strong> to najniższa, a <strong>10</strong> najwyższa ocena.</small></p>
+            <p class="card-text mb-0"><small>Na końcu proszę zatwierdzić ankietę przyciskiem <strong>zapisz odpowiedzi.</strong></small></p>
+        </div>
+    </div>
 
     <form method="post">
         {% csrf_token %}

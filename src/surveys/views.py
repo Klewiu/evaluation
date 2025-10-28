@@ -520,7 +520,7 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         radar_labels, radar_values = self._calculate_competency_scores(survey, answers)
         radar_image = self._generate_radar_chart(radar_labels, radar_values)
         radar_data = list(zip(radar_labels, radar_values))
-
+        show_radar = len(radar_labels) > 2
         context.update({
             "survey": survey,
             "answers": answers,
@@ -528,6 +528,7 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
             "radar_image": radar_image,
             "radar_data": radar_data,
             "user": user,
+            "show_radar": show_radar,
         })
         return context
 

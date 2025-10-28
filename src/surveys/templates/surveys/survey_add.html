@@ -43,11 +43,11 @@
         {% endif %}
     </div>
 
-    <!-- Pytania (ładowane przez HTMX) -->
-    <div id="questions-container"></div>
+    {% comment %} <!-- Pytania (ładowane przez HTMX) -->
+    <div id="questions-container"></div> {% endcomment %}
 
-    <!-- Ukryte pole do kolejności pytań -->
-    <input type="hidden" name="questions_order" id="questions_order">
+    {% comment %} <!-- Ukryte pole do kolejności pytań -->
+    <input type="hidden" name="questions_order" id="questions_order"> {% endcomment %}
 
     <!-- Przyciski akcji -->
     <button type="submit" class="btn btn-primary">Zapisz</button>
@@ -56,7 +56,7 @@
 </div>
 
 <!-- Sortowanie pytań -->
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+{% comment %} <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
 document.addEventListener("htmx:afterSwap", function(event) {
     if (event.detail.target.id === "questions-container") {
@@ -75,5 +75,5 @@ document.addEventListener("htmx:afterSwap", function(event) {
         }
     }
 });
-</script>
+</script> {% endcomment %}
 {% endblock %}

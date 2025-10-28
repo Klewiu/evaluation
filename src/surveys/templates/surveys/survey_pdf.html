@@ -26,6 +26,14 @@ body {
 
 }
 
+/* Karta nagłówka z obramowaniem lub mocniejszym cieniem */
+.header-card {
+  border: 1px solid #dee2e6; /* cienka ramka wokół karty */
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); /* mocniejszy cień */
+  background-color: #f8faff;
+}
+
 /* Nagłówek */
 .header-card h2 {
   font-size: 26px;
@@ -240,7 +248,9 @@ h4.text-center {
     {% endfor %}
   </form>
 
-    {% if radar_image %}
+  
+{% if show_radar %}   
+  {% if radar_image %}
     <div class="radar-container">
       <img src="data:image/png;base64,{{ radar_image }}" style="max-width:100%; height:auto;">
 
@@ -263,6 +273,7 @@ h4.text-center {
         </table>
       </div>
     </div>
+  {% endif %}
   {% endif %}
 </div>
 
