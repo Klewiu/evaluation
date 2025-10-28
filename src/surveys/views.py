@@ -259,17 +259,34 @@ def load_questions(request):
     questions = Question.objects.filter(departments__id=dept_id) if dept_id else Question.objects.none()
     return render(request, "surveys/partials/question_list.html", {"questions": questions})
 
-# edytowanie ankiety
 def survey_edit(request, pk):
     survey = get_object_or_404(Survey, pk=pk)
+
     if request.method == "POST":
         form = SurveyForm(request.POST, instance=survey)
+
+        # usuwamy pola, których nie chcemy edytować
+        for field in ["department", "questions", "role"]:
+            form.fields.pop(field, None)
+
         if form.is_valid():
-            form.save()
+            survey_obj = form.save(commit=False)
+            survey_obj.role = survey.role          # zachowaj starą wartość
+            survey_obj.department = survey.department  # zachowaj dział
+            survey_obj.save()
             return redirect("surveys_list")
+        else:
+            print("❌ Błędy formularza:", form.errors)
+
     else:
         form = SurveyForm(instance=survey)
-    return render(request, "surveys/survey_form.html", {"form": form, "title": "Edytuj ankietę"})
+        for field in ["department", "questions", "role"]:
+            form.fields.pop(field, None)
+
+    return render(request, "surveys/survey_form.html", {
+        "form": form,
+        "title": "Edytuj ankietę"
+    })
 
 # usuwanie ankiety
 @login_required
@@ -414,48 +431,47 @@ def survey_result(request, survey_id, user_id=None):
 @login_required
 def survey_edit_response(request, pk):
     survey = get_object_or_404(Survey, pk=pk)
+
+    if not (survey.role == "both" or survey.role == request.user.role):
+        return HttpResponseForbidden("Nie masz uprawnień do edycji tej ankiety.")
+
+    # Pobierz istniejącą odpowiedź użytkownika
     response = get_object_or_404(SurveyResponse, survey=survey, user=request.user)
 
-    # Tworzymy słownik initial dla formularza
+    # Przygotuj initial data
     initial_data = {}
-    for answer in response.answers.all():
-        if answer.scale_value is not None:
-            initial_data[f"q{answer.question.id}_scale"] = answer.scale_value
-        if answer.text_value:
-            initial_data[f"q{answer.question.id}_text"] = answer.text_value
+    for ans in response.answers.all():
+        if ans.scale_value is not None:
+            initial_data[f"q{ans.question.id}_scale"] = ans.scale_value
+        if ans.text_value:
+            initial_data[f"q{ans.question.id}_text"] = ans.text_value
 
     if request.method == "POST":
         form = SurveyFillForm(survey, request.POST)
         if form.is_valid():
-            # zapisujemy odpowiedzi
+            # Zapisz odpowiedzi
             for field_name, value in form.cleaned_data.items():
-                question_id = int(field_name.split("_")[0][1:])
-                question = get_object_or_404(Question, id=question_id)
-                if "_scale" in field_name:
-                    scale_value = value
-                    text_value = response.answers.filter(question=question).first().text_value or ""
-                else:
-                    scale_value = response.answers.filter(question=question).first().scale_value
-                    text_value = value
-
+                qid = int(field_name.split('q')[1].split('_')[0])
+                question = Question.objects.get(id=qid)
+                scale_val = value if '_scale' in field_name else None
+                text_val = value if '_text' in field_name else ""
+                
                 SurveyAnswer.objects.update_or_create(
                     response=response,
                     question=question,
                     defaults={
-                        "scale_value": scale_value,
-                        "text_value": text_value,
-                    },
+                        "scale_value": scale_val,
+                        "text_value": text_val
+                    }
                 )
             return redirect("home")
     else:
-        # GET – formularz wypełniony istniejącymi odpowiedziami
         form = SurveyFillForm(survey, initial=initial_data)
 
     return render(request, "surveys/survey_fill.html", {
         "survey": survey,
-        "form": form,
+        "form": form
     })
-
 
 @login_required
 @require_POST
