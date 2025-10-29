@@ -14,15 +14,36 @@
 }
 .custom-radio span.radio-label { margin-right: 10px; vertical-align: middle; }
 
-.employee-radio input[type="radio"]:checked + span.radio-circle { background-color: #28a745; border-color: #28a745; }
+.employee-radio input[type="radio"]:checked + span.radio-circle { 
+  background-color: #0d6efd; /* Bootstrap primary */
+  border-color: #0d6efd; 
+}
 .employee-radio input[type="radio"]:disabled + span.radio-circle,
-.employee-text textarea:disabled { opacity: 0.5; cursor: default; }
+.employee-text textarea:disabled { opacity: 0.7; cursor: default; }
 
-.manager-radio input[type="radio"]:checked + span.radio-circle { background-color: #dc3545; border-color: #dc3545; }
+.manager-radio input[type="radio"]:checked + span.radio-circle { 
+  background-color: #343a40; /* Bootstrap dark */
+  border-color: #343a40; 
+}
 .manager-radio .custom-radio span.radio-circle:hover { cursor: pointer; }
 
 .radio-group { margin-bottom: 10px; }
-.employee-text textarea, .manager-text textarea { width: 100%; resize: vertical; }
+.employee-text textarea { 
+  width: 100%; resize: vertical; 
+  border-color: #0d6efd; background-color: #e9f2ff;
+}
+.manager-text textarea { 
+  width: 100%; resize: vertical; 
+  border-color: #343a40; background-color: #f8f9fa;
+}
+
+.question-card {
+  background-color: #f8f9fa;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
 </style>
 
 <div class="container">
@@ -32,11 +53,11 @@
         {% csrf_token %}
 
         {% for ans in employee_answers %}
-        <div class="mb-3 p-3 border rounded">
-            <p><strong>{{ ans.question.text }}</strong></p>
+        <div class="question-card">
+            <p><strong>{{ forloop.counter }}. {{ ans.question.text }}</strong></p>
 
             {% if ans.scale_value is not None %}
-                <!-- Ocena pracownika (zielona, disabled) -->
+                <!-- Ocena pracownika (niebieska, disabled) -->
                 <div class="radio-group employee-radio">
                     {% for i in scale_choices %}
                         <label class="custom-radio">
@@ -59,9 +80,9 @@
                 </div>
                 {% endif %}
 
-                <!-- Ocena managera (czerwona) -->
+                <!-- Ocena managera (ciemnoszara) -->
                 <div class="radio-group manager-radio mt-3">
-                    <p>Twoja ocena:</p>
+                    <p>Ocena managera:</p>
                     {% with manager_eval=manager_evals_dict|dict_get:ans.question.id %}
                         {% for i in scale_choices %}
                             <label class="custom-radio">
@@ -87,7 +108,7 @@
 
             <!-- Komentarz managera (zawsze) -->
             <div class="form-group mt-2 manager-text">
-                <label for="text_{{ ans.question.id }}">Komentarz (opcjonalnie)</label>
+                <label for="text_{{ ans.question.id }}">Komentarz managera</label>
                 {% with manager_eval=manager_evals_dict|dict_get:ans.question.id %}
                     <textarea class="form-control" name="text_{{ ans.question.id }}" rows="2">{% if manager_eval %}{{ manager_eval.text_value }}{% endif %}</textarea>
                 {% endwith %}
@@ -95,7 +116,7 @@
         </div>
         {% endfor %}
 
-        <button type="submit" class="btn btn-success mt-3">Zapisz oceny</button>
+        <button type="submit" class="btn btn-primary mt-3">Zapisz oceny</button>
         <a href="{% url 'manager_employees' %}" class="btn btn-secondary mt-3">Anuluj</a>
     </form>
 </div>
