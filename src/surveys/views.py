@@ -1,4 +1,5 @@
-import json
+import json, os
+from django.conf import settings
 from django.http import JsonResponse, HttpResponseForbidden
 
 from django.shortcuts import render, get_object_or_404, redirect
@@ -489,6 +490,22 @@ def save_question_order(request, pk):
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
 
+import os
+import io
+import base64
+# Importy do wykresu radarowego (zakładam, że są na początku pliku)
+import numpy as np
+import matplotlib.pyplot as plt
+
+from django.conf import settings
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.mixins import LoginRequiredMixin
+# !!! DODAJ IMPORT FINDERS !!!
+from django.contrib.staticfiles.finders import find 
+from wkhtmltopdf.views import PDFTemplateView
+
+# Zakładam, że masz już zdefiniowane modele CustomUser, Survey, SurveyResponse, SurveyAnswer
+
 class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
     template_name = "surveys/survey_pdf.html"
 
@@ -499,16 +516,17 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         'margin-bottom': '15mm',
     }
 
-
     def get_user(self):
         user_id = self.kwargs.get("user_id")
         if user_id:
-            return get_object_or_404(CustomUser, pk=user_id)
+            # Użyj swojej klasy użytkownika CustomUser
+            return get_object_or_404(CustomUser, pk=user_id) 
         return self.request.user
 
     def get_survey(self):
         survey_id = self.kwargs.get("pk") or self.kwargs.get("survey_id")
-        return get_object_or_404(Survey, pk=survey_id)
+        # Użyj swojej klasy modelu Survey
+        return get_object_or_404(Survey, pk=survey_id) 
 
     def get_filename(self):
         survey = self.get_survey()
@@ -520,17 +538,38 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         survey = self.get_survey()
         user = self.get_user()
 
+        # START: POPRAWIONE POBRANIE LOGO JAKO BASE64
+        logo_base64 = None
+        
+        # Użycie finders do zlokalizowania pliku w STATICFILES_DIRS
+        logo_path = find("ats.jpg") 
+
+        if logo_path and os.path.exists(logo_path):
+            try:
+                with open(logo_path, "rb") as f:
+                    logo_base64 = base64.b64encode(f.read()).decode("utf-8")
+            except Exception as e:
+                print(f"Błąd podczas kodowania logo do base64: {e}")
+                logo_base64 = None
+        else:
+            print("NIE ZNALEZIONO LOGO: ats_logo.png nie znaleziono w ścieżkach statycznych!")
+        # KONIEC: POPRAWIONE POBRANIE LOGO JAKO BASE64
+
+        # Pobranie odpowiedzi (niezmienione)
         try:
-            response = SurveyResponse.objects.get(survey=survey, user=user)
+            # Użyj swoich modeli
+            response = SurveyResponse.objects.get(survey=survey, user=user) 
             answers = SurveyAnswer.objects.filter(response=response)
         except SurveyResponse.DoesNotExist:
             answers = []
 
         scale_range = range(1, 11)
+        # Upewnij się, że używasz właściwych klas/funkcji dla radar_labels i values
         radar_labels, radar_values = self._calculate_competency_scores(survey, answers)
         radar_image = self._generate_radar_chart(radar_labels, radar_values)
         radar_data = list(zip(radar_labels, radar_values))
         show_radar = len(radar_labels) > 2
+
         context.update({
             "survey": survey,
             "answers": answers,
@@ -539,40 +578,36 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
             "radar_data": radar_data,
             "user": user,
             "show_radar": show_radar,
+            "logo_base64": logo_base64,  # <- Zmienna dla szablonu
         })
         return context
 
+    # Pamiętaj, że w tym miejscu muszą znajdować się też Twoje metody _calculate_competency_scores i _generate_radar_chart
     def _calculate_competency_scores(self, survey, answers):
-        labels = []
-        values = []
-
+        # ... (Twój obecny kod tej metody) ...
+        labels, values = [], []
         raw_competencies = survey.questions.values_list("competency__name", flat=True).distinct()
         competencies = [c for c in raw_competencies if c and str(c).strip()]
-
         for comp in competencies:
             comp_questions = survey.questions.filter(competency__name=comp)
             max_total = comp_questions.count() * 10
-            user_total = sum(
-                a.scale_value for a in answers
-                if a.question in comp_questions and a.scale_value is not None
-            )
+            user_total = sum(a.scale_value for a in answers
+                             if a.question in comp_questions and a.scale_value is not None)
             percentage = round(user_total / max_total * 100, 2) if max_total > 0 else 0
             labels.append(comp)
             values.append(percentage)
-
         return labels, values
 
     def _generate_radar_chart(self, labels, values):
+        # ... (Twój obecny kod tej metody, wymaga importów matplotlib i numpy) ...
         if not labels or not values:
             return None
-
         N = len(labels)
         angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
         angles_closed = angles + [angles[0]]
         values_closed = values + [values[0]]
 
         fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
-
         ax.set_theta_offset(np.pi / 2)
         ax.set_theta_direction(-1)
         ax.set_xticks(angles)
@@ -582,9 +617,6 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         ax.grid(True)
         ax.set_title("WYKRES KOMPETENCJI", va='bottom', fontsize=14, fontweight='bold', pad=34)
 
-        for angle in angles:
-            ax.plot([angle, angle], [0, 100], color='gray', linewidth=0.5, linestyle='dashed')
-
         ax.plot(angles_closed, values_closed, linewidth=2, linestyle='solid', color='blue')
         ax.fill(angles_closed, values_closed, 'blue', alpha=0.1)
 
@@ -593,7 +625,6 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         buf.seek(0)
         image_base64 = base64.b64encode(buf.read()).decode('utf-8')
         plt.close(fig)
-
         return image_base64
     
 # class SurveyPDFView(LoginRequiredMixin, TemplateView):

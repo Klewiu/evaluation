@@ -36,10 +36,11 @@ body {
 
 /* Nagłówek */
 .header-card h2 {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 600;
   color: #212529;
-  margin-bottom: 14px;
+  margin-top: 1px;    /* <-- zmniejsza margines nad nazwą */
+  margin-bottom: 10px;
 }
 
 .header-card h4 {
@@ -173,10 +174,32 @@ textarea.form-control {
 h4.text-center {
     text-align: center;
 }
+.logo-text {
+    font-size: 24px;
+    font-weight: 600;
+    color: #212529;
+    line-height: 1;
+}
 </style>
 
-<div class="container">
+<div class="container mt-1" style="text-align: center; margin-bottom: 20px;">
+    {% if logo_base64 %}
+    <div style="display: inline-table;">
+        <div style="display: table-row;">
+            <div style="display: table-cell; vertical-align: middle; padding-right: 1px;">
+                <img src="data:image/jpeg;base64,{{ logo_base64 }}" 
+                     alt="Logo firmy" 
+                     style="max-width: 85px; height: auto;">
+            </div>
+            <div style="display: table-cell; vertical-align: middle;">
+                <span class="logo-text">OCENY PRACOWNICZE</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
 
+<div class="container mt-1">
   <!-- Nagłówek jako karta -->
   <div class="card shadow-sm mb-4 header-card">
     <div class="card-body">
