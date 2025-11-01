@@ -35,24 +35,36 @@ from django.core.exceptions import PermissionDenied
 
 from django.core.exceptions import PermissionDenied
 
-def can_view_manager_evaluation(request_user, survey_response):
-    target_user = survey_response.user
 
-    if request_user.role == "employee":
-        # pracownik może zobaczyć tylko swoje własne odpowiedzi
-        if target_user != request_user:
-            raise PermissionDenied("Nie masz dostępu do tej oceny.")
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import get_object_or_404
+from surveys.models import SurveyResponse
 
-    elif request_user.role == "manager":
-        # manager może zobaczyć tylko pracowników swojego działu
-        if target_user.department != request_user.department or target_user.role != "employee":
-            raise PermissionDenied("Nie masz dostępu do tej oceny.")
+def manager_or_privileged_access_required(view_func):
+    def wrapper(request, response_id, *args, **kwargs):
+        response = get_object_or_404(SurveyResponse, id=response_id)
+        viewed_user = response.user  # osoba, której dotyczy ocena
 
-    elif request_user.role in ["admin", "hr"] or request_user.is_superuser:
-        # admin i HR wszystko widzą
-        pass
-    else:
-        raise PermissionDenied("Nie masz dostępu do tej oceny.")
+        # 🔹 1. HR i Admin — pełen dostęp
+        if request.user.role in ['hr', 'admin']:
+            return view_func(request, response_id, *args, **kwargs)
+
+        # 🔹 2. Manager — tylko pracownicy z jego działu
+        if request.user.role == 'manager':
+            if viewed_user.department == request.user.department:
+                return view_func(request, response_id, *args, **kwargs)
+            raise PermissionDenied
+
+        # 🔹 3. Pracownik — może zobaczyć *tylko własną* ocenę
+        if request.user.role == 'employee':
+            if viewed_user == request.user:
+                return view_func(request, response_id, *args, **kwargs)
+            raise PermissionDenied
+
+        # 🔹 4. Inne role — brak dostępu
+        raise PermissionDenied
+
+    return wrapper
 
 @login_required
 def home(request):
@@ -244,14 +256,14 @@ def manager_evaluate_employee(request, response_id):
 
 
 @login_required
+@manager_or_privileged_access_required
 def manager_survey_overview(request, response_id):
     response_user = get_object_or_404(SurveyResponse, id=response_id)
     survey = response_user.survey
     viewed_user = response_user.user
     survey_response = get_object_or_404(SurveyResponse, id=response_id)
     
-    # sprawdzenie uprawnień
-    can_view_manager_evaluation(request.user, survey_response)
+ 
     # Odpowiedzi użytkownika
     answers_user = SurveyAnswer.objects.filter(response=response_user)
 

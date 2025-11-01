@@ -29,6 +29,39 @@ from django.views.generic import TemplateView
 from users.models import CustomUser
 # KOMPETENCJE
 
+from django.core.exceptions import PermissionDenied
+from django.http import HttpResponseForbidden
+from functools import wraps
+
+def user_owns_response_or_is_privileged(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        # Pobieramy survey_id z kwargs (np. z URL)
+        survey_id = kwargs.get('survey_id') or kwargs.get('pk')
+        if not survey_id:
+            raise PermissionDenied("Brak survey_id w URL")
+
+        survey = get_object_or_404(Survey, id=survey_id)
+        responses = SurveyResponse.objects.filter(survey=survey)
+        user_response = responses.filter(user=request.user).first()
+
+        # Admin / HR mają pełny dostęp
+        if request.user.role in ['hr', 'admin']:
+            return view_func(request, *args, **kwargs)
+
+        # Manager: tylko pracownicy z jego działu
+        if request.user.role == 'manager':
+            if any(r.user.department == request.user.department for r in responses):
+                return view_func(request, *args, **kwargs)
+            raise PermissionDenied
+
+        # Pracownik: tylko własny wynik
+        if user_response:
+            return view_func(request, *args, **kwargs)
+
+        raise PermissionDenied
+    return wrapper
+
 # Kompetencje
 # Lista kompetencji (wszystkie w jednym worku)
 @login_required
@@ -382,11 +415,12 @@ def survey_submit(request, pk):
         'scale_range': scale_range
     })
 
-
+@user_owns_response_or_is_privileged
 @login_required
 def survey_result(request, survey_id, user_id=None):
     # Pobranie ankiety
     survey = get_object_or_404(Survey, pk=survey_id)
+      # Pobierz odpowiedź tylko tego użytkownika
 
     # Jeśli podano user_id (manager/admin) – pobieramy tego użytkownika
     if user_id:
@@ -504,8 +538,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.staticfiles.finders import find 
 from wkhtmltopdf.views import PDFTemplateView
 
-# Zakładam, że masz już zdefiniowane modele CustomUser, Survey, SurveyResponse, SurveyAnswer
-
+from django.utils.decorators import method_decorator
+@method_decorator(user_owns_response_or_is_privileged, name='dispatch')
 class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
     template_name = "surveys/survey_pdf.html"
 
