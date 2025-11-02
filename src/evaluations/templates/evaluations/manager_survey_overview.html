@@ -2,77 +2,192 @@
 {% block title %}Podgląd ankiety - manager{% endblock %}
 
 {% block content %}
+
+<style>
+.radar-container {
+  max-width: 800px;
+  height: 600px;
+  margin: auto;
+}
+.table-container {
+  max-width: 700px;
+  margin: 20px auto;
+}
+.rating-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+/* Ukryj domyślne radio */
+.rating-group input[type="radio"] {
+  display: none;
+}
+
+/* Labely – standardowe obrzeże, kolor przy zaznaczeniu */
+.rating-group label {
+  position: relative;
+  padding-left: 25px;
+  cursor: default;
+  user-select: none;
+}
+
+/* Okrąg przed label */
+.rating-group label::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #6c757d; /* standardowe szare obrzeże */
+  background-color: #fff;
+}
+
+/* Zaznaczenie – pracownik niebieski */
+.rating-group.employee input[type="radio"]:checked + label::before {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+/* Zaznaczenie – manager czarny */
+.rating-group.manager input[type="radio"]:checked + label::before {
+  background-color: #000;
+  border-color: #000;
+}
+
+/* Opcjonalnie – tekst label też w kolorze zaznaczenia */
+.rating-group.employee input[type="radio"]:checked + label {
+  color: #0d6efd;
+}
+.rating-group.manager input[type="radio"]:checked + label {
+  color: #000;
+}
+</style>
+
 <div class="container mt-4">
-    <h2>Podgląd ankiety: {{ survey.name }}</h2>
-    <p>Pracownik: {{ viewed_user.get_full_name }}</p>
-    <p>Dział: {{ viewed_user.department.name }}</p>
 
-    <!-- Pytania i odpowiedzi -->
-    <div class="mt-4">
-        {% for sq in survey.surveyquestion_set.all %}
-            <div class="mb-3 p-3 border rounded">
-                <p><strong>{{ forloop.counter }}. {{ sq.question.text }}</strong></p>
+  <!-- 🔹 KARTA INFORMACYJNA -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h2 class="card-title mb-3">{{ survey.name }}</h2>
 
-                <!-- Odpowiedź pracownika -->
-                {% for ans in answers_user %}
-                    {% if ans.question.id == sq.question.id %}
-                        {% if ans.scale_value %}
-                        <div><strong>Ocena pracownika:</strong> {{ ans.scale_value }}</div>
-                        {% endif %}
-                        {% if ans.text_value %}
-                        <div><strong>Komentarz pracownika:</strong> {{ ans.text_value }}</div>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
+      <p class="mb-1 text-muted"><strong>Pracownik:</strong></p>
+      <h4 class="text-primary mb-2">
+        <i class="bi bi-person-vcard"></i> {{ viewed_user.get_full_name }}
+      </h4>
 
-                <!-- Odpowiedź managera -->
-                {% for ans in answers_manager %}
-                    {% if ans.question.id == sq.question.id %}
-                        {% if ans.scale_value %}
-                        <div class="text-danger"><strong>Ocena managera:</strong> {{ ans.scale_value }}</div>
-                        {% endif %}
-                        {% if ans.text_value %}
-                        <div class="text-danger"><strong>Komentarz managera:</strong> {{ ans.text_value }}</div>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
-            </div>
+      <p class="mb-1 text-muted"><strong>Dział:</strong></p>
+      <h5 class="text-secondary mb-3">{{ viewed_user.department.name }}</h5>
+
+      {% if manager_user %}
+        <p class="mb-1 text-muted"><strong>Oceniający:</strong></p>
+        <h5 class="text-dark mb-2">
+          <i class="bi bi-person-gear"></i> {{ manager_user.get_full_name }}
+        </h5>
+      {% endif %}
+
+      <p class="mb-0 text-muted">
+        <strong>Data ankiety:</strong> {{ survey.created_at|date:"d.m.Y H:i" }}
+      </p>
+    </div>
+  </div>
+
+  <!-- 🔹 PYTANIA I ODPOWIEDZI -->
+  <h4 class="text-secondary mb-3">Odpowiedzi pracownika i osoby oceniającej:</h4>
+
+  <div class="mt-4">
+    {% for sq in survey.surveyquestion_set.all %}
+      <div class="mb-3 p-3 border rounded shadow-sm bg-light">
+        <p><strong>{{ forloop.counter }}. {{ sq.question.text }}</strong></p>
+
+        <!-- Ocena pracownika -->
+        {% for ans in answers_user %}
+          {% if ans.question.id == sq.question.id %}
+            {% if ans.scale_value %}
+              <div>
+                Ocena pracownika:
+                <div class="rating-group employee">
+                  {% for i in scale_range %}
+                    <input type="radio" id="user_{{ sq.question.id }}_{{ i }}" name="user_{{ sq.question.id }}" value="{{ i }}" disabled
+                      {% if ans.scale_value == i %}checked{% endif %}>
+                    <label for="user_{{ sq.question.id }}_{{ i }}">{{ i }}</label>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+            {% if ans.text_value %}
+              <div class="mt-1"><strong>Komentarz pracownika:</strong> {{ ans.text_value }}</div>
+            {% endif %}
+          {% endif %}
         {% endfor %}
-    </div>
 
-    <!-- Wykres radar -->
-    <div class="mt-4 radar-container text-center" style="height:600px;">
-        <h3 class="my-4">Wykres kompetencji</h3>
-        <canvas id="radarChart"></canvas>
-    </div>
+        <!-- Ocena managera -->
+        {% for ans in answers_manager %}
+          {% if ans.question.id == sq.question.id %}
+            {% if ans.scale_value %}
+              <div class="mt-2">
+                Ocena osoby oceniającej:
+                <div class="rating-group manager">
+                  {% for i in scale_range %}
+                    <input type="radio" id="manager_{{ sq.question.id }}_{{ i }}" name="manager_{{ sq.question.id }}" value="{{ i }}" disabled
+                      {% if ans.scale_value == i %}checked{% endif %}>
+                    <label for="manager_{{ sq.question.id }}_{{ i }}">{{ i }}</label>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+            {% if ans.text_value %}
+              <div class="mt-1"><strong>Komentarz osoby oceniającej:</strong> {{ ans.text_value }}</div>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
 
-    <!-- Tabela wyników -->
-    <div class="table-container mt-4">
-        <table class="table table-bordered text-center">
-            <thead>
-                <tr>
-                    <th>Kompetencja</th>
-                    <th>Pracownik [%]</th>
-                    <th>Manager [%]</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for label, user_val, manager_val in radar_data %}
-                <tr>
-                    <td>{{ label }}</td>
-                    <td>{{ user_val }}%</td>
-                    <td>{{ manager_val }}%</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+  <!-- 🔹 WYKRES RADAROWY -->
+  <div class="mt-4 radar-container text-center">
+    <h3 class="my-4">Wykres kompetencji</h3>
+    <canvas id="radarChart"></canvas>
+  </div>
 
-    <div class="text-center my-3">
-        <a href="javascript:history.back()" class="btn btn-secondary">Powrót</a>
-    </div>
+  <!-- 🔹 TABELA WYNIKÓW -->
+  <div class="table-container mt-4">
+    <table class="table table-bordered text-center">
+      <thead class="table-light">
+        <tr>
+          <th>Kompetencja</th>
+          <th>Pracownik [%]</th>
+          <th>Osoba oceniająca [%]</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for label, user_val, manager_val in radar_data %}
+        <tr>
+          <td>{{ label }}</td>
+          <td>{{ user_val }}%</td>
+          <td>{{ manager_val }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 🔹 PRZYCISK POWROTU -->
+  <div class="text-center my-4">
+    <button class="btn btn-secondary"
+            type="button"
+            onclick="if (document.referrer) { window.history.back(); } else { window.location.href = '{% url 'home' %}'; }">
+      Powrót
+    </button>
+  </div>
+
 </div>
 
+<!-- 🔹 SKRYPT WYKRESU -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 const labels = {{ radar_labels|safe }};
@@ -80,45 +195,45 @@ const user_values = {{ radar_user_values|safe }};
 const manager_values = {{ radar_manager_values|safe }};
 
 const data = {
-    labels: labels.map(label => label.substring(0,7) + (label.length>7 ? "…" : "")),
-    datasets: [
-        {
-            label: 'Pracownik [%]',
-            data: user_values,
-            fill: true,
-            backgroundColor: 'rgba(40, 167, 69, 0.2)',
-            borderColor: 'rgba(40, 167, 69, 1)',
-            pointBackgroundColor: 'rgba(40, 167, 69, 1)',
-            pointBorderColor: '#fff',
-        },
-        {
-            label: 'Manager [%]',
-            data: manager_values,
-            fill: true,
-            backgroundColor: 'rgba(220, 53, 69, 0.2)',
-            borderColor: 'rgba(220, 53, 69, 1)',
-            pointBackgroundColor: 'rgba(220, 53, 69, 1)',
-            pointBorderColor: '#fff',
-        }
-    ]
+  labels: labels.map(label => label.length > 20 ? label.substring(0,20) + "…" : label),
+  datasets: [
+    {
+      label: 'Osoba oceniająca [%]',
+      data: manager_values,
+      fill: true,
+      backgroundColor: 'rgba(0,0,0,0.2)',
+      borderColor: 'rgba(0,0,0,1)',
+      pointBackgroundColor: 'rgba(0,0,0,1)',
+      pointBorderColor: '#fff',
+    },
+    {
+      label: 'Pracownik [%]',
+      data: user_values,
+      fill: true,
+      backgroundColor: 'rgba(13, 110, 253, 0.2)',
+      borderColor: 'rgba(13, 110, 253, 1)',
+      pointBackgroundColor: 'rgba(13, 110, 253, 1)',
+      pointBorderColor: '#fff',
+    }
+  ]
 };
 
 const config = {
-    type: 'radar',
-    data: data,
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-            r: {
-                angleLines: { display: true },
-                min: 0,
-                max: 100,
-                ticks: { stepSize: 10, callback: val => val + "%" }
-            }
-        },
-        plugins: { legend: { position: 'top' } }
-    }
+  type: 'radar',
+  data: data,
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      r: {
+        angleLines: { display: true },
+        min: 0,
+        max: 100,
+        ticks: { stepSize: 10, callback: val => val + "%" }
+      }
+    },
+    plugins: { legend: { position: 'top' } }
+  }
 };
 
 new Chart(document.getElementById('radarChart'), config);

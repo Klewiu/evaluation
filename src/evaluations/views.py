@@ -261,14 +261,17 @@ def manager_survey_overview(request, response_id):
     response_user = get_object_or_404(SurveyResponse, id=response_id)
     survey = response_user.survey
     viewed_user = response_user.user
-    survey_response = get_object_or_404(SurveyResponse, id=response_id)
-    
- 
+
     # Odpowiedzi użytkownika
     answers_user = SurveyAnswer.objects.filter(response=response_user)
 
     # Odpowiedzi managera
     answers_manager = EmployeeEvaluation.objects.filter(employee_response=response_user)
+
+    # ⬇️ Ustal, który manager ocenił
+    manager_user = None
+    if answers_manager.exists():
+        manager_user = answers_manager.first().manager
 
     # Przygotowanie wykresu radarowego
     radar_labels, radar_user_values, radar_manager_values = [], [], []
@@ -278,13 +281,21 @@ def manager_survey_overview(request, response_id):
         comp_questions = survey.surveyquestion_set.filter(question__competency=comp)
         if comp_questions.exists():
             max_total = sum([10 for q in comp_questions])
-            user_total = sum([a.scale_value for a in answers_user if a.question in [q.question for q in comp_questions] and a.scale_value])
-            manager_total = sum([a.scale_value for a in answers_manager if a.question in [q.question for q in comp_questions] and a.scale_value])
+            user_total = sum([
+                a.scale_value for a in answers_user
+                if a.question in [q.question for q in comp_questions] and a.scale_value
+            ])
+            manager_total = sum([
+                a.scale_value for a in answers_manager
+                if a.question in [q.question for q in comp_questions] and a.scale_value
+            ])
             radar_labels.append(comp.name)
             radar_user_values.append(round(user_total / max_total * 100, 2) if max_total else 0)
             radar_manager_values.append(round(manager_total / max_total * 100, 2) if max_total else 0)
 
     radar_data = list(zip(radar_labels, radar_user_values, radar_manager_values))
+    scale_range = range(1, 11)
+
 
     return render(request, 'evaluations/manager_survey_overview.html', {
         "survey": survey,
@@ -295,6 +306,8 @@ def manager_survey_overview(request, response_id):
         "radar_user_values": radar_user_values,
         "radar_manager_values": radar_manager_values,
         "radar_data": radar_data,
+        "manager_user": manager_user,
+        "scale_range": scale_range,  
     })
 
 CustomUser = get_user_model()
