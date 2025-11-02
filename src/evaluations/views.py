@@ -223,11 +223,21 @@ def employee_surveys(request, user_id):
 @login_required
 def manager_evaluate_employee(request, response_id):
     employee_response = get_object_or_404(SurveyResponse, id=response_id)
+    
+    # Sprawdzenie, czy manager już ocenił ankietę
+    already_evaluated = EmployeeEvaluation.objects.filter(
+        employee_response=employee_response,
+        manager=request.user
+    ).exists()
+    if already_evaluated:
+        # Jeśli już ocenił → przekierowanie lub PermissionDenied
+        return redirect('employee_surveys', user_id=employee_response.user.id)
+        # alternatywnie: raise PermissionDenied
+
     employee_answers = SurveyAnswer.objects.filter(response=employee_response)
     
     manager_evals = EmployeeEvaluation.objects.filter(employee_response=employee_response)
     manager_evals_dict = {e.question.id: e for e in manager_evals}
-    # Skala ocen od 1 do 10
     scale_choices = list(range(1, 11))
 
     if request.method == "POST":
@@ -253,7 +263,6 @@ def manager_evaluate_employee(request, response_id):
         'manager_evals_dict': manager_evals_dict,
         'scale_choices': scale_choices,
     })
-
 
 @login_required
 @manager_or_privileged_access_required
