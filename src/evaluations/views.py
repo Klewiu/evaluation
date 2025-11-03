@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from surveys.models import Survey, SurveyResponse, Competency
+from django.contrib import messages
 
 from surveys.models import Survey, SurveyResponse, SurveyAnswer
 
@@ -223,28 +224,36 @@ def employee_surveys(request, user_id):
 @login_required
 def manager_evaluate_employee(request, response_id):
     employee_response = get_object_or_404(SurveyResponse, id=response_id)
-    
+
     # Sprawdzenie, czy manager już ocenił ankietę
     already_evaluated = EmployeeEvaluation.objects.filter(
         employee_response=employee_response,
         manager=request.user
     ).exists()
     if already_evaluated:
-        # Jeśli już ocenił → przekierowanie lub PermissionDenied
         return redirect('employee_surveys', user_id=employee_response.user.id)
-        # alternatywnie: raise PermissionDenied
 
     employee_answers = SurveyAnswer.objects.filter(response=employee_response)
-    
     manager_evals = EmployeeEvaluation.objects.filter(employee_response=employee_response)
     manager_evals_dict = {e.question.id: e for e in manager_evals}
     scale_choices = list(range(1, 11))
 
     if request.method == "POST":
+        # 🧩 Walidacja — sprawdź, czy każda skala ma ocenę
+        missing = []
+        for ans in employee_answers:
+            if ans.scale_value is not None:  # pytanie oceniane liczbowo
+                scale = request.POST.get(f'manager_scale_{ans.question.id}')
+                if not scale:
+                    missing.append(ans.question.text)
+        if missing:
+            messages.error(request, "Musisz wypełnić wszystkie pola oceny managera.")
+            return redirect(request.path)
+
+        # 🧩 Zapis ocen
         for ans in employee_answers:
             scale = request.POST.get(f'manager_scale_{ans.question.id}')
             text = request.POST.get(f'text_{ans.question.id}', '')
-            
             if scale or text:
                 EmployeeEvaluation.objects.update_or_create(
                     employee_response=employee_response,
@@ -255,7 +264,9 @@ def manager_evaluate_employee(request, response_id):
                         'text_value': text
                     }
                 )
-        return redirect('manager_employees')  
+
+        messages.success(request, "Oceny zostały zapisane pomyślnie.")
+        return redirect('manager_employees')
 
     return render(request, 'evaluations/manager_evaluate.html', {
         'employee_response': employee_response,

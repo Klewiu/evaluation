@@ -3,9 +3,9 @@
 
 {% block content %}
 <div class="container mt-4">
-    <button class="btn btn-secondary" onclick="window.location.href='{% url 'surveys_list' %}'; return false;">Wróć</button>
+   
     <h2>{{ survey.name }} <small class="text-muted">({{ survey.department.name }})</small></h2>
-    <p>Podgląd ankiety – możesz zmieniać kolejność pytań.</p>
+    <p>Podgląd ankiety – możesz zmieniać kolejność pytań przeciągając je.</p>
 
     <form id="previewForm">
         <ul id="sortable-questions" class="list-group mb-3">
@@ -39,6 +39,7 @@
             {% endfor %}
         </ul>
     </form>
+     <button class="btn btn-secondary mb-5" onclick="window.location.href='{% url 'surveys_list' %}'; return false;">Wróć</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
