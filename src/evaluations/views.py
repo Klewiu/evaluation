@@ -288,19 +288,19 @@ def manager_survey_overview(request, response_id):
     # Odpowiedzi managera
     answers_manager = EmployeeEvaluation.objects.filter(employee_response=response_user)
 
-    # ⬇️ Ustal, który manager ocenił
+    # ⬇️ Kto oceniał
     manager_user = None
     if answers_manager.exists():
         manager_user = answers_manager.first().manager
 
     # Przygotowanie wykresu radarowego
     radar_labels, radar_user_values, radar_manager_values = [], [], []
-
     competencies = Competency.objects.all()
+
     for comp in competencies:
         comp_questions = survey.surveyquestion_set.filter(question__competency=comp)
         if comp_questions.exists():
-            max_total = sum([10 for q in comp_questions])
+            max_total = len(comp_questions) * 10
             user_total = sum([
                 a.scale_value for a in answers_user
                 if a.question in [q.question for q in comp_questions] and a.scale_value
@@ -316,6 +316,11 @@ def manager_survey_overview(request, response_id):
     radar_data = list(zip(radar_labels, radar_user_values, radar_manager_values))
     scale_range = range(1, 11)
 
+    # 🔹 SUMA PUNKTÓW – tylko oceny managera
+    manager_scored = [a.scale_value for a in answers_manager if a.scale_value]
+    manager_total_points = sum(manager_scored)
+    manager_max_points = len(manager_scored) * 10 if manager_scored else 0
+    manager_percentage = round((manager_total_points / manager_max_points) * 100, 2) if manager_max_points else 0
 
     return render(request, 'evaluations/manager_survey_overview.html', {
         "survey": survey,
@@ -327,9 +332,11 @@ def manager_survey_overview(request, response_id):
         "radar_manager_values": radar_manager_values,
         "radar_data": radar_data,
         "manager_user": manager_user,
-        "scale_range": scale_range,  
+        "scale_range": scale_range,
+        "manager_total_points": manager_total_points,
+        "manager_max_points": manager_max_points,
+        "manager_percentage": manager_percentage,
     })
-
 CustomUser = get_user_model()
 
 class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
