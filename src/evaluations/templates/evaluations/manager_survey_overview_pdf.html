@@ -5,165 +5,331 @@
 {% block content %}
 <style>
 body {
-    font-family: "Segoe UI", "Inter", sans-serif;
-    font-size: 13px;
-    color: #333;
-    background-color: #fff;
+  background-color: #fff;
+  font-family: "Segoe UI", "Inter", sans-serif;
+  color: #212529;
 }
 
 .container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 12px;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 5px;
 }
 
-h2 {
-    color: #2a7ae2;
-    font-size: 26px;
-    margin-bottom: 8px;
+/* Karty */
+.card {
+  border: none;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
 
-h3 {
-    color: #17a2b8;
-    font-size: 20px;
-    margin-top: 30px;
-    margin-bottom: 16px;
-    border-bottom: 2px solid #17a2b8;
-    padding-bottom: 4px;
+.card-body {
+  padding: 24px;
 }
 
-p {
-    margin: 4px 0;
+/* Karta nagłówka z logo */
+.header-card {
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  background-color: #f8faff;
+  padding: 20px;
+  margin-bottom: 30px;
 }
 
+/* Nagłówki w karcie */
+.header-card h2 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #212529;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.header-card h4 {
+  font-size: 20px;
+  font-weight: 500;
+  color: #0d6efd;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
+.header-card h5 {
+  font-size: 18px;
+  font-weight: 500;
+  color: #495057;
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
+.header-card p {
+  font-size: 15px;
+  margin-bottom: 2px;
+  color: #6c757d;
+}
+
+/* Pytania w kartach */
 .question-card {
-    margin-bottom: 18px;
-    padding: 12px 16px;
-    background-color: #fefefe;
-    border-radius: 6px;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  padding: 18px 20px;
+  margin-bottom: 20px;
 }
 
-.comment-box {
-    width: 100%;
-    padding: 8px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    background-color: #fefefe;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    font-size: 14px;
-    margin-top: 6px;
+/* Custom Radio Buttons */
+.custom-radio input[type="radio"] {
+  display: none;
 }
 
+.custom-radio span.radio-circle {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #adb5bd;
+  margin-right: 5px;
+  vertical-align: middle;
+  transition: all 0.2s ease;
+}
+
+/* Kolory zaznaczenia */
+.custom-radio.employee input[type="radio"]:checked + span.radio-circle {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+.custom-radio.manager input[type="radio"]:checked + span.radio-circle {
+  background-color: #000;
+  border-color: #000;
+}
+
+.custom-radio {
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  margin-right: 10px;
+}
+
+.radio-group {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Textarea */
+textarea.form-control {
+  width: 100%;
+  min-height: 70px;
+  resize: none;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  padding: 8px;
+  font-size: 15px;
+  background-color: #fff;
+  margin-top: 12px;
+}
+
+/* Radar + tabela */
 .radar-container {
-    text-align: center;
-    margin: 40px 0;
+  max-width: 800px;
+  margin: 40px auto;
+  text-align: center;
+  background: #fff;
+  padding: 20px;
 }
 
 .radar-container h4 {
+    margin-bottom: 10px;
     font-size: 18px;
-    margin-bottom: 16px;
-    color: #2a7ae2;
-}
-
-.table-container {
-    max-width: 500px;
-    margin: 20px auto 0 auto;
-    font-size: 13px;
-    border-collapse: collapse;
-}
-
-.table-container table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: center;
-}
-
-.table-container th, .table-container td {
-    padding: 8px;
-    border: none;
-}
-
-.table-container th {
-    background-color: #17a2b8;
-    color: #fff;
     font-weight: 600;
 }
 
-.table-container tr:nth-child(even) {
-    background-color: #f9f9f9;
+.table-container {
+  max-width: 600px;
+  margin: 30px auto 0 auto;
+}
+
+.table-container table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.table-container th,
+.table-container td {
+  border: 1px solid #ccc;
+  padding: 6px;
+  font-size: 14px;
+}
+
+.table-container th {
+  background-color: #f1f3f5;
+  font-weight: 600;
+}
+
+h4.text-center {
+    text-align: center;
+}
+
+.logo-text {
+    font-size: 24px;
+    font-weight: 600;
+    color: #212529;
+    line-height: 1;
 }
 </style>
 
-<div class="container">
-    <h2>Ocena managera</h2>
-    <p><strong>Pracownik:</strong> {{ response.user.get_full_name }}</p>
-    <p><strong>Ankieta:</strong> {{ response.survey.name }} ({{ response.survey.year }})</p>
-    <p><strong>Data wypełnienia:</strong> {{ response.created_at|date:"d.m.Y H:i" }}</p>
-
-    <h3>Pytania i odpowiedzi</h3>
-    {% for question in response.survey.questions.all %}
-    <div class="question-card">
-        <strong>{{ forloop.counter }}. {{ question.text }}</strong>
-
-        {% with ans_user=answers_user|get_item_by_question:question.id %}
-            {% if question.type in "scale,both" %}
-                <p><strong>Ocena pracownika:</strong>
-                    {% if ans_user %}{{ ans_user.scale_value }}{% else %}-{% endif %}
-                </p>
-            {% endif %}
-            {% if question.type in "text,both" %}
-                {% if ans_user and ans_user.text_value %}
-                    <p><strong>Komentarz pracownika:</strong></p>
-                    <div class="comment-box">{{ ans_user.text_value|linebreaksbr }}</div>
-                {% endif %}
-            {% endif %}
-        {% endwith %}
-
-        {% with ans_manager=answers_manager|get_item_by_question:question.id %}
-            {% if question.type in "scale,both" %}
-                <p><strong>Ocena managera:</strong>
-                    {% if ans_manager %}{{ ans_manager.scale_value }}{% else %}-{% endif %}
-                </p>
-            {% endif %}
-            {% if question.type in "text,both,scale" %}
-                {% if ans_manager and ans_manager.text_value %}
-                    <p><strong>Komentarz managera:</strong></p>
-                    <div class="comment-box">{{ ans_manager.text_value|linebreaksbr }}</div>
-                {% endif %}
-            {% endif %}
-        {% endwith %}
-    </div>
-    {% endfor %}
-
-    {% if radar_image %}
-    <div class="radar-container">
-        <h4>Wykres kompetencji</h4>
-        <img src="data:image/png;base64,{{ radar_image }}" style="max-width:100%; height:auto;">
-
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Kompetencja</th>
-                        <th>Pracownik [%]</th>
-                        <th>Manager [%]</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for label, user_val, manager_val in radar_data %}
-                    <tr>
-                        <td>{{ label }}</td>
-                        <td>{{ user_val }}%</td>
-                        <td>{% if manager_val is not None %}{{ manager_val }}%{% else %}-{% endif %}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<!-- LOGO I TYTUŁ -->
+<div class="container mt-1" style="text-align: center; margin-bottom: 20px;">
+    {% if logo_base64 %}
+    <div style="display: inline-table;">
+        <div style="display: table-row;">
+            <div style="display: table-cell; vertical-align: middle; padding-right: 1px;">
+                <img src="data:image/jpeg;base64,{{ logo_base64 }}" 
+                     alt="Logo firmy" 
+                     style="max-width: 85px; height: auto;">
+            </div>
+            <div style="display: table-cell; vertical-align: middle;">
+                <span class="logo-text">OCENY PRACOWNICZE</span>
+            </div>
         </div>
     </div>
     {% endif %}
+</div>
+
+<div class="container mt-1">
+  <!-- Nagłówek jako karta -->
+  <div class="card shadow-sm mb-4 header-card">
+    <div class="card-body">
+      <h2 class="card-title mb-3">{{ response.survey.name }}</h2>
+
+      <!-- Użytkownik -->
+      <p><strong>Użytkownik:</strong></p>
+      <h4>
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#0d6efd" viewBox="0 0 16 16">
+        <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+        </svg>
+        {% if response.user %}{{ response.user.get_full_name }}{% else %}Nieznany użytkownik{% endif %}
+      </h4>
+
+      <!-- Dział -->
+      <p><strong>Dział:</strong></p>
+      <h5>
+        {% if response.user.department %}{{ response.user.department.name }}{% else %}Brak przypisanego działu{% endif %}
+      </h5>
+
+      <!-- Oceniający -->
+      {% if answers_manager %}
+        <p><strong>Oceniający:</strong></p>
+        <h5>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#000" viewBox="0 0 16 16">
+            <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+            </svg>
+            {{ answers_manager.first.manager.get_full_name }}
+        </h5>
+      {% endif %}
+
+      <!-- Data -->
+      <p><strong>Data wypełnienia:</strong> {{ response.created_at|date:"d.m.Y H:i" }}</p>
+    </div>
+  </div>
+
+  <!-- Sekcja pytań -->
+  <h4 class="text-secondary mb-3 text-center">ODPOWIEDZI PRACOWNIKA I OSOBY OCENIAJĄCEJ</h4>
+  <form>
+    {% for question in response.survey.questions.all %}
+      <div class="question-card">
+        <label><strong>{{ forloop.counter }}. {{ question.text }}</strong></label>
+
+        {% with ans_user=answers_user|get_item_by_question:question.id %}
+          {% if question.type in "scale,both" %}
+            <p>OCENA PRACOWNIKA:</p>
+            <div class="radio-group">
+              {% for i in scale_range %}
+                <label class="custom-radio employee">
+                  <input type="radio" name="q{{ question.id }}_scale" value="{{ i }}"
+                    {% if ans_user and ans_user.scale_value|stringformat:"s" == i|stringformat:"s" %}checked{% endif %} disabled>
+                  <span class="radio-circle"></span> {{ i }}
+                </label>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if question.type in "text,both" %}
+            {% if ans_user and ans_user.text_value %}
+              <textarea class="form-control" disabled>{{ ans_user.text_value }}</textarea>
+            {% endif %}
+          {% endif %}
+        {% endwith %}
+
+        {% with ans_manager=answers_manager|get_item_by_question:question.id %}
+          {% if question.type in "scale,both" %}
+            <p class="mt-2">OCENA MANAGERA:</p>
+            <div class="radio-group">
+              {% for i in scale_range %}
+                <label class="custom-radio manager">
+                  <input type="radio" name="q{{ question.id }}_scale_manager" value="{{ i }}"
+                    {% if ans_manager and ans_manager.scale_value|stringformat:"s" == i|stringformat:"s" %}checked{% endif %} disabled>
+                  <span class="radio-circle"></span> {{ i }}
+                </label>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if question.type in "text,both,scale" %}
+            {% if ans_manager and ans_manager.text_value %}
+              <textarea class="form-control" disabled>{{ ans_manager.text_value }}</textarea>
+            {% endif %}
+          {% endif %}
+        {% endwith %}
+      </div>
+    {% empty %}
+      <p>Brak odpowiedzi</p>
+    {% endfor %}
+  </form>
+
+  {% if show_radar %}
+    {% if radar_image %}
+      <div class="radar-container">
+        <img src="data:image/png;base64,{{ radar_image }}" style="max-width:100%; height:auto;">
+        <div class="table-container">
+            <table>
+                <thead>
+                <tr>
+                    <th>Kompetencja</th>
+                    <th>Pracownik [%]</th>
+                    <th>Manager [%]</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for label, user_val, manager_val in radar_data %}
+                <tr>
+                    <td>{{ label }}</td>
+                    <td>{{ user_val }}%</td>
+                    <td>{% if manager_val is not None %}{{ manager_val }}%{% else %}-{% endif %}</td>
+                </tr>
+                {% endfor %}
+                <!-- Wiersz sumy punktów -->
+                <tr style="font-weight: bold; background-color: #f1f3f5;">
+                    <td>OCENA KOŃCOWA</td>
+                    <td>-</td>
+                    <td style="font-size:18px">
+                    {{ manager_total_points }} z {{ manager_max_points }} punktów
+                    ({{ manager_percentage }}%)
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            </div>
+           
+        </div>
+    </div>
+    {% endif %}
+  {% endif %}
 </div>
 {% endblock %}

@@ -2,6 +2,8 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from surveys.models import Survey, SurveyResponse, Competency
 from django.contrib import messages
+import os
+from django.contrib.staticfiles.finders import find
 
 from surveys.models import Survey, SurveyResponse, SurveyAnswer
 
@@ -339,8 +341,18 @@ def manager_survey_overview(request, response_id):
     })
 CustomUser = get_user_model()
 
+
+
 class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
     template_name = "evaluations/manager_survey_overview_pdf.html"
+
+    cmd_options = {
+        'footer-right': 'Strona [page] z [topage]',
+        'footer-font-size': '8',
+        'footer-spacing': '5',
+        'margin-bottom': '15mm',
+    }
+
 
     def get_response(self):
         response_id = self.kwargs.get("response_id")
@@ -350,38 +362,45 @@ class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
         context = super().get_context_data(**kwargs)
         response = self.get_response()
 
-        # Odpowiedzi pracownika
+        # Odpowiedzi pracownika i managera
         answers_user = response.answers.all()
-
-        # Odpowiedzi managera — przypisane do tego response i aktualnego managera
         answers_manager = EmployeeEvaluation.objects.filter(employee_response=response)
 
         # Wyliczenie kompetencji
         labels, user_values, manager_values = [], [], []
-
         competencies = response.survey.questions.values_list("competency__name", flat=True).distinct()
         competencies = [c for c in competencies if c]
 
         for comp_name in competencies:
             comp_questions = response.survey.questions.filter(competency__name=comp_name)
             max_total = comp_questions.count() * 10
-
-            user_total = sum(
-                a.scale_value for a in answers_user if a.question in comp_questions and a.scale_value is not None
-            )
-            manager_total = sum(
-                a.scale_value for a in answers_manager if a.question in comp_questions and a.scale_value is not None
-            )
-
+            user_total = sum(a.scale_value for a in answers_user if a.question in comp_questions and a.scale_value is not None)
+            manager_total = sum(a.scale_value for a in answers_manager if a.question in comp_questions and a.scale_value is not None)
             labels.append(comp_name)
             user_values.append(round(user_total / max_total * 100, 2) if max_total else 0)
             manager_values.append(round(manager_total / max_total * 100, 2) if max_total else 0)
 
-        # Wygenerowanie wspólnego radaru
         radar_image = self._generate_radar_chart_user_manager(labels, user_values, manager_values)
-
-        # Dane do tabeli pod wykresem
         radar_data = list(zip(labels, user_values, manager_values))
+
+        # START: POPRAWIONE POBRANIE LOGO JAKO BASE64
+        logo_base64 = None
+        logo_path = find("ats.jpg")
+        if logo_path and os.path.exists(logo_path):
+            try:
+                with open(logo_path, "rb") as f:
+                    logo_base64 = base64.b64encode(f.read()).decode("utf-8")
+            except Exception as e:
+                print(f"Błąd podczas kodowania logo do base64: {e}")
+        else:
+            print("NIE ZNALEZIONO LOGO: ats.jpg nie znaleziono w ścieżkach statycznych!")
+        # KONIEC: POPRAWIONE POBRANIE LOGO JAKO BASE64
+
+        # 🔹 SUMA PUNKTÓW – tylko oceny managera
+        manager_scored = [a.scale_value for a in answers_manager if a.scale_value is not None]
+        manager_total_points = sum(manager_scored)
+        manager_max_points = len(manager_scored) * 10 if manager_scored else 0
+        manager_percentage = round((manager_total_points / manager_max_points) * 100, 2) if manager_max_points else 0
 
         context.update({
             "response": response,
@@ -389,8 +408,13 @@ class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
             "answers_manager": answers_manager,
             "radar_image": radar_image,
             "radar_data": radar_data,
+            "show_radar": True,
+            "scale_range": range(1, 11),
+            "logo_base64": logo_base64,
+            "manager_total_points": manager_total_points,
+            "manager_max_points": manager_max_points,
+            "manager_percentage": manager_percentage,
         })
-
         return context
 
     def _generate_radar_chart_user_manager(self, labels, user_values, manager_values):
@@ -403,29 +427,30 @@ class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
         user_values_closed = user_values + [user_values[0]]
         manager_values_closed = manager_values + [manager_values[0]] if manager_values else None
 
-        fig, ax = plt.subplots(figsize=(6,6), subplot_kw=dict(polar=True))
+        fig, ax = plt.subplots(figsize=(7,7), subplot_kw=dict(polar=True))  # większy wykres
         ax.set_theta_offset(np.pi / 2)
         ax.set_theta_direction(-1)
         ax.set_xticks(angles)
-        ax.set_xticklabels(labels)
+        ax.set_xticklabels(labels, fontsize=12)
         ax.set_ylim(0, 100)
         ax.set_rlabel_position(0)
-        ax.grid(True)
+        ax.grid(True, linestyle='--', linewidth=0.7)
 
         # Linie siatki
         for angle in angles:
             ax.plot([angle, angle], [0, 100], color='gray', linestyle='dashed', linewidth=0.5)
 
         # Wartości pracownika
-        ax.plot(angles_closed, user_values_closed, color='blue', linewidth=2, label='Pracownik')
-        ax.fill(angles_closed, user_values_closed, 'blue', alpha=0.1)
+        ax.plot(angles_closed, user_values_closed, color='#0d6efd', linewidth=2.5, label='Pracownik')  # niebieski
+        ax.fill(angles_closed, user_values_closed, '#0d6efd', alpha=0.15)
 
         # Wartości managera
         if manager_values_closed:
-            ax.plot(angles_closed, manager_values_closed, color='red', linewidth=2, label='Manager')
-            ax.fill(angles_closed, manager_values_closed, 'red', alpha=0.1)
+            ax.plot(angles_closed, manager_values_closed, color='#000000', linewidth=2.5, label='Manager')  # czarny
+            ax.fill(angles_closed, manager_values_closed, '#000000', alpha=0.15)
 
-        ax.legend(loc='upper right', bbox_to_anchor=(1.15, 1.15))
+        # Legenda większa i czytelna
+        ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1), fontsize=12, frameon=False)
 
         buf = io.BytesIO()
         plt.savefig(buf, format='png', bbox_inches='tight')
