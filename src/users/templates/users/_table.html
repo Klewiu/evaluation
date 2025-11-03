@@ -1,0 +1,122 @@
+{# Entire table in a wrapper so we can swap it with HTMX #}
+<div id="users-table-wrapper" class="table-responsive">
+  <table class="table table-sm align-middle table-hover mb-0">
+
+    <thead class="table-light">
+      <tr>
+
+        <!-- OSOBA (was: Użytkownik) -->
+        <th class="text-center text-nowrap">
+          <a
+            hx-get="?sort=username&dir={% if sort == 'username' and dir == 'asc' %}desc{% else %}asc{% endif %}"
+            hx-target="#users-table-wrapper"
+            hx-swap="outerHTML"
+            class="text-decoration-none d-inline-flex align-items-center gap-1"
+          >
+            <span>Osoba</span>
+            {% if sort == "username" %}
+              {% if dir == "asc" %}
+                <i class="bi bi-caret-up-fill"></i>
+              {% else %}
+                <i class="bi bi-caret-down-fill"></i>
+              {% endif %}
+            {% else %}
+              <i class="bi bi-arrow-down-up opacity-50"></i>
+            {% endif %}
+          </a>
+        </th>
+
+        <!-- ROLA -->
+        <th class="text-center text-nowrap">
+          <a
+            hx-get="?sort=role&dir={% if sort == 'role' and dir == 'asc' %}desc{% else %}asc{% endif %}"
+            hx-target="#users-table-wrapper"
+            hx-swap="outerHTML"
+            class="text-decoration-none d-inline-flex align-items-center gap-1"
+          >
+            <span>Rola</span>
+            {% if sort == "role" %}
+              {% if dir == "asc" %}
+                <i class="bi bi-caret-up-fill"></i>
+              {% else %}
+                <i class="bi bi-caret-down-fill"></i>
+              {% endif %}
+            {% else %}
+              <i class="bi bi-arrow-down-up opacity-50"></i>
+            {% endif %}
+          </a>
+        </th>
+
+        <!-- DZIAŁ -->
+        <th class="text-center text-nowrap">
+          <a
+            hx-get="?sort=department&dir={% if sort == 'department' and dir == 'asc' %}desc{% else %}asc{% endif %}"
+            hx-target="#users-table-wrapper"
+            hx-swap="outerHTML"
+            class="text-decoration-none d-inline-flex align-items-center gap-1"
+          >
+            <span>Dział</span>
+            {% if sort == "department" %}
+              {% if dir == "asc" %}
+                <i class="bi bi-caret-up-fill"></i>
+              {% else %}
+                <i class="bi bi-caret-down-fill"></i>
+              {% endif %}
+            {% else %}
+              <i class="bi bi-arrow-down-up opacity-50"></i>
+            {% endif %}
+          </a>
+        </th>
+
+        <!-- ADMIN -->
+        <th class="text-center text-nowrap">
+          <a
+            hx-get="?sort=is_superuser&dir={% if sort == 'is_superuser' and dir == 'asc' %}desc{% else %}asc{% endif %}"
+            hx-target="#users-table-wrapper"
+            hx-swap="outerHTML"
+            class="text-decoration-none d-inline-flex align-items-center gap-1"
+          >
+            <span>Admin</span>
+            {% if sort == "is_superuser" %}
+              {% if dir == "asc" %}
+                <i class="bi bi-caret-up-fill"></i>
+              {% else %}
+                <i class="bi bi-caret-down-fill"></i>
+              {% endif %}
+            {% else %}
+              <i class="bi bi-arrow-down-up opacity-50"></i>
+            {% endif %}
+          </a>
+        </th>
+
+        <!-- OSTATNIE LOGOWANIE -->
+        <th class="text-center text-nowrap">
+          <a
+            hx-get="?sort=last_login&dir={% if sort == 'last_login' and dir == 'asc' %}desc{% else %}asc{% endif %}"
+            hx-target="#users-table-wrapper"
+            hx-swap="outerHTML"
+            class="text-decoration-none d-inline-flex align-items-center gap-1"
+          >
+            <span>Ostatnie Logowanie</span>
+            {% if sort == "last_login" %}
+              {% if dir == "asc" %}
+                <i class="bi bi-caret-up-fill"></i>
+              {% else %}
+                <i class="bi bi-caret-down-fill"></i>
+              {% endif %}
+            {% else %}
+              <i class="bi bi-arrow-down-up opacity-50"></i>
+            {% endif %}
+          </a>
+        </th>
+
+        <th class="text-center text-nowrap">Akcje</th>
+      </tr>
+    </thead>
+
+    <tbody id="user-table-body">
+      {% include "users/_rows.html" with users=users %}
+    </tbody>
+
+  </table>
+</div>

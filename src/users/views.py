@@ -28,9 +28,35 @@ def home(request):
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def users_list(request):
-    users = User.objects.all().order_by("username")
-    return render(request, "users/list.html", {"users": users})
+    sort = request.GET.get("sort", "username")
+    direction = request.GET.get("dir", "asc")
 
+    sort_map = {
+        "username": "username",
+        "role": "role",
+        "department": "department__name",
+        "is_superuser": "is_superuser",
+        "last_login": "last_login",
+    }
+    sort_field = sort_map.get(sort, "username")
+    ordering = sort_field if direction == "asc" else f"-{sort_field}"
+
+    users = User.objects.all().order_by(ordering)
+
+    # HTMX request -> return the whole table (thead+tbody) so headers/arrows & links update
+    if request.headers.get("HX-Request"):
+        return render(request, "users/_table.html", {
+            "users": users,
+            "sort": sort,
+            "dir": direction,
+        })
+
+    # Full page
+    return render(request, "users/list.html", {
+        "users": users,
+        "sort": sort,
+        "dir": direction,
+    })
 
 # -------------------- CREATE --------------------
 @login_required
@@ -99,6 +125,7 @@ def user_toggle_active(request, pk):
     user_obj = get_object_or_404(User, pk=pk)
 
     if user_obj.pk == request.user.pk:
+        messages.error(request, "Nie możesz zablokować sam siebie.")
         return HttpResponse("Nie możesz zablokować własnego konta.", status=400)
 
     user_obj.is_active = not user_obj.is_active
