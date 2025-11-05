@@ -124,7 +124,7 @@ body {
 /* Textarea */
 textarea.form-control {
   width: 100%;
-  min-height: 70px;
+  height: auto;
   resize: none;
   border-radius: 6px;
   border: 1px solid #dee2e6;
@@ -281,8 +281,14 @@ h4.text-center {
               {% endfor %}
             </div>
           {% endif %}
-          {% if question.type in "text,both,scale" %}
+          {% if question.type in "both,scale" %}
             {% if ans_manager and ans_manager.text_value %}
+              <textarea class="form-control" disabled>{{ ans_manager.text_value }}</textarea>
+            {% endif %}
+          {% endif %}
+           {% if question.type in "text" %}
+            {% if ans_manager and ans_manager.text_value %}
+              <p class="mt-2">OCENA MANAGERA:</p>
               <textarea class="form-control" disabled>{{ ans_manager.text_value }}</textarea>
             {% endif %}
           {% endif %}
@@ -332,4 +338,14 @@ h4.text-center {
     {% endif %}
   {% endif %}
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  document.querySelectorAll("textarea.form-control").forEach(function(el) {
+    el.style.height = "auto";
+    el.style.height = (el.scrollHeight) + "px";
+  });
+});
+</script>
+
 {% endblock %}

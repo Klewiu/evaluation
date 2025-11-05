@@ -149,10 +149,12 @@
   </div>
 
   <!-- 🔹 WYKRES RADAROWY -->
+   {% if show_radar %}
   <div class="mt-4 radar-container text-center">
     <h3 class="my-4">Wykres kompetencji</h3>
     <canvas id="radarChart"></canvas>
   </div>
+{% endif %}
 
   <!-- 🔹 TABELA WYNIKÓW -->
   <div class="table-container mt-4">

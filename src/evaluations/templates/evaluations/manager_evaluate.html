@@ -70,52 +70,68 @@
   <form method="post" id="evaluationForm">
     {% csrf_token %}
     {% for ans in employee_answers %}
-    <div class="question-card" id="question_{{ ans.question.id }}">
-      <p><strong>{{ forloop.counter }}. {{ ans.question.text }}</strong></p>
+      <div class="question-card" id="question_{{ ans.question.id }}">
+        <p><strong>{{ forloop.counter }}. {{ ans.question.text }}</strong></p>
 
-      {% if ans.scale_value is not None %}
-        <!-- Ocena pracownika -->
-        <div class="radio-group employee-radio">
-          {% for i in scale_choices %}
-            <label class="custom-radio">
-              <input type="radio" name="employee_scale_{{ ans.question.id }}" value="{{ i }}"
-                     {% if ans.scale_value == i %}checked{% endif %} disabled>
-              <span class="radio-circle"></span>
-              <span class="radio-label">{{ i }}</span>
-            </label>
-          {% endfor %}
-        </div>
-
-        {% if ans.text_value %}
-        <div class="form-group mt-2 employee-text">
-          <label>Komentarz pracownika:</label>
-          <textarea class="form-control" rows="2" disabled>{{ ans.text_value }}</textarea>
-        </div>
-        {% endif %}
-
-        <!-- Ocena managera -->
-        <div class="radio-group manager-radio mt-3">
-          <p>Ocena managera:</p>
-          {% with manager_eval=manager_evals_dict|dict_get:ans.question.id %}
+        {% if ans.scale_value is not None %}
+          <!-- 🔹 Pytanie punktowe -->
+          <div class="radio-group employee-radio">
             {% for i in scale_choices %}
               <label class="custom-radio">
-                <input type="radio" name="manager_scale_{{ ans.question.id }}" value="{{ i }}"
-                       {% if manager_eval and manager_eval.scale_value == i %}checked{% endif %}>
+                <input type="radio" name="employee_scale_{{ ans.question.id }}" value="{{ i }}"
+                      {% if ans.scale_value == i %}checked{% endif %} disabled>
                 <span class="radio-circle"></span>
                 <span class="radio-label">{{ i }}</span>
               </label>
             {% endfor %}
-          {% endwith %}
-        </div>
-      {% endif %}
+          </div>
 
-      <div class="form-group mt-2 manager-text">
-        <label for="text_{{ ans.question.id }}">Komentarz managera</label>
-        {% with manager_eval=manager_evals_dict|dict_get:ans.question.id %}
-          <textarea class="form-control" name="text_{{ ans.question.id }}" rows="2">{% if manager_eval %}{{ manager_eval.text_value }}{% endif %}</textarea>
-        {% endwith %}
+          {% if ans.text_value %}
+            <div class="form-group mt-2 employee-text">
+              <label>Komentarz pracownika:</label>
+              <textarea class="form-control" rows="2" disabled>{{ ans.text_value }}</textarea>
+            </div>
+          {% endif %}
+
+          <!-- Ocena managera (punktowa + opis) -->
+          <div class="radio-group manager-radio mt-3">
+            <p>Ocena managera:</p>
+            {% with manager_eval=manager_evals_dict|dict_get:ans.question.id %}
+              {% for i in scale_choices %}
+                <label class="custom-radio">
+                  <input type="radio" name="manager_scale_{{ ans.question.id }}" value="{{ i }}"
+                         {% if manager_eval and manager_eval.scale_value == i %}checked{% endif %}>
+                  <span class="radio-circle"></span>
+                  <span class="radio-label">{{ i }}</span>
+                </label>
+              {% endfor %}
+            {% endwith %}
+          </div>
+
+          <div class="form-group mt-2 manager-text">
+            <label for="text_{{ ans.question.id }}">Komentarz managera:</label>
+            {% with manager_eval=manager_evals_dict|dict_get:ans.question.id %}
+              <textarea class="form-control" name="text_{{ ans.question.id }}" rows="2">{% if manager_eval %}{{ manager_eval.text_value }}{% endif %}</textarea>
+            {% endwith %}
+          </div>
+
+        {% else %}
+          <!-- 🔹 Pytanie opisowe -->
+          {% if ans.text_value %}
+            <div class="form-group employee-text">
+              <label>Odpowiedź pracownika:</label>
+              <textarea class="form-control" rows="2" disabled>{{ ans.text_value }}</textarea>
+            </div>
+          {% endif %}
+
+          <div class="form-group mt-2 manager-text">
+            <label for="text_{{ ans.question.id }}">Komentarz managera:</label>
+            {% with manager_eval=manager_evals_dict|dict_get:ans.question.id %}
+              <textarea class="form-control" name="text_{{ ans.question.id }}" rows="2">{% if manager_eval %}{{ manager_eval.text_value }}{% endif %}</textarea>
+            {% endwith %}
+          </div>
+        {% endif %}
       </div>
-    </div>
     {% endfor %}
 
     <button type="submit" class="btn btn-primary mt-3">Zapisz oceny</button>
@@ -164,8 +180,9 @@ document.addEventListener('DOMContentLoaded', function() {
   const confirmSubmit = document.getElementById('confirmSubmit');
 
   form.addEventListener('submit', function(e) {
-    e.preventDefault(); // Zatrzymaj chwilowo wysłanie
+    e.preventDefault();
 
+    // Walidacja tylko dla pytań punktowych
     const radioGroups = new Set();
     form.querySelectorAll('input[type="radio"][name^="manager_scale_"]').forEach(radio => {
       radioGroups.add(radio.name);
@@ -188,13 +205,13 @@ document.addEventListener('DOMContentLoaded', function() {
       toast.show();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      confirmModal.show(); // pokaż modal
+      confirmModal.show();
     }
   });
 
   confirmSubmit.addEventListener('click', function() {
     confirmModal.hide();
-    form.submit(); // teraz faktycznie wyślij formularz
+    form.submit();
   });
 });
 </script>

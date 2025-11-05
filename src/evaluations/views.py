@@ -324,6 +324,8 @@ def manager_survey_overview(request, response_id):
     manager_max_points = len(manager_scored) * 10 if manager_scored else 0
     manager_percentage = round((manager_total_points / manager_max_points) * 100, 2) if manager_max_points else 0
 
+    show_radar = len(radar_labels) >= 3
+
     return render(request, 'evaluations/manager_survey_overview.html', {
         "survey": survey,
         "viewed_user": viewed_user,
@@ -338,6 +340,7 @@ def manager_survey_overview(request, response_id):
         "manager_total_points": manager_total_points,
         "manager_max_points": manager_max_points,
         "manager_percentage": manager_percentage,
+        "show_radar": show_radar,
     })
 CustomUser = get_user_model()
 
@@ -380,7 +383,13 @@ class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
             user_values.append(round(user_total / max_total * 100, 2) if max_total else 0)
             manager_values.append(round(manager_total / max_total * 100, 2) if max_total else 0)
 
-        radar_image = self._generate_radar_chart_user_manager(labels, user_values, manager_values)
+            if len(labels) >= 3:
+                radar_image = self._generate_radar_chart_user_manager(labels, user_values, manager_values)
+                show_radar = True
+            else:
+                radar_image = None
+                show_radar = False
+
         radar_data = list(zip(labels, user_values, manager_values))
 
         # START: POPRAWIONE POBRANIE LOGO JAKO BASE64
