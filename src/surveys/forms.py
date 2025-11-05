@@ -140,6 +140,6 @@ class SurveyFillForm(forms.Form):
                     required=True,
                     validators=[
                         MinLengthValidator(20, message="Odpowiedź musi mieć co najmniej 20 znaków."),
-                        MaxLengthValidator(800, message="Odpowiedź nie może przekraczać 800 znaków.")
+                        MaxLengthValidator(2000, message="Odpowiedź nie może przekraczać 2000 znaków.")
                     ]
                 )

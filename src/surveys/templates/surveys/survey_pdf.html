@@ -8,7 +8,7 @@ body {
 
 .container {
   max-width: 900px;
-  margin: 0 auto 0 auto;
+  margin: 0 auto;
   padding: 5px;
 }
 
@@ -23,23 +23,22 @@ body {
 
 .card-body {
   padding: 24px;
-
 }
 
-/* Karta nagłówka z obramowaniem lub mocniejszym cieniem */
+/* Karta nagłówka */
 .header-card {
-  border: 1px solid #dee2e6; /* cienka ramka wokół karty */
+  border: 1px solid #dee2e6;
   border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); /* mocniejszy cień */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   background-color: #f8faff;
 }
 
-/* Nagłówek */
+/* Nagłówki */
 .header-card h2 {
   font-size: 22px;
   font-weight: 600;
   color: #212529;
-  margin-top: 1px;    /* <-- zmniejsza margines nad nazwą */
+  margin-top: 1px;
   margin-bottom: 10px;
 }
 
@@ -68,8 +67,7 @@ body {
   color: #6c757d;
 }
 
-
-/* Pytania w kartach */
+/* Pytania */
 .question-card {
   background-color: #f8f9fa;
   border-radius: 10px;
@@ -119,17 +117,22 @@ body {
   gap: 10px;
 }
 
-/* Textarea */
-textarea.form-control {
-  width: 100%;
+/* Zamiast textarea */
+.text-output {
+  display: block;
+  width: calc(100% - 8px);
+  box-sizing: border-box;
   min-height: 70px;
-  resize: none;
   border-radius: 6px;
   border: 1px solid #dee2e6;
-  padding: 8px;
+  padding: 10px 12px;
   font-size: 15px;
   background-color: #fff;
   margin-top: 12px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  color: #212529;
 }
 
 /* Radar + tabela */
@@ -142,9 +145,9 @@ textarea.form-control {
 }
 
 .radar-container h4 {
-    margin-bottom: 10px;
-    font-size: 18px;
-    font-weight: 600;
+  margin-bottom: 10px;
+  font-size: 18px;
+  font-weight: 600;
 }
 
 .table-container {
@@ -171,32 +174,32 @@ textarea.form-control {
   background-color: #f1f3f5;
   font-weight: 600;
 }
+
 h4.text-center {
-    text-align: center;
+  text-align: center;
 }
+
 .logo-text {
-    font-size: 24px;
-    font-weight: 600;
-    color: #212529;
-    line-height: 1;
+  font-size: 24px;
+  font-weight: 600;
+  color: #212529;
+  line-height: 1;
 }
 </style>
 
 <div class="container mt-1" style="text-align: center; margin-bottom: 20px;">
-    {% if logo_base64 %}
-    <div style="display: inline-table;">
-        <div style="display: table-row;">
-            <div style="display: table-cell; vertical-align: middle; padding-right: 1px;">
-                <img src="data:image/jpeg;base64,{{ logo_base64 }}" 
-                     alt="Logo firmy" 
-                     style="max-width: 85px; height: auto;">
-            </div>
-            <div style="display: table-cell; vertical-align: middle;">
-                <span class="logo-text">OCENY PRACOWNICZE</span>
-            </div>
-        </div>
+  {% if logo_base64 %}
+  <div style="display: inline-table;">
+    <div style="display: table-row;">
+      <div style="display: table-cell; vertical-align: middle; padding-right: 1px;">
+        <img src="data:image/jpeg;base64,{{ logo_base64 }}" alt="Logo firmy" style="max-width: 85px; height: auto;">
+      </div>
+      <div style="display: table-cell; vertical-align: middle;">
+        <span class="logo-text">OCENY PRACOWNICZE</span>
+      </div>
     </div>
-    {% endif %}
+  </div>
+  {% endif %}
 </div>
 
 <div class="container mt-1">
@@ -205,19 +208,16 @@ h4.text-center {
     <div class="card-body">
       <h2 class="card-title mb-3">{{ survey.name }}</h2>
 
-      <!-- Użytkownik -->
       <p><strong>Użytkownik:</strong></p>
       <h4>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#0d6efd" viewBox="0 0 16 16">
-        <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+          <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
         </svg>
-
         {% if viewed_user %}{{ viewed_user.get_full_name }}
         {% elif user %}{{ user.get_full_name }}
         {% else %}Nieznany użytkownik{% endif %}
       </h4>
 
-      <!-- Dział -->
       <p><strong>Dział:</strong></p>
       <h5>
         {% if viewed_user and viewed_user.department %}
@@ -229,7 +229,6 @@ h4.text-center {
         {% endif %}
       </h5>
 
-      <!-- Data -->
       <p><strong>Data wypełnienia:</strong> {{ survey.created_at|date:"d.m.Y H:i" }}</p>
     </div>
   </div>
@@ -238,65 +237,56 @@ h4.text-center {
   <h4 class="text-secondary mb-3 text-center">ODPOWIEDZI PRACOWNIKA</h4>
   <form>
     {% for sq in survey.surveyquestion_set.all %}
-    <div class="question-card">
-      <label><strong>{{ forloop.counter }}. {{ sq.question.text }}</strong></label>
+      <div class="question-card">
+        <label><strong>{{ forloop.counter }}. {{ sq.question.text }}</strong></label>
 
-      {% if sq.question.type == "scale" or sq.question.type == "both" %}
-      <div class="radio-group">
-        {% for i in scale_range %}
+        {% if sq.question.type == "scale" or sq.question.type == "both" %}
+        <div class="radio-group">
+          {% for i in scale_range %}
+            {% for ans in answers %}
+              {% if ans.question.id == sq.question.id %}
+              <label class="custom-radio">
+                <input type="radio" name="q{{ sq.question.id }}_scale" value="{{ i }}"
+                  {% if ans.scale_value|stringformat:"s" == i|stringformat:"s" %}checked{% endif %} disabled>
+                <span class="radio-circle"></span> {{ i }}
+              </label>
+              {% endif %}
+            {% endfor %}
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if sq.question.type == "text" or sq.question.type == "both" %}
           {% for ans in answers %}
             {% if ans.question.id == sq.question.id %}
-            <label class="custom-radio">
-              <input type="radio" name="q{{ sq.question.id }}_scale" value="{{ i }}"
-                {% if ans.scale_value|stringformat:"s" == i|stringformat:"s" %}checked{% endif %}
-                disabled>
-              <span class="radio-circle"></span> {{ i }}
-            </label>
+              <div class="text-output">{{ ans.text_value }}</div>
             {% endif %}
           {% endfor %}
-        {% endfor %}
+        {% endif %}
       </div>
-      {% endif %}
-
-      {% if sq.question.type == "text" or sq.question.type == "both" %}
-        {% for ans in answers %}
-          {% if ans.question.id == sq.question.id %}
-            <textarea class="form-control" disabled>{{ ans.text_value }}</textarea>
-          {% endif %}
-        {% endfor %}
-      {% endif %}
-    </div>
     {% empty %}
-    <p>Brak odpowiedzi</p>
+      <p>Brak odpowiedzi</p>
     {% endfor %}
   </form>
 
-  
-{% if show_radar %}   
-  {% if radar_image %}
+  {% if show_radar %}
+    {% if radar_image %}
     <div class="radar-container">
       <img src="data:image/png;base64,{{ radar_image }}" style="max-width:100%; height:auto;">
-
       <div class="table-container">
         <table>
           <thead>
-            <tr>
-              <th>Kompetencja</th>
-              <th>Procent [%]</th>
-            </tr>
+            <tr><th>Kompetencja</th><th>Procent [%]</th></tr>
           </thead>
           <tbody>
             {% for label, value in radar_data %}
-            <tr>
-              <td>{{ label }}</td>
-              <td>{{ value }}%</td>
-            </tr>
+              <tr><td>{{ label }}</td><td>{{ value }}%</td></tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
     </div>
-  {% endif %}
+    {% endif %}
   {% endif %}
 </div>
 

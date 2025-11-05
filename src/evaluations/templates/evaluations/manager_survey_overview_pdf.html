@@ -121,11 +121,11 @@ body {
   gap: 10px;
 }
 
-/* Textarea */
-textarea.form-control {
-  width: 100%;
-  height: auto;
-  resize: none;
+/* Zastąpione textarea */
+.text-output {
+    width: calc(100% - 8px);
+  white-space: pre-wrap;
+  word-wrap: break-word;
   border-radius: 6px;
   border: 1px solid #dee2e6;
   padding: 8px;
@@ -144,9 +144,9 @@ textarea.form-control {
 }
 
 .radar-container h4 {
-    margin-bottom: 10px;
-    font-size: 18px;
-    font-weight: 600;
+  margin-bottom: 10px;
+  font-size: 18px;
+  font-weight: 600;
 }
 
 .table-container {
@@ -175,177 +175,147 @@ textarea.form-control {
 }
 
 h4.text-center {
-    text-align: center;
+  text-align: center;
 }
 
 .logo-text {
-    font-size: 24px;
-    font-weight: 600;
-    color: #212529;
-    line-height: 1;
+  font-size: 24px;
+  font-weight: 600;
+  color: #212529;
+  line-height: 1;
 }
 </style>
 
 <!-- LOGO I TYTUŁ -->
 <div class="container mt-1" style="text-align: center; margin-bottom: 20px;">
-    {% if logo_base64 %}
-    <div style="display: inline-table;">
-        <div style="display: table-row;">
-            <div style="display: table-cell; vertical-align: middle; padding-right: 1px;">
-                <img src="data:image/jpeg;base64,{{ logo_base64 }}" 
-                     alt="Logo firmy" 
-                     style="max-width: 85px; height: auto;">
-            </div>
-            <div style="display: table-cell; vertical-align: middle;">
-                <span class="logo-text">OCENY PRACOWNICZE</span>
-            </div>
-        </div>
+  {% if logo_base64 %}
+  <div style="display: inline-table;">
+    <div style="display: table-row;">
+      <div style="display: table-cell; vertical-align: middle; padding-right: 1px;">
+        <img src="data:image/jpeg;base64,{{ logo_base64 }}" alt="Logo firmy" style="max-width: 85px; height: auto;">
+      </div>
+      <div style="display: table-cell; vertical-align: middle;">
+        <span class="logo-text">OCENY PRACOWNICZE</span>
+      </div>
     </div>
-    {% endif %}
+  </div>
+  {% endif %}
 </div>
 
 <div class="container mt-1">
-  <!-- Nagłówek jako karta -->
+  <!-- Nagłówek -->
   <div class="card shadow-sm mb-4 header-card">
     <div class="card-body">
       <h2 class="card-title mb-3">{{ response.survey.name }}</h2>
-
-      <!-- Użytkownik -->
       <p><strong>Użytkownik:</strong></p>
       <h4>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#0d6efd" viewBox="0 0 16 16">
-        <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+          <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
         </svg>
         {% if response.user %}{{ response.user.get_full_name }}{% else %}Nieznany użytkownik{% endif %}
       </h4>
-
-      <!-- Dział -->
       <p><strong>Dział:</strong></p>
-      <h5>
-        {% if response.user.department %}{{ response.user.department.name }}{% else %}Brak przypisanego działu{% endif %}
-      </h5>
-
-      <!-- Oceniający -->
+      <h5>{% if response.user.department %}{{ response.user.department.name }}{% else %}Brak przypisanego działu{% endif %}</h5>
       {% if answers_manager %}
         <p><strong>Oceniający:</strong></p>
         <h5>
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#000" viewBox="0 0 16 16">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#000" viewBox="0 0 16 16">
             <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
-            </svg>
-            {{ answers_manager.first.manager.get_full_name }}
+          </svg>
+          {{ answers_manager.first.manager.get_full_name }}
         </h5>
       {% endif %}
-
-      <!-- Data -->
       <p><strong>Data wypełnienia:</strong> {{ response.created_at|date:"d.m.Y H:i" }}</p>
     </div>
   </div>
 
-  <!-- Sekcja pytań -->
+  <!-- Pytania -->
   <h4 class="text-secondary mb-3 text-center">ODPOWIEDZI PRACOWNIKA I OSOBY OCENIAJĄCEJ</h4>
   <form>
     {% for question in response.survey.questions.all %}
-      <div class="question-card">
-        <label><strong>{{ forloop.counter }}. {{ question.text }}</strong></label>
+    <div class="question-card">
+      <label><strong>{{ forloop.counter }}. {{ question.text }}</strong></label>
 
-        {% with ans_user=answers_user|get_item_by_question:question.id %}
-          {% if question.type in "scale,both" %}
-            <p>OCENA PRACOWNIKA:</p>
-            <div class="radio-group">
-              {% for i in scale_range %}
-                <label class="custom-radio employee">
-                  <input type="radio" name="q{{ question.id }}_scale" value="{{ i }}"
-                    {% if ans_user and ans_user.scale_value|stringformat:"s" == i|stringformat:"s" %}checked{% endif %} disabled>
-                  <span class="radio-circle"></span> {{ i }}
-                </label>
-              {% endfor %}
-            </div>
+      {% with ans_user=answers_user|get_item_by_question:question.id %}
+        {% if question.type in "scale,both" %}
+          <p>OCENA PRACOWNIKA:</p>
+          <div class="radio-group">
+            {% for i in scale_range %}
+            <label class="custom-radio employee">
+              <input type="radio" disabled {% if ans_user and ans_user.scale_value|stringformat:"s" == i|stringformat:"s" %}checked{% endif %}>
+              <span class="radio-circle"></span> {{ i }}
+            </label>
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% if question.type in "text,both" %}
+          {% if ans_user and ans_user.text_value %}
+            <div class="form-control text-output">{{ ans_user.text_value|linebreaksbr }}</div>
           {% endif %}
-          {% if question.type in "text,both" %}
-            {% if ans_user and ans_user.text_value %}
-              <textarea class="form-control" disabled>{{ ans_user.text_value }}</textarea>
-            {% endif %}
-          {% endif %}
-        {% endwith %}
+        {% endif %}
+      {% endwith %}
 
-        {% with ans_manager=answers_manager|get_item_by_question:question.id %}
-          {% if question.type in "scale,both" %}
+      {% with ans_manager=answers_manager|get_item_by_question:question.id %}
+        {% if question.type in "scale,both" %}
+          <p class="mt-2">OCENA MANAGERA:</p>
+          <div class="radio-group">
+            {% for i in scale_range %}
+            <label class="custom-radio manager">
+              <input type="radio" disabled {% if ans_manager and ans_manager.scale_value|stringformat:"s" == i|stringformat:"s" %}checked{% endif %}>
+              <span class="radio-circle"></span> {{ i }}
+            </label>
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% if question.type in "both,scale" %}
+          {% if ans_manager and ans_manager.text_value %}
+            <div class="form-control text-output">{{ ans_manager.text_value|linebreaksbr }}</div>
+          {% endif %}
+        {% endif %}
+        {% if question.type in "text" %}
+          {% if ans_manager and ans_manager.text_value %}
             <p class="mt-2">OCENA MANAGERA:</p>
-            <div class="radio-group">
-              {% for i in scale_range %}
-                <label class="custom-radio manager">
-                  <input type="radio" name="q{{ question.id }}_scale_manager" value="{{ i }}"
-                    {% if ans_manager and ans_manager.scale_value|stringformat:"s" == i|stringformat:"s" %}checked{% endif %} disabled>
-                  <span class="radio-circle"></span> {{ i }}
-                </label>
-              {% endfor %}
-            </div>
+            <div class="form-control text-output">{{ ans_manager.text_value|linebreaksbr }}</div>
           {% endif %}
-          {% if question.type in "both,scale" %}
-            {% if ans_manager and ans_manager.text_value %}
-              <textarea class="form-control" disabled>{{ ans_manager.text_value }}</textarea>
-            {% endif %}
-          {% endif %}
-           {% if question.type in "text" %}
-            {% if ans_manager and ans_manager.text_value %}
-              <p class="mt-2">OCENA MANAGERA:</p>
-              <textarea class="form-control" disabled>{{ ans_manager.text_value }}</textarea>
-            {% endif %}
-          {% endif %}
-        {% endwith %}
-      </div>
+        {% endif %}
+      {% endwith %}
+    </div>
     {% empty %}
       <p>Brak odpowiedzi</p>
     {% endfor %}
   </form>
 
-  {% if show_radar %}
-    {% if radar_image %}
-      <div class="radar-container">
-        <img src="data:image/png;base64,{{ radar_image }}" style="max-width:100%; height:auto;">
-        <div class="table-container">
-            <table>
-                <thead>
-                <tr>
-                    <th>Kompetencja</th>
-                    <th>Pracownik [%]</th>
-                    <th>Manager [%]</th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for label, user_val, manager_val in radar_data %}
-                <tr>
-                    <td>{{ label }}</td>
-                    <td>{{ user_val }}%</td>
-                    <td>{% if manager_val is not None %}{{ manager_val }}%{% else %}-{% endif %}</td>
-                </tr>
-                {% endfor %}
-                <!-- Wiersz sumy punktów -->
-                <tr style="font-weight: bold; background-color: #f1f3f5;">
-                    <td>OCENA KOŃCOWA</td>
-                    <td>-</td>
-                    <td style="font-size:18px">
-                    {{ manager_total_points }} z {{ manager_max_points }} punktów
-                    ({{ manager_percentage }}%)
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-            </div>
-           
-        </div>
+  {% if show_radar and radar_image %}
+  <div class="radar-container">
+    <img src="data:image/png;base64,{{ radar_image }}" style="max-width:100%; height:auto;">
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Kompetencja</th>
+            <th>Pracownik [%]</th>
+            <th>Manager [%]</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for label, user_val, manager_val in radar_data %}
+          <tr>
+            <td>{{ label }}</td>
+            <td>{{ user_val }}%</td>
+            <td>{% if manager_val is not None %}{{ manager_val }}%{% else %}-{% endif %}</td>
+          </tr>
+          {% endfor %}
+          <tr style="font-weight: bold; background-color: #f1f3f5;">
+            <td>OCENA KOŃCOWA</td>
+            <td>-</td>
+            <td style="font-size:18px">
+              {{ manager_total_points }} z {{ manager_max_points }} punktów ({{ manager_percentage }}%)
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-    {% endif %}
+  </div>
   {% endif %}
 </div>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-  document.querySelectorAll("textarea.form-control").forEach(function(el) {
-    el.style.height = "auto";
-    el.style.height = (el.scrollHeight) + "px";
-  });
-});
-</script>
-
 {% endblock %}
