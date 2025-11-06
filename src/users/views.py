@@ -152,11 +152,10 @@ def user_create(request):
     email = user.email
     password = form.cleaned_data.get("password1")
 
-    # ✅ Send the styled HTML email
     if email:
         send_credentials_email(user, username, password, email)
 
-    messages.success(request, "Użytkownik utworzony.")
+    messages.success(request, "Użytkownik utworzony. Email z loginem i hasłem wysłany do użytkownika")
 
     users = User.objects.all().order_by("username")
     resp = render(request, "users/_tbody_oob.html", {"users": users})
