@@ -7,6 +7,10 @@ from django.contrib.auth import get_user_model
 from django.contrib import messages
 import json
 
+# NEW for HTML email
+from django.core.mail import EmailMultiAlternatives
+from django.utils.html import strip_tags
+
 # ---- for departments ----
 from django.db.models import Count, OuterRef, Subquery, IntegerField
 from .models import Department
@@ -14,6 +18,75 @@ from .forms import AdminUserUpdateForm, AdminUserCreateForm, DepartmentForm
 # -------------------------
 
 User = get_user_model()
+
+
+# ✅ Helper: send pretty HTML email with credentials
+def send_credentials_email(user, username, password, email):
+    subject = "Twoje dane logowania do Oceny Pracownicze ATS"
+
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; padding: 20px; background: #f7f7f7;">
+      <div style="max-width: 600px; margin: auto; background: white; padding: 25px; border-radius: 10px;">
+
+        <h2 style="color: #4a6ea9; margin-top: 0;">
+          🔐 Twoje nowe konto zostało utworzone!
+        </h2>
+
+        <p>Cześć <strong>{user.first_name or ''}</strong>,</p>
+
+        <p>
+          Twoje konto w aplikacji <strong>Oceny Pracownicze ATS</strong> zostało właśnie utworzone.
+        </p>
+
+        <div style="
+            background: #eef3ff;
+            border-left: 4px solid #4a6ea9;
+            padding: 12px 15px;
+            margin: 20px 0;
+            border-radius: 6px;
+        ">
+          <p style="margin:0; font-size: 15px;">
+            ✅ <strong>Login:</strong> {username}<br>
+            ✅ <strong>Hasło:</strong> {password}
+          </p>
+        </div>
+
+        <p>Użyj powyższych danych, aby zalogować się do systemu.</p>
+
+        <a href="http://127.0.0.1:8000/users/login/"
+           style="
+             display: inline-block;
+             padding: 10px 18px;
+             background: #4a6ea9;
+             color: white;
+             text-decoration: none;
+             border-radius: 5px;
+             margin-top: 10px;
+           ">
+          🔑 Zaloguj się
+        </a>
+
+        <br><br>
+
+        <p style="color: #555; font-size: 12px; border-top: 1px solid #ddd; padding-top: 10px;">
+          Jest to automatyczna wiadomość systemowa. Prosimy na nią nie odpowiadać.
+        </p>
+
+      </div>
+    </div>
+    """
+
+    # plain-text fallback for email clients that block HTML
+    text_content = strip_tags(html_content)
+
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=None,  # Uses DEFAULT_FROM_EMAIL
+        to=[email],
+    )
+    msg.attach_alternative(html_content, "text/html")
+    msg.send()
 
 
 def is_admin_or_superuser(user):
@@ -43,7 +116,6 @@ def users_list(request):
 
     users = User.objects.all().order_by(ordering)
 
-    # HTMX request -> return the whole table (thead+tbody) so headers/arrows & links update
     if request.headers.get("HX-Request"):
         return render(request, "users/_table.html", {
             "users": users,
@@ -51,12 +123,12 @@ def users_list(request):
             "dir": direction,
         })
 
-    # Full page
     return render(request, "users/list.html", {
         "users": users,
         "sort": sort,
         "dir": direction,
     })
+
 
 # -------------------- CREATE --------------------
 @login_required
@@ -71,11 +143,19 @@ def user_new(request):
 @require_POST
 def user_create(request):
     form = AdminUserCreateForm(request.POST)
+
     if not form.is_valid():
-        # Re-render modal with field errors
         return render(request, "users/_create_form.html", {"form": form})
 
     user = form.save()
+    username = user.username
+    email = user.email
+    password = form.cleaned_data.get("password1")
+
+    # ✅ Send the styled HTML email
+    if email:
+        send_credentials_email(user, username, password, email)
+
     messages.success(request, "Użytkownik utworzony.")
 
     users = User.objects.all().order_by("username")
@@ -192,9 +272,6 @@ def check_username(request):
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def departments_list(request):
-    """
-    Lists departments with user counts via subquery (robust to any related_name).
-    """
     count_qs = (
         User.objects
         .filter(department=OuterRef("pk"))
@@ -230,8 +307,7 @@ def department_create(request):
     d = form.save()
     messages.success(request, "Dział utworzony.")
 
-    # Ensure the row we append has a correct count (usually 0 for a new dept)
-    d.user_count = User.objects.filter(department=d).count()  # <-- added
+    d.user_count = User.objects.filter(department=d).count()
 
     resp = render(request, "departments/_row_oob_append.html", {"d": d})
     payload = {"deptCreated": {"target": "#createDepartmentModal"}}
@@ -262,8 +338,7 @@ def department_update(request, pk):
     d = form.save()
     messages.success(request, "Dział zaktualizowany.")
 
-    # IMPORTANT: attach fresh user_count so the OOB row shows the right value immediately
-    d.user_count = User.objects.filter(department=d).count()  # <-- added
+    d.user_count = User.objects.filter(department=d).count()
 
     resp = render(request, "departments/_row_oob.html", {"d": d})
     payload = {"deptUpdated": {"target": "#editDepartmentModal"}}
