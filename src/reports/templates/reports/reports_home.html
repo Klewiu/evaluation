@@ -52,11 +52,11 @@
       <div class="card shadow-sm h-100">
         <div class="card-body text-center bg-light">
           <h3 class="card-title mb-3 header-font">Porównanie działów</h3>
-          <form>
+          <form action="{% url 'latest_survey_report' %}">
             <div class="mb-4">
-              <p>Zestawienie porównawcze wszystkich działów w firmie</p>
+              <p>Porównanie wszystkich pracowników z wszystkich działów</p>
             </div>
-            <button type="button" class="btn btn-primary w-100">OK</button>
+            <button type="submit" class="btn btn-primary w-100 mt-3">OK</button>
           </form>
         </div>
       </div>

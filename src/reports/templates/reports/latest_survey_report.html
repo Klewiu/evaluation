@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}Raport najnowszych ankiet{% endblock %}
+{% block content %}
+<div class="container">
+  <h1 class="text-center mb-4 header-font text-primary">Raport najnowszych ankiet</h1>
+
+  {% if chart_labels %}
+    <p class="text-center text-muted mb-4">
+      Uwzględnione działy: <br>
+      <strong>{{ departments_checked|join:", " }}</strong>
+    </p>
+
+    <div class="chart-wrapper" style="position: relative; width: 100%; max-height: 80vh;">
+      <canvas id="latestSurveyChart"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      const ctx = document.getElementById('latestSurveyChart').getContext('2d');
+
+      const labels = {{ chart_labels|safe }};
+      const managerScores = {{ manager_scores|safe }};
+
+      // 🔹 dynamiczna wysokość, ale bez rosnących barów
+      const numberOfBars = labels.length;
+      const baseBarHeight = window.innerWidth < 768 ? 35 : 25; // mobil = większe bary
+      const maxChartHeight = window.innerHeight * 0.8; // 80% wysokości ekranu
+      const chartHeight = Math.min(numberOfBars * baseBarHeight + 80, maxChartHeight);
+      ctx.canvas.parentElement.style.height = chartHeight + 'px';
+
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Ocena przełożonego (%)',
+            data: managerScores,
+            backgroundColor: 'rgba(1, 112, 209, 0.6)',
+            borderColor: 'rgba(1, 112, 209, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              beginAtZero: true,
+              max: 100,
+              title: { display: true, text: 'Wynik procentowy (%)' }
+            },
+            y: {
+              ticks: { autoSkip: false }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: true }
+          }
+        }
+      });
+    </script>
+  {% else %}
+    <p class="text-center text-muted">Brak danych do wyświetlenia.</p>
+  {% endif %}
+
+  <div class="text-center mt-4">
+    <a href="{% url 'reports_home' %}" class="btn btn-secondary">← Powrót</a>
+  </div>
+</div>
+{% endblock %}

@@ -120,3 +120,67 @@ def employee_report(request):
         "chart_values": chart_values,
     }
     return render(request, "reports/employee_report.html", context)
+
+
+@login_required
+def latest_survey_report(request):
+    labels = []
+    manager_scores = []
+    departments_checked = []
+
+    departments = Department.objects.all()
+
+    for dept in departments:
+        employees = CustomUser.objects.filter(department=dept, role="employee")
+
+        latest_response = (
+            SurveyResponse.objects
+            .filter(user__in=employees, status="submitted")
+            .order_by('-created_at')
+            .select_related('survey')
+            .first()
+        )
+
+        if not latest_response:
+            continue
+
+        latest_survey = latest_response.survey
+        departments_checked.append(f"{dept.name} ({latest_survey.name})")
+
+        for emp in employees:
+            emp_response = (
+                SurveyResponse.objects
+                .filter(user=emp, survey=latest_survey, status="submitted")
+                .order_by('-created_at')
+                .first()
+            )
+            if not emp_response:
+                continue
+
+            manager_answers = EmployeeEvaluation.objects.filter(employee_response=emp_response)
+            if not manager_answers.exists():
+                continue
+
+            manager_values = [a.scale_value for a in manager_answers if a.scale_value is not None]
+            if not manager_values:
+                continue
+
+            avg_manager_score = round((sum(manager_values) / len(manager_values)) * 10, 2)
+
+            labels.append(f"{emp.first_name} {emp.last_name} ({dept.name})")
+            manager_scores.append(avg_manager_score)
+
+    # 🔹 sortowanie od najwyższej do najniższej oceny
+    if labels and manager_scores:
+        sorted_pairs = sorted(zip(manager_scores, labels), reverse=True)
+        manager_scores, labels = map(list, zip(*sorted_pairs))  # zawsze listy
+    else:
+        manager_scores, labels = [], []
+
+    context = {
+        "chart_labels": labels,
+        "manager_scores": manager_scores,
+        "departments_checked": departments_checked,
+    }
+
+    return render(request, "reports/latest_survey_report.html", context)
