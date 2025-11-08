@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Raport działu{% endblock %}
+{% block content %}
+<div class="container">
+  <h1 class="text-center mb-4 header-font text-primary">Raport działu</h1>
+
+  {% if selected_department %}
+    <h3 class="text-center mb-1">{{ selected_department.name }}</h3>
+
+    {% if current_survey %}
+      <p class="text-center text-muted mb-4">
+        Ankieta: <strong>{{ current_survey.name|default:"Brak nazwy" }}</strong>
+      </p>
+    {% else %}
+      <p class="text-center text-muted mb-4">Brak znalezionej ankiety dla tego działu.</p>
+    {% endif %}
+
+    {% if chart_labels %}
+      <canvas id="deptChart" height="100"></canvas>
+      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+      <script>
+        const ctx = document.getElementById('deptChart').getContext('2d');
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: {{ chart_labels|safe }},
+            datasets: [{
+              label: 'Ocena przełożonego (%)',
+              data: {{ chart_values|safe }},
+            backgroundColor: 'rgba(1, 112, 209, 0.5)',
+              borderColor: 'rgba(0, 0, 0, 0.38)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100,
+                title: {
+                  display: true,
+                  text: 'Wynik procentowy (%)'
+                }
+              }
+            }
+          }
+        });
+      </script>
+    {% else %}
+      <p class="text-center text-muted mt-4">Brak ocen managera dla tej ankiety.</p>
+    {% endif %}
+
+    <div class="text-center mt-4">
+      <a href="{% url 'reports_home' %}" class="btn btn-secondary">← Powrót</a>
+    </div>
+  {% else %}
+    <p class="text-center text-muted mt-4">Nie wybrano działu.</p>
+    <div class="text-center mt-3">
+      <a href="{% url 'reports_home' %}" class="btn btn-primary">Wybierz dział</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -10,10 +10,10 @@
       <div class="card shadow-sm h-100">
         <div class="card-body text-center bg-light">
           <h3 class="card-title mb-3 header-font">Raporty działu</h3>
-          <form>
+          <form id="deptForm" method="get" action="{% url 'department_report' %}">
             <div class="mb-3">
               <label for="dzial" class="form-label">Wybierz dział:</label>
-              <select class="form-select" id="dzial" name="department">
+              <select class="form-select" id="dzial" name="department" required>
                 <option selected disabled value="">Wybierz...</option>
                 {% for dep in departments %}
                   <option value="{{ dep.id }}">{{ dep.name }}</option>
@@ -22,7 +22,7 @@
                 {% endfor %}
               </select>
             </div>
-            <button type="button" class="btn btn-primary w-100">OK</button>
+            <button type="submit" class="btn btn-primary w-100">OK</button>
           </form>
         </div>
       </div>
@@ -33,19 +33,15 @@
       <div class="card shadow-sm h-100">
         <div class="card-body text-center bg-light">
           <h4 class="card-title mb-3 header-font">Porównanie ankiet pracownika</h4>
-          <form>
-            <div class="mb-3">
-              <label for="pracownik" class="form-label">Wybierz pracownika:</label>
-              <select class="form-select" id="pracownik" name="employee">
-                <option selected disabled value="">Wybierz...</option>
-                {% for emp in employees %}
-                  <option value="{{ emp.id }}">{{ emp.first_name }} {{ emp.last_name }}</option>
-                {% empty %}
-                  <option disabled>Brak pracowników</option>
-                {% endfor %}
-              </select>
-            </div>
-            <button type="button" class="btn btn-primary w-100">OK</button>
+         <form id="employeeForm" method="get" action="{% url 'employee_report' %}">
+           <label class="form-label">Wybierz pracownika:</label>
+            <select class="form-select" name="employee" required>
+              <option selected disabled value="">Wybierz...</option>
+              {% for emp in employees %}
+                <option value="{{ emp.id }}">{{ emp.first_name }} {{ emp.last_name }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary w-100 mt-4">OK</button>
           </form>
         </div>
       </div>

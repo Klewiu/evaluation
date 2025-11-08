@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Raport pracownika{% endblock %}
+{% block content %}
+<div class="container">
+  <h1 class="text-center mb-4 header-font text-primary">Raport pracownika</h1>
+
+  {% if selected_employee %}
+    <h3 class="text-center mb-2">{{ selected_employee.first_name }} {{ selected_employee.last_name }}</h3>
+
+    {% if chart_labels %}
+      <canvas id="employeeChart" height="100"></canvas>
+      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+      <script>
+        const ctx = document.getElementById('employeeChart').getContext('2d');
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: {{ chart_labels|safe }},
+            datasets: [{
+              label: 'Ocena przełożonego (%)',
+              data: {{ chart_values|safe }},
+              backgroundColor: 'rgba(1, 112, 209, 0.5)',
+              borderColor: 'rgba(0, 0, 0, 0.38)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            indexAxis: 'x',
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100,
+                title: {
+                  display: true,
+                  text: 'Wynik procentowy (%)'
+                }
+              },
+              x: {
+                title: {
+                  display: true,
+                  text: 'Data ankiety'
+                }
+              }
+            }
+          }
+        });
+      </script>
+    {% else %}
+      <p class="text-center text-muted mt-4">Brak ocen managera dla tego pracownika.</p>
+    {% endif %}
+
+    <div class="text-center mt-4">
+      <a href="{% url 'reports_home' %}" class="btn btn-secondary">← Powrót</a>
+    </div>
+
+  {% else %}
+    <p class="text-center text-muted mt-4">Nie wybrano pracownika.</p>
+    <div class="text-center mt-3">
+      <a href="{% url 'reports_home' %}" class="btn btn-primary">Wybierz pracownika</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
