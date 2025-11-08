@@ -16,35 +16,50 @@
     {% endif %}
 
     {% if chart_labels %}
-      <canvas id="deptChart" height="100"></canvas>
+      <div class="chart-wrapper" style="position: relative; width: 100%; max-width: 800px; margin: auto;">
+        <canvas id="deptChart"></canvas>
+      </div>
+
       <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
       <script>
-        const ctx = document.getElementById('deptChart').getContext('2d');
-        new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: {{ chart_labels|safe }},
-            datasets: [{
-              label: 'Ocena przełożonego (%)',
-              data: {{ chart_values|safe }},
-            backgroundColor: 'rgba(1, 112, 209, 0.5)',
-              borderColor: 'rgba(0, 0, 0, 0.38)',
-              borderWidth: 1
-            }]
-          },
-          options: {
-            scales: {
-              y: {
-                beginAtZero: true,
-                max: 100,
-                title: {
-                  display: true,
-                  text: 'Wynik procentowy (%)'
+        const labels = {{ chart_labels|default:"[]"|safe }};
+        const values = {{ chart_values|default:"[]"|safe }};
+
+        if (labels.length > 0 && values.length > 0) {
+            const ctx = document.getElementById('deptChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Ocena przełożonego (%)',
+                        data: values,
+                        backgroundColor: 'rgba(1, 112, 209, 0.5)',
+                        borderColor: 'rgba(0, 0, 0, 0.38)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // kluczowe dla responsywności
+                    indexAxis: 'y', // poziomy wykres
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: { display: true, text: 'Wynik procentowy (%)' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Pracownik' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: true }
+                    }
                 }
-              }
-            }
-          }
-        });
+            });
+        }
       </script>
     {% else %}
       <p class="text-center text-muted mt-4">Brak ocen managera dla tej ankiety.</p>
@@ -60,4 +75,22 @@
     </div>
   {% endif %}
 </div>
+
+<style>
+  /* Responsywność dla małych ekranów */
+  @media (max-width: 576px) {
+    .header-font {
+      font-size: 1.5rem;
+    }
+    .chart-wrapper {
+      height: 300px; /* mniejszy wykres na mobile */
+    }
+  }
+
+  @media (min-width: 577px) {
+    .chart-wrapper {
+      height: 400px; /* standardowa wysokość wykresu */
+    }
+  }
+</style>
 {% endblock %}

@@ -20,7 +20,6 @@ def reports_home(request):
     }
     return render(request, 'reports/reports_home.html', context)
 
-
 @login_required
 def department_report(request):
     department_id = request.GET.get("department")
@@ -32,7 +31,7 @@ def department_report(request):
         selected_department = get_object_or_404(Department, id=department_id)
         employees = CustomUser.objects.filter(department=selected_department, role="employee")
 
-        # 🔹 Znajdź najnowszą ankietę, jaką wypełnił ktokolwiek z tego działu
+        # Znajdź najnowszą ankietę wypełnioną przez kogokolwiek z działu
         latest_response = (
             SurveyResponse.objects
             .filter(user__in=employees, status="submitted")
@@ -42,7 +41,7 @@ def department_report(request):
         )
 
         if latest_response:
-            current_survey = latest_response.survey  # najnowsza ankieta tego działu
+            current_survey = latest_response.survey
 
             for emp in employees:
                 emp_response = (
@@ -55,9 +54,7 @@ def department_report(request):
                 if not emp_response:
                     continue
 
-                # 🔹 oceny managera dla tej ankiety
                 manager_answers = EmployeeEvaluation.objects.filter(employee_response=emp_response)
-
                 if not manager_answers.exists():
                     continue
 
@@ -68,6 +65,14 @@ def department_report(request):
 
                 chart_labels.append(f"{emp.first_name} {emp.last_name}")
                 chart_values.append(manager_percentage)
+
+            # Sortowanie od najwyższego do najniższego
+            if chart_labels:
+                chart_data = sorted(zip(chart_values, chart_labels), reverse=True)
+                chart_values, chart_labels = zip(*chart_data) if chart_data else ([], [])
+                # Konwersja na listy, aby JS poprawnie odczytał dane
+                chart_values = list(chart_values)
+                chart_labels = list(chart_labels)
 
     context = {
         "selected_department": selected_department,
@@ -104,6 +109,10 @@ def employee_report(request):
 
             chart_labels.append(response.created_at.strftime("%Y-%m-%d"))  # data ankiety
             chart_values.append(manager_percentage)
+
+        # konwersja na listy, aby JS poprawnie odczytał dane
+        chart_labels = list(chart_labels)
+        chart_values = list(chart_values)
 
     context = {
         "selected_employee": selected_employee,
