@@ -4,6 +4,12 @@ from surveys.models import SurveyResponse, Question
 
 class EmployeeEvaluation(models.Model):
 
+    STATUS_CHOICES = [
+        ("draft", "W trakcie oceny"),
+        ("submitted", "Zakończona"),
+    ]
+
+
     employee_response = models.ForeignKey(
         SurveyResponse,
         on_delete=models.CASCADE,
@@ -22,6 +28,13 @@ class EmployeeEvaluation(models.Model):
     )
     scale_value = models.IntegerField(null=True, blank=True)
     text_value = models.TextField(blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="draft",
+        help_text="Status oceny managera"
+    )
+
 
     class Meta:
         unique_together = ('employee_response', 'question', 'manager')

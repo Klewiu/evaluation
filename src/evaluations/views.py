@@ -86,7 +86,6 @@ def home(request):
                 department=user.department,
                 role__in=["manager", "both"]
             ).order_by('-created_at')
-
         else:
             department_surveys = Survey.objects.none()
 
@@ -96,28 +95,24 @@ def home(request):
             except SurveyResponse.DoesNotExist:
                 response = None
 
-            # Sprawdzenie ocen managera
-            if response:
-                if user.role == 'employee':
-                    # pracownik widzi wszystkie oceny managerów
-                    show_manager_evaluation = EmployeeEvaluation.objects.filter(
-                        employee_response=response
-                    ).exists()
-                elif user.role == 'manager':
-                    # manager widzi tylko jeśli ocenił admin
-                    show_manager_evaluation = EmployeeEvaluation.objects.filter(
-                        employee_response=response,
-                        manager__role='admin'  # zakładam, że CustomUser ma pole role
-                    ).exists()
-                else:
-                    show_manager_evaluation = False
-            else:
-                show_manager_evaluation = False
+            manager_eval_status = None
+            if response and user.role == 'employee':
+                # Pobierz ostatnią ocenę managera (jeśli jest)
+                eval_qs = EmployeeEvaluation.objects.filter(employee_response=response)
+                if eval_qs.exists():
+                    # zakładam, że dla każdego pytania manager może mieć oddzielną ocenę
+                    # jeśli chcemy pokazać przycisk dopiero gdy **wszystkie** oceny są submitted,
+                    # sprawdzamy minimum statusu
+                    statuses = eval_qs.values_list('status', flat=True)
+                    if all(s == 'submitted' for s in statuses):
+                        manager_eval_status = 'submitted'
+                    else:
+                        manager_eval_status = 'draft'
 
             surveys_list.append({
                 "survey": survey,
                 "response": response,
-                "has_manager_evaluation": show_manager_evaluation
+                "manager_eval_status": manager_eval_status
             })
 
     context = {
@@ -198,23 +193,23 @@ def employee_surveys(request, user_id):
     for survey in surveys:
         try:
             response = SurveyResponse.objects.get(survey=survey, user=employee)
-            has_survey = response.status in ["submitted", "closed"]
+            has_survey = True
         except SurveyResponse.DoesNotExist:
             response = None
             has_survey = False
 
-        # Sprawdzenie, czy **jakikolwiek manager ocenił ankietę**
-        manager_evaluated = False
+        # Pobieramy ocenę managera (dla bieżącego zalogowanego managera lub wszystkich)
+        manager_eval_status = None
         if response:
-            manager_evaluated = EmployeeEvaluation.objects.filter(
-                employee_response=response
-            ).exists()
+            manager_eval = EmployeeEvaluation.objects.filter(employee_response=response).first()
+            if manager_eval:
+                manager_eval_status = manager_eval.status
 
         surveys_with_status.append({
             "survey": survey,
             "has_survey": has_survey,
             "response": response,
-            "manager_evaluated": manager_evaluated,
+            "manager_eval_status": manager_eval_status,  # draft / submitted / None
         })
 
     return render(request, "evaluations/employee_surveys.html", {
@@ -226,32 +221,27 @@ def employee_surveys(request, user_id):
 def manager_evaluate_employee(request, response_id):
     employee_response = get_object_or_404(SurveyResponse, id=response_id)
 
-    # Sprawdzenie, czy manager już ocenił ankietę
-    already_evaluated = EmployeeEvaluation.objects.filter(
-        employee_response=employee_response,
-        manager=request.user
-    ).exists()
-    if already_evaluated:
-        return redirect('employee_surveys', user_id=employee_response.user.id)
-
     employee_answers = SurveyAnswer.objects.filter(response=employee_response)
-    manager_evals = EmployeeEvaluation.objects.filter(employee_response=employee_response)
+    manager_evals = EmployeeEvaluation.objects.filter(employee_response=employee_response, manager=request.user)
     manager_evals_dict = {e.question.id: e for e in manager_evals}
     scale_choices = list(range(1, 11))
 
     if request.method == "POST":
-        # 🧩 Walidacja — sprawdź, czy każda skala ma ocenę
-        missing = []
-        for ans in employee_answers:
-            if ans.scale_value is not None:  # pytanie oceniane liczbowo
-                scale = request.POST.get(f'manager_scale_{ans.question.id}')
-                if not scale:
-                    missing.append(ans.question.text)
-        if missing:
-            messages.error(request, "Musisz wypełnić wszystkie pola oceny managera.")
-            return redirect(request.path)
+        save_type = request.POST.get("save_type", "draft")  # draft lub submitted
 
-        # 🧩 Zapis ocen
+        # 🔹 Walidacja tylko przy finalnym zakończeniu
+        if save_type == "submitted":
+            missing = []
+            for ans in employee_answers:
+                if ans.scale_value is not None:  # pytanie punktowe
+                    scale = request.POST.get(f'manager_scale_{ans.question.id}')
+                    if not scale:
+                        missing.append(ans.question.text)
+            if missing:
+                messages.error(request, "Musisz wypełnić wszystkie pola oceny managera.")
+                return redirect(request.path)
+
+        # 🔹 Zapis ocen
         for ans in employee_answers:
             scale = request.POST.get(f'manager_scale_{ans.question.id}')
             text = request.POST.get(f'text_{ans.question.id}', '')
@@ -262,12 +252,17 @@ def manager_evaluate_employee(request, response_id):
                     manager=request.user,
                     defaults={
                         'scale_value': int(scale) if scale else None,
-                        'text_value': text
+                        'text_value': text,
+                        'status': save_type
                     }
                 )
 
-        messages.success(request, "Oceny zostały zapisane pomyślnie.")
-        return redirect('manager_employees')
+        if save_type == "draft":
+            messages.success(request, "Oceny zostały zapisane jako robocze.")
+            return redirect(request.path)  # pozostajemy na stronie
+        else:
+            messages.success(request, "Oceny zostały zakończone i zapisane.")
+            return redirect('manager_employees')
 
     return render(request, 'evaluations/manager_evaluate.html', {
         'employee_response': employee_response,

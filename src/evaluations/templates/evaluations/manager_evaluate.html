@@ -134,8 +134,14 @@
       </div>
     {% endfor %}
 
-    <button type="submit" class="btn btn-primary mt-3">Zapisz oceny</button>
-    <a href="{% url 'manager_employees' %}" class="btn btn-secondary mt-3">Anuluj</a>
+      {% comment %} PRZYCISKI {% endcomment %}
+      <!-- PRZYCISKI -->
+      <div class="mt-3">
+          <button type="submit" name="save_type" value="draft" class="btn btn-secondary">Zapisz roboczo</button>
+          <button type="submit" name="save_type" value="submitted" class="btn btn-primary" id="finalSubmitBtn">Zakończ i zapisz</button>
+          <a href="{% url 'manager_employees' %}" class="btn btn-light">Anuluj</a>
+      </div>
+
   </form>
 </div>
 
@@ -173,46 +179,65 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const form = document.getElementById('evaluationForm');
-  const toastEl = document.getElementById('validationToast');
-  const toast = new bootstrap.Toast(toastEl);
-  const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
-  const confirmSubmit = document.getElementById('confirmSubmit');
+    const form = document.getElementById('evaluationForm');
+    const toastEl = document.getElementById('validationToast');
+    const toast = new bootstrap.Toast(toastEl);
+    const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    const confirmSubmit = document.getElementById('confirmSubmit');
 
-  form.addEventListener('submit', function(e) {
-    e.preventDefault();
+    let currentAction = null;
 
-    // Walidacja tylko dla pytań punktowych
-    const radioGroups = new Set();
-    form.querySelectorAll('input[type="radio"][name^="manager_scale_"]').forEach(radio => {
-      radioGroups.add(radio.name);
+    form.addEventListener('submit', function(e) {
+        currentAction = document.activeElement.value; // zapamiętujemy kliknięty przycisk
+
+        // 🔹 Walidacja i modal tylko przy zakończeniu (submitted)
+        if (currentAction === 'submitted') {
+            e.preventDefault();
+
+            const radioGroups = new Set();
+            form.querySelectorAll('input[type="radio"][name^="manager_scale_"]').forEach(radio => {
+                radioGroups.add(radio.name);
+            });
+
+            let allAnswered = true;
+            radioGroups.forEach(groupName => {
+                const radios = form.querySelectorAll(`input[name="${groupName}"]`);
+                const checked = Array.from(radios).some(r => r.checked);
+                const qCard = radios[0].closest('.question-card');
+                if (!checked) {
+                    allAnswered = false;
+                    qCard.classList.add('missing');
+                } else {
+                    qCard.classList.remove('missing');
+                }
+            });
+
+            if (!allAnswered) {
+                toast.show();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                confirmModal.show();
+            }
+        }
+        // Jeśli draft, formularz wysyła się normalnie
     });
 
-    let allAnswered = true;
-    radioGroups.forEach(groupName => {
-      const radios = form.querySelectorAll(`input[name="${groupName}"]`);
-      const checked = Array.from(radios).some(r => r.checked);
-      const qCard = radios[0].closest('.question-card');
-      if (!checked) {
-        allAnswered = false;
-        qCard.classList.add('missing');
-      } else {
-        qCard.classList.remove('missing');
-      }
+    confirmSubmit.addEventListener('click', function() {
+        confirmModal.hide();
+
+        // dodanie ukrytego pola save_type=submitted
+        let actionInput = form.querySelector('input[name="save_type"][type="hidden"]');
+        if (!actionInput) {
+            actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'save_type';
+            form.appendChild(actionInput);
+        }
+        actionInput.value = 'submitted';
+
+        form.submit();
     });
-
-    if (!allAnswered) {
-      toast.show();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      confirmModal.show();
-    }
-  });
-
-  confirmSubmit.addEventListener('click', function() {
-    confirmModal.hide();
-    form.submit();
-  });
 });
 </script>
+
 {% endblock %}
