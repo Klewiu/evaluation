@@ -222,7 +222,6 @@ def employee_surveys(request, user_id):
         "surveys_with_status": surveys_with_status
     })
 
-
 @login_required
 def manager_evaluate_employee(request, response_id):
     employee_response = get_object_or_404(SurveyResponse, id=response_id)

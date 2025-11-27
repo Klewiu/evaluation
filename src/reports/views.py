@@ -13,16 +13,22 @@ from surveys.models import Survey, SurveyResponse
 def reports_home(request):
     departments = Department.objects.all().order_by('name')
     employees = CustomUser.objects.filter(is_active=True).order_by('last_name', 'first_name')
-
+    years = (
+        Survey.objects.values_list("year", flat=True)
+        .distinct()
+        .order_by("-year")
+    )
     context = {
         'departments': departments,
         'employees': employees,
+        "years": years,
     }
     return render(request, 'reports/reports_home.html', context)
 
 @login_required
 def department_report(request):
     department_id = request.GET.get("department")
+    year = request.GET.get("year")  # << NOWOŚĆ
     selected_department = None
     chart_labels, chart_values = [], []
     current_survey = None
@@ -31,17 +37,17 @@ def department_report(request):
         selected_department = get_object_or_404(Department, id=department_id)
         employees = CustomUser.objects.filter(department=selected_department, role="employee")
 
-        # Znajdź najnowszą ankietę wypełnioną przez kogokolwiek z działu
-        latest_response = (
-            SurveyResponse.objects
-            .filter(user__in=employees, status="submitted")
-            .order_by('-created_at')
-            .select_related('survey')
-            .first()
-        )
+        # Filtrowanie ankiet po dziale + roku (jeśli podany)
+        survey_filter = Survey.objects.filter(department=selected_department)
 
-        if latest_response:
-            current_survey = latest_response.survey
+        if year:
+            survey_filter = survey_filter.filter(year=year)
+
+        # Wybierz najnowszą ankietę zgodną z filtrem
+        latest_survey = survey_filter.order_by("-year", "-created_at").first()
+
+        if latest_survey:
+            current_survey = latest_survey
 
             for emp in employees:
                 emp_response = (
@@ -66,19 +72,18 @@ def department_report(request):
                 chart_labels.append(f"{emp.first_name} {emp.last_name}")
                 chart_values.append(manager_percentage)
 
-            # Sortowanie od najwyższego do najniższego
+            # Sortowanie wyników
             if chart_labels:
-                chart_data = sorted(zip(chart_values, chart_labels), reverse=True)
-                chart_values, chart_labels = zip(*chart_data) if chart_data else ([], [])
-                # Konwersja na listy, aby JS poprawnie odczytał dane
-                chart_values = list(chart_values)
+                chart_data = sorted(zip(chart_labels, chart_values), key=lambda x: x[1], reverse=True)
+                chart_labels, chart_values = zip(*chart_data)
                 chart_labels = list(chart_labels)
+                chart_values = list(chart_values)
 
     context = {
         "selected_department": selected_department,
+        "current_survey": current_survey,
         "chart_labels": chart_labels,
         "chart_values": chart_values,
-        "current_survey": current_survey,
     }
 
     return render(request, "reports/department_report.html", context)
