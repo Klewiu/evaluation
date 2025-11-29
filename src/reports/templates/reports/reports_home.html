@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Raporty{% endblock %}
+
 {% block content %}
 <div class="container">
   <h1 class="mb-5 text-center header-font text-primary">Panel Raportów</h1>
@@ -11,44 +12,53 @@
         <div class="card-body text-center bg-light">
           <h3 class="card-title mb-3 header-font">Raporty działu</h3>
           <form id="deptForm" method="get" action="{% url 'department_report' %}">
+
+              <!-- Wybór działu -->
               <div class="mb-3">
-                <label for="dzial" class="form-label">Wybierz dział:</label>
-                <select class="form-select" id="dzial" name="department" required>
-                  <option selected disabled value="">Wybierz...</option>
-                  {% for dep in departments %}
-                    <option value="{{ dep.id }}" {% if dep.id|stringformat:"s" == selected_department_id %}selected{% endif %}>
-                      {{ dep.name }}
-                    </option>
-                  {% endfor %}
-                </select>
+                  <label for="dzial" class="form-label">Wybierz dział:</label>
+                  <select class="form-select" id="dzial" name="department"
+                          hx-get="{% url 'get_surveys' %}"
+                          hx-target="#ankieta"
+                          hx-include="#rok"
+                          hx-trigger="change"
+                          required>
+                      <option selected disabled value="">Wybierz...</option>
+                      {% for dep in departments %}
+                          <option value="{{ dep.id }}" {% if dep.id|stringformat:"s" == selected_department_id %}selected{% endif %}>
+                              {{ dep.name }}
+                          </option>
+                      {% endfor %}
+                  </select>
               </div>
 
+              <!-- Wybór roku -->
               <div class="mb-3">
-                <label for="rok" class="form-label">Wybierz rok:</label>
-                <select class="form-select" id="rok" name="year" required>
-                  <option value="">Najnowszy</option>
-                  {% for y in years %}
-                    <option value="{{ y }}" {% if y|stringformat:"s" == selected_year %}selected{% endif %}>{{ y }}</option>
-                  {% endfor %}
-                </select>
+                  <label for="rok" class="form-label">Wybierz rok:</label>
+                  <select class="form-select" id="rok" name="year"
+                          hx-get="{% url 'get_surveys' %}"
+                          hx-target="#ankieta"
+                          hx-include="#dzial"
+                          hx-trigger="change"
+                          required>
+                      <option value="">Najnowszy</option>
+                      {% for y in years %}
+                          <option value="{{ y }}" {% if y|stringformat:"s" == selected_year %}selected{% endif %}>
+                              {{ y }}
+                          </option>
+                      {% endfor %}
+                  </select>
               </div>
 
-              <!-- Pole ankiet -->
-    
+              <!-- Wybór ankiety -->
               <div class="mb-3">
                   <label for="ankieta" class="form-label">Wybierz ankietę:</label>
                   <select class="form-select" id="ankieta" name="survey" required>
-                      <option selected disabled value="">Wybierz...</option>
-                      {% if surveys %}
-                          {% for s in surveys %}
-                              <option value="{{ s.id }}" {% if s.id|stringformat:"s" == selected_survey_id %}selected{% endif %}>{{ s.name }}</option>
-                          {% endfor %}
-                      {% endif %}
+                      {% include "reports/partials/_survey_options.html" %}
                   </select>
               </div>
 
               <button type="submit" class="btn btn-primary w-100">OK</button>
-            </form>
+          </form>
         </div>
       </div>
     </div>
@@ -58,8 +68,8 @@
       <div class="card shadow-sm h-100">
         <div class="card-body text-center bg-light">
           <h4 class="card-title mb-3 header-font">Porównanie ankiet pracownika</h4>
-         <form id="employeeForm" method="get" action="{% url 'employee_report' %}">
-           <label class="form-label">Wybierz pracownika:</label>
+          <form id="employeeForm" method="get" action="{% url 'employee_report' %}">
+            <label class="form-label">Wybierz pracownika:</label>
             <select class="form-select" name="employee" required>
               <option selected disabled value="">Wybierz...</option>
               {% for emp in employees %}
@@ -82,8 +92,8 @@
               <p>Porównanie wszystkich pracowników z wszystkich działów</p>
             </div>
             <button type="submit" class="btn btn-primary w-100" formaction="{% url 'department_report' %}">
-            OK
-          </button>
+              OK
+            </button>
           </form>
         </div>
       </div>
@@ -91,34 +101,4 @@
 
   </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const departmentSelect = document.getElementById('dzial');
-    const yearSelect = document.getElementById('rok');
-    const surveySelect = document.getElementById('ankieta');
-
-    function updateSurveys() {
-        const dept = departmentSelect.value;
-        const year = yearSelect.value;
-        if (!dept || !year) return;
-
-        fetch("{% url 'get_surveys' %}?department=" + dept + "&year=" + year)
-            .then(response => response.json())
-            .then(data => {
-                surveySelect.innerHTML = '<option selected disabled value="">Wybierz...</option>';
-                data.surveys.forEach(s => {
-                    const option = document.createElement('option');
-                    option.value = s.id;
-                    option.text = s.name;
-                    surveySelect.appendChild(option);
-                });
-            });
-    }
-
-    departmentSelect.addEventListener('change', updateSurveys);
-    yearSelect.addEventListener('change', updateSurveys);
-});
-</script>
-
 {% endblock %}

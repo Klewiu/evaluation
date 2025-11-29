@@ -13,13 +13,19 @@ from django.http import JsonResponse
 
 @login_required
 def get_surveys(request):
-    department_id = request.GET.get('department')
-    year = request.GET.get('year')
+    department_id = request.GET.get("department")
+    year = request.GET.get("year")
+    selected_survey_id = request.GET.get("survey")
     surveys = []
+
     if department_id and year:
-        surveys_qs = Survey.objects.filter(department_id=department_id, year=year).order_by('name')
-        surveys = [{"id": s.id, "name": s.name} for s in surveys_qs]
-    return JsonResponse({"surveys": surveys})
+        surveys = Survey.objects.filter(department_id=department_id, year=year).order_by("name")
+
+    return render(
+        request,
+        "reports/partials/_survey_options.html",
+        {"surveys": surveys, "selected_survey_id": selected_survey_id},
+    )
 
 @login_required
 def reports_home(request):
@@ -31,7 +37,7 @@ def reports_home(request):
     selected_department_id = request.GET.get("department")
     selected_survey_id = request.GET.get("survey")
 
-    # pobieramy ankiety tylko jeśli wybrano dział i rok
+    # jeśli od razu chcemy pokazać ankiety przy załadowaniu strony
     surveys = []
     if selected_year and selected_department_id:
         surveys = Survey.objects.filter(
@@ -40,15 +46,16 @@ def reports_home(request):
         ).order_by("name")
 
     context = {
-        'departments': departments,
-        'employees': employees,
+        "departments": departments,
+        "employees": employees,
         "years": years,
         "surveys": surveys,
         "selected_year": selected_year,
         "selected_department_id": selected_department_id,
         "selected_survey_id": selected_survey_id,
     }
-    return render(request, 'reports/reports_home.html', context)
+
+    return render(request, "reports/reports_home.html", context)
 
 @login_required
 def department_report(request):

@@ -1,0 +1,6 @@
+<option selected disabled value="">Wybierz...</option>
+{% for s in surveys %}
+  <option value="{{ s.id }}" {% if s.id|stringformat:"s" == selected_survey_id %}selected{% endif %}>
+    {{ s.name }}
+  </option>
+{% endfor %}
