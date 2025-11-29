@@ -8,17 +8,22 @@
   </h1>
 
   <div class="card shadow-sm mb-4">
-    <div class="card-body">
-      <h5 class="card-title mb-3 header-font">
-        Ankieta: {% if current_survey %}{{ current_survey.name }}{% endif %}
-        | Ocena: {{ score_type|title }}
-      </h5>
-      <canvas id="radarChart" height="500"></canvas>
+  <div class="card-body">
+    <h4 class="card-title mb-3 header-font text-center">
+      Ankieta: {% if current_survey %}{{ current_survey.name }}{% endif %}
+    </h4>
+     <p class="text-center header-font text-primary">TYP OCENY: {{ score_type_display }}</p>
+    <!-- Kontener zmniejszony -->
+    <div class="radar-container" style="max-width:700px; margin:auto;">
+      <canvas id="radarChart" height="350"></canvas>
     </div>
   </div>
+</div>
 
   <!-- TABELA WYNIKÓW -->
   <div class="table-responsive mb-5">
+    <p class="text-center">Tabela wyników działu {{ selected_department.name }} dla ankiety {% if current_survey %}{{ current_survey.name }}  {% endif %}:</p>
+    <p class="text-center text-secondary">Typ oceny: {{ score_type_display }}</p>
     <table class="table table-bordered text-center align-middle">
       <thead class="table-light">
         <tr>

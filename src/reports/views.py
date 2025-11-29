@@ -13,8 +13,21 @@ from django.http import JsonResponse
 
 from surveys.models import Survey, SurveyResponse, SurveyAnswer, Competency
 
+from django.core.exceptions import PermissionDenied
+from functools import wraps
+
+def hr_or_admin_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        user = request.user
+        # jeśli nie jest zalogowany lub nie ma wymaganej roli
+        if not user.is_authenticated or not (user.is_superuser or user.is_staff or getattr(user, 'role', '') == 'hr' or getattr(user, 'role', '') == 'manager'):
+            raise PermissionDenied
+        return view_func(request, *args, **kwargs)
+    return wrapper
 
 @login_required
+@hr_or_admin_required
 def get_surveys(request):
     department_id = request.GET.get("department")
     year = request.GET.get("year")
@@ -31,6 +44,7 @@ def get_surveys(request):
     )
 
 @login_required
+@hr_or_admin_required
 def reports_home(request):
     departments = Department.objects.all().order_by('name')
     employees = CustomUser.objects.filter(is_active=True).order_by('last_name', 'first_name')
@@ -61,6 +75,7 @@ def reports_home(request):
     return render(request, "reports/reports_home.html", context)
 
 @login_required
+@hr_or_admin_required
 def department_report(request):
     department_id = request.GET.get("department")
     survey_id = request.GET.get("survey")  # teraz pobieramy wybraną ankietę
@@ -110,11 +125,20 @@ def department_report(request):
 
     return render(request, "reports/department_report.html", context)
 
+@login_required
+@hr_or_admin_required
 def department_radar_report(request):
     department_id = request.GET.get("department")
     year = request.GET.get("year")
     survey_id = request.GET.get("survey")
     score_type = request.GET.get("score_type", "employee")  # "employee" lub "manager"
+
+    # 🔹 Mapa przyjaznych nazw
+    SCORE_TYPE_DISPLAY = {
+        "employee": "Ocena pracownika",
+        "manager": "Ocena przełożonego",
+    }
+    score_type_display = SCORE_TYPE_DISPLAY.get(score_type, score_type)
 
     selected_department = None
     current_survey = None
@@ -175,11 +199,12 @@ def department_radar_report(request):
         "radar_labels": radar_labels,
         "radar_data": radar_data,
         "score_type": score_type,
-        "avg_scores": avg_scores  # Przekazanie średniej do szablonu
+        "score_type_display": score_type_display,  # <- teraz przyjazna nazwa
+        "avg_scores": avg_scores
     })
 
-
 @login_required
+@hr_or_admin_required
 def employee_report(request):
     employee_id = request.GET.get("employee")
     selected_employee = None
@@ -217,7 +242,9 @@ def employee_report(request):
     }
     return render(request, "reports/employee_report.html", context)
 
+
 @login_required
+@hr_or_admin_required
 def latest_survey_report(request):
     labels = []
     manager_scores = []

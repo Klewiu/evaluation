@@ -120,33 +120,44 @@
                   </select>
               </div>
 
-              <button type="submit" class="btn btn-primary w-100">Generuj wykres radar</button>
+              <button type="submit" class="btn btn-primary w-100">OK</button>
           </form>
         </div>
       </div>
     </div>
 
 
-    <!-- Karta 3: Porównanie ankiet pracownika -->
-    <div class="col-md-4">
-      <div class="card shadow-sm h-100">
-        <div class="card-body text-center bg-light">
-          <h4 class="card-title mb-3 header-font">Porównanie ankiet pracownika</h4>
-          <form id="employeeForm" method="get" action="{% url 'employee_report' %}">
-            <label class="form-label">Wybierz pracownika:</label>
-            <select class="form-select" name="employee" required>
-              <option selected disabled value="">Wybierz...</option>
-              {% for emp in employees %}
-                <option value="{{ emp.id }}">{{ emp.first_name }} {{ emp.last_name }}</option>
-              {% endfor %}
-            </select>
-            <button type="submit" class="btn btn-primary w-100 mt-4">OK</button>
-          </form>
-        </div>
-      </div>
-    </div>
+  <!-- Karta 3: Porównanie ankiet pracownika + wszystkich działów -->
+<div class="col-md-4">
+  <div class="card shadow-sm h-100">
+    <div class="card-body text-center bg-light">
+      <h4 class="card-title mb-3 header-font">Porównanie wyniku wszystkich ankiet pracownika</h4>
 
-    <!-- Karta 4: Porównanie działów -->
+      <!-- Formularz dla pojedynczego pracownika -->
+      <form id="employeeForm" method="get" action="{% url 'employee_report' %}">
+        <label class="form-label">Wybierz pracownika:</label>
+        <select class="form-select" name="employee" required>
+          <option selected disabled value="">Wybierz...</option>
+          {% for emp in employees %}
+            <option value="{{ emp.id }}">{{ emp.first_name }} {{ emp.last_name }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary w-100 mt-3">OK</button>
+      </form>
+
+      <hr class="my-5">
+
+      <!-- Formularz dla wszystkich działów -->
+      <form method="get" action="{% url 'latest_survey_report' %}">
+        <h4 class="card-title mb-3 header-font">Porównanie wszystkich pracowników z wszystkich działów</h4>
+        <button type="submit" class="btn btn-primary w-100">OK</button>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+    {% comment %} <!-- Karta 4: Porównanie działów -->
     <div class="col-md-4">
       <div class="card shadow-sm h-100">
         <div class="card-body text-center bg-light">
@@ -161,7 +172,7 @@
           </form>
         </div>
       </div>
-    </div>
+    </div> {% endcomment %}
 
   </div>
 </div>
