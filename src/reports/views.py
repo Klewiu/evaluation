@@ -9,75 +9,87 @@ from users.models import Department, CustomUser
 from evaluations.models import EmployeeEvaluation
 from surveys.models import Survey, SurveyResponse
 
+from django.http import JsonResponse
+
+@login_required
+def get_surveys(request):
+    department_id = request.GET.get('department')
+    year = request.GET.get('year')
+    surveys = []
+    if department_id and year:
+        surveys_qs = Survey.objects.filter(department_id=department_id, year=year).order_by('name')
+        surveys = [{"id": s.id, "name": s.name} for s in surveys_qs]
+    return JsonResponse({"surveys": surveys})
+
 @login_required
 def reports_home(request):
     departments = Department.objects.all().order_by('name')
     employees = CustomUser.objects.filter(is_active=True).order_by('last_name', 'first_name')
-    years = (
-        Survey.objects.values_list("year", flat=True)
-        .distinct()
-        .order_by("-year")
-    )
+    years = Survey.objects.values_list("year", flat=True).distinct().order_by("-year")
+
+    selected_year = request.GET.get("year")
+    selected_department_id = request.GET.get("department")
+    selected_survey_id = request.GET.get("survey")
+
+    # pobieramy ankiety tylko jeśli wybrano dział i rok
+    surveys = []
+    if selected_year and selected_department_id:
+        surveys = Survey.objects.filter(
+            year=selected_year,
+            department_id=selected_department_id
+        ).order_by("name")
+
     context = {
         'departments': departments,
         'employees': employees,
         "years": years,
+        "surveys": surveys,
+        "selected_year": selected_year,
+        "selected_department_id": selected_department_id,
+        "selected_survey_id": selected_survey_id,
     }
     return render(request, 'reports/reports_home.html', context)
 
 @login_required
 def department_report(request):
     department_id = request.GET.get("department")
-    year = request.GET.get("year")  # << NOWOŚĆ
+    survey_id = request.GET.get("survey")  # teraz pobieramy wybraną ankietę
     selected_department = None
-    chart_labels, chart_values = [], []
     current_survey = None
+    chart_labels, chart_values = [], []
 
-    if department_id:
+    if department_id and survey_id:
         selected_department = get_object_or_404(Department, id=department_id)
-        employees = CustomUser.objects.filter(department=selected_department, role="employee")
+        current_survey = get_object_or_404(Survey, id=survey_id)
+        employees = CustomUser.objects.filter(department=selected_department)
 
-        # Filtrowanie ankiet po dziale + roku (jeśli podany)
-        survey_filter = Survey.objects.filter(department=selected_department)
+        for emp in employees:
+            emp_response = (
+                SurveyResponse.objects
+                .filter(user=emp, survey=current_survey, status="submitted")
+                .order_by('-created_at')
+                .first()
+            )
+            if not emp_response:
+                continue
 
-        if year:
-            survey_filter = survey_filter.filter(year=year)
+            manager_answers = EmployeeEvaluation.objects.filter(employee_response=emp_response)
+            if not manager_answers.exists():
+                continue
 
-        # Wybierz najnowszą ankietę zgodną z filtrem
-        latest_survey = survey_filter.order_by("-year", "-created_at").first()
+            manager_scored = [a.scale_value for a in manager_answers if a.scale_value is not None]
+            manager_total_points = sum(manager_scored)
+            manager_max_points = len(manager_scored) * 10 if manager_scored else 0
+            manager_percentage = round((manager_total_points / manager_max_points) * 100, 2) if manager_max_points else 0
 
-        if latest_survey:
-            current_survey = latest_survey
+            chart_labels.append(f"{emp.first_name} {emp.last_name}")
+            chart_values.append(manager_percentage)
 
-            for emp in employees:
-                emp_response = (
-                    SurveyResponse.objects
-                    .filter(user=emp, survey=current_survey, status="submitted")
-                    .order_by('-created_at')
-                    .first()
-                )
-
-                if not emp_response:
-                    continue
-
-                manager_answers = EmployeeEvaluation.objects.filter(employee_response=emp_response)
-                if not manager_answers.exists():
-                    continue
-
-                manager_scored = [a.scale_value for a in manager_answers if a.scale_value]
-                manager_total_points = sum(manager_scored)
-                manager_max_points = len(manager_scored) * 10 if manager_scored else 0
-                manager_percentage = round((manager_total_points / manager_max_points) * 100, 2) if manager_max_points else 0
-
-                chart_labels.append(f"{emp.first_name} {emp.last_name}")
-                chart_values.append(manager_percentage)
-
-            # Sortowanie wyników
-            if chart_labels:
-                chart_data = sorted(zip(chart_labels, chart_values), key=lambda x: x[1], reverse=True)
-                chart_labels, chart_values = zip(*chart_data)
-                chart_labels = list(chart_labels)
-                chart_values = list(chart_values)
+        if chart_labels:
+            chart_data = sorted(zip(chart_labels, chart_values), key=lambda x: x[1], reverse=True)
+            chart_labels, chart_values = zip(*chart_data)
+            chart_labels = list(chart_labels)
+            chart_values = list(chart_values)
 
     context = {
         "selected_department": selected_department,

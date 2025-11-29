@@ -6,4 +6,5 @@ urlpatterns = [
     path('department/', views.department_report, name='department_report'),
     path('employee/', views.employee_report, name='employee_report'),
     path('latest-survey-report/', views.latest_survey_report, name='latest_survey_report'),
+    path('ajax/get-surveys/', views.get_surveys, name='get_surveys'),
 ]

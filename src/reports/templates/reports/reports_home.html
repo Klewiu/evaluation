@@ -11,30 +11,44 @@
         <div class="card-body text-center bg-light">
           <h3 class="card-title mb-3 header-font">Raporty działu</h3>
           <form id="deptForm" method="get" action="{% url 'department_report' %}">
-            <div class="mb-3">
-              <label for="dzial" class="form-label">Wybierz dział:</label>
-              <select class="form-select" id="dzial" name="department" required>
-                <option selected disabled value="">Wybierz...</option>
-                {% for dep in departments %}
-                  <option value="{{ dep.id }}">{{ dep.name }}</option>
-                {% empty %}
-                  <option disabled>Brak działów</option>
-                {% endfor %}
-              </select>
-            </div>
-
               <div class="mb-3">
-                <label for="rok" class="form-label">Wybierz rok:</label>
-                <select class="form-select" id="rok" name="year">
-                  <option value="">Najnowszy</option>
-                  {% for y in years %}
-                    <option value="{{ y }}">{{ y }}</option>
+                <label for="dzial" class="form-label">Wybierz dział:</label>
+                <select class="form-select" id="dzial" name="department" required>
+                  <option selected disabled value="">Wybierz...</option>
+                  {% for dep in departments %}
+                    <option value="{{ dep.id }}" {% if dep.id|stringformat:"s" == selected_department_id %}selected{% endif %}>
+                      {{ dep.name }}
+                    </option>
                   {% endfor %}
                 </select>
               </div>
-              
-            <button type="submit" class="btn btn-primary w-100">OK</button>
-          </form>
+
+              <div class="mb-3">
+                <label for="rok" class="form-label">Wybierz rok:</label>
+                <select class="form-select" id="rok" name="year" required>
+                  <option value="">Najnowszy</option>
+                  {% for y in years %}
+                    <option value="{{ y }}" {% if y|stringformat:"s" == selected_year %}selected{% endif %}>{{ y }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <!-- Pole ankiet -->
+    
+              <div class="mb-3">
+                  <label for="ankieta" class="form-label">Wybierz ankietę:</label>
+                  <select class="form-select" id="ankieta" name="survey" required>
+                      <option selected disabled value="">Wybierz...</option>
+                      {% if surveys %}
+                          {% for s in surveys %}
+                              <option value="{{ s.id }}" {% if s.id|stringformat:"s" == selected_survey_id %}selected{% endif %}>{{ s.name }}</option>
+                          {% endfor %}
+                      {% endif %}
+                  </select>
+              </div>
+
+              <button type="submit" class="btn btn-primary w-100">OK</button>
+            </form>
         </div>
       </div>
     </div>
@@ -67,7 +81,9 @@
             <div class="mb-4">
               <p>Porównanie wszystkich pracowników z wszystkich działów</p>
             </div>
-            <button type="submit" class="btn btn-primary w-100 mt-3">OK</button>
+            <button type="submit" class="btn btn-primary w-100" formaction="{% url 'department_report' %}">
+            OK
+          </button>
           </form>
         </div>
       </div>
@@ -75,4 +91,34 @@
 
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const departmentSelect = document.getElementById('dzial');
+    const yearSelect = document.getElementById('rok');
+    const surveySelect = document.getElementById('ankieta');
+
+    function updateSurveys() {
+        const dept = departmentSelect.value;
+        const year = yearSelect.value;
+        if (!dept || !year) return;
+
+        fetch("{% url 'get_surveys' %}?department=" + dept + "&year=" + year)
+            .then(response => response.json())
+            .then(data => {
+                surveySelect.innerHTML = '<option selected disabled value="">Wybierz...</option>';
+                data.surveys.forEach(s => {
+                    const option = document.createElement('option');
+                    option.value = s.id;
+                    option.text = s.name;
+                    surveySelect.appendChild(option);
+                });
+            });
+    }
+
+    departmentSelect.addEventListener('change', updateSurveys);
+    yearSelect.addEventListener('change', updateSurveys);
+});
+</script>
+
 {% endblock %}
