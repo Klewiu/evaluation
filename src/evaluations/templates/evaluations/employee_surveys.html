@@ -16,6 +16,7 @@
                         <th class="d-none d-md-table-cell">Rok</th>
                         <th>Ankieta</th>
                         <th>Ocena</th>
+                        <th>Komentarz HR</th> 
                         <th>Akcje</th>
                     </tr>
                 </thead>
@@ -46,16 +47,30 @@
                                 <i class="bi bi-x-lg text-danger"></i>
                             {% endif %}
                         </td>
+                        <!-- Status komentarza HR -->
+                        <td>
+                            {% if item.hr_eval %}
+                                {% if item.hr_eval.status == 'completed' %}
+                                    <i class="bi bi-check-lg text-primary" title="Ocena HR zakończona"></i>
+                                {% elif item.hr_eval.status == 'draft' %}
+                                    <i class="bi bi-hourglass-split text-secondary" title="Ocena HR w trakcie"></i>
+                                {% endif %}
+                            {% else %}
+                                <i class="bi bi-x-lg text-danger" title="Ocena HR nie rozpoczęta"></i>
+                            {% endif %}
+                        </td>
 
                       <!-- Akcje -->
-                       
                         <td>
                             {% if item.has_survey %}
+                                <!-- Podgląd ankiety -->
                                 <a class="btn btn-sm btn-primary" 
                                 href="{% url 'survey_result_for_user' survey_id=item.survey.id user_id=employee.id %}" 
                                 title="Podgląd wyników">
                                     <i class="bi bi-search"></i>
                                 </a>
+
+                                <!-- Pobierz PDF ankiety -->
                                 <a class="btn btn-sm btn-secondary" 
                                 href="{% url 'survey_pdf' survey_id=item.survey.id user_id=employee.id %}" 
                                 title="Pobierz PDF" target="_blank">
@@ -78,6 +93,15 @@
                                     class="btn btn-sm btn-dark" title="Pobierz PDF z wykresami">
                                         <i class="bi bi-file-earmark-pdf-fill"></i>
                                     </a>
+
+                                    <!-- Przycisk HR -->
+                                     <!-- Przycisk HR – tylko dla zalogowanego HR -->
+                                    {% if request.user.role == 'hr' or request.user.role == 'admin' %}
+                                        <a href="{% url 'hr_comment_employee' item.response.id %}" 
+                                        class="btn btn-sm btn-info" title="Komentarz HR">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                    {% endif %}
                                 {% endif %}
                             {% else %}
                                 <span class="text-muted">Brak ankiety</span>

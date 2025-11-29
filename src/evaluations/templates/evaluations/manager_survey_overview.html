@@ -4,10 +4,14 @@
 {% block content %}
 
 <style>
+
 .radar-container {
-  max-width: 800px;
-  height: 600px;
+  max-width: 900px;
   margin: auto;
+}
+
+#radarChart {
+  height: 650px !important;
 }
 .table-container {
   max-width: 700px;
@@ -150,14 +154,14 @@
 
   <!-- 🔹 WYKRES RADAROWY -->
    {% if show_radar %}
-  <div class="mt-4 radar-container text-center">
+  <div class="radar-container text-center my-4">
     <h3 class="my-4">Wykres kompetencji</h3>
     <canvas id="radarChart"></canvas>
   </div>
 {% endif %}
 
   <!-- 🔹 TABELA WYNIKÓW -->
-  <div class="table-container mt-4">
+  <div class="table-container mt-5">
     <table class="table table-bordered text-center">
       <thead class="table-light">
         <tr>
@@ -189,6 +193,24 @@
     </div>
   </div>
 
+  {% comment %} Komentarz HR {% endcomment %}
+{% if hr_comment %}
+<div class="card shadow-sm mt-4 mb-4 mx-auto" style="max-width: 600px;">
+  <div class="card-body">
+    <h5 class="card-title header-font text-primary fs-2 text-center">Komentarz działu kadr</h5>
+    <p class="card-text"><i>{{ hr_comment }}</i></p>
+    <small class="text-muted">
+      {% if hr_comment_user %}
+        Dodany przez: {{ hr_comment_user.get_full_name }}<br>
+      {% endif %}
+      {% if hr_comment_date %}
+        Data: {{ hr_comment_date|date:"d.m.Y H:i" }}
+      {% endif %}
+    </small>
+  </div>
+</div>
+{% endif %}
+
   <!-- 🔹 PRZYCISK POWROTU -->
   <div class="text-center my-4">
     <button class="btn btn-secondary"
@@ -200,7 +222,6 @@
 
 </div>
 
-<!-- 🔹 SKRYPT WYKRESU -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 const labels = {{ radar_labels|safe }};
@@ -242,14 +263,29 @@ const config = {
         angleLines: { display: true },
         min: 0,
         max: 100,
-        ticks: { stepSize: 10, callback: val => val + "%" }
+        ticks: { stepSize: 10, callback: val => val + "%" },
+        pointLabels: {
+          font: {
+            size: 18,       // większe labele
+            weight: 'bold'  // pogrubione
+          }
+        }
       }
     },
-    plugins: { legend: { position: 'top' } }
+    plugins: { 
+      legend: { 
+        position: 'top',
+        labels: {
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
+        }
+      } 
+    }
   }
 };
 
 new Chart(document.getElementById('radarChart'), config);
 </script>
-
 {% endblock %}

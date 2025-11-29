@@ -43,6 +43,9 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from surveys.models import SurveyResponse
 
+from .models import EmployeeEvaluation, EmployeeEvaluationHR
+from django.utils import timezone
+
 def manager_or_privileged_access_required(view_func):
     def wrapper(request, response_id, *args, **kwargs):
         response = get_object_or_404(SurveyResponse, id=response_id)
@@ -80,36 +83,50 @@ def home(request):
             department_surveys = Survey.objects.filter(
                 department=user.department,
                 role__in=["employee", "both"],
-                created_at__gte=user.date_joined  # tylko ankiety po zatrudnieniu
+                created_at__gte=user.date_joined
             ).order_by('-created_at')
-
         elif user.role == 'manager':
             department_surveys = Survey.objects.filter(
                 department=user.department,
                 role__in=["manager", "both"],
-                created_at__gte=user.date_joined  # analogicznie dla managera
+                created_at__gte=user.date_joined
             ).order_by('-created_at')
         else:
             department_surveys = Survey.objects.none()
 
         for survey in department_surveys:
-            # sprawdzenie, czy użytkownik już wypełnił ankietę
             response = SurveyResponse.objects.filter(survey=survey, user=user).first()
 
             manager_eval_status = None
+            hr_eval_status = None
+            show_manager_overview = False
+
             if response and user.role == 'employee':
+                # ocena managera
                 eval_qs = EmployeeEvaluation.objects.filter(employee_response=response)
                 if eval_qs.exists():
                     statuses = eval_qs.values_list('status', flat=True)
                     if all(s == 'submitted' for s in statuses):
                         manager_eval_status = 'submitted'
-                    else:
+                    elif any(s == 'draft' for s in statuses):
                         manager_eval_status = 'draft'
+
+                # ocena HR
+                try:
+                    hr_eval = EmployeeEvaluationHR.objects.get(employee_response=response)
+                    hr_eval_status = hr_eval.status  # 'completed' lub 'draft'
+                except EmployeeEvaluationHR.DoesNotExist:
+                    hr_eval_status = None
+
+                # Pokaż przycisk podglądu tylko jeśli manager submitted i HR completed
+                show_manager_overview = manager_eval_status == 'submitted' and hr_eval_status == 'completed'
 
             surveys_list.append({
                 "survey": survey,
                 "response": response,
-                "manager_eval_status": manager_eval_status
+                "manager_eval_status": manager_eval_status,
+                "hr_eval_status": hr_eval_status,
+                "show_manager_overview": show_manager_overview,
             })
 
     context = {
@@ -128,28 +145,25 @@ def manager_employees(request):
             department=user.department,
             role="employee"
         )
-
     # Admin lub HR → wszyscy użytkownicy (managerowie i pracownicy)
     elif user.role in ["admin", "hr"] or user.is_superuser:
         employees = CustomUser.objects.filter(
             role__in=["employee", "manager"]
         )
-    
     else:
         employees = CustomUser.objects.none()  # inni nie mają dostępu
 
     for emp in employees:
-        # Pobierz najnowszą ankietę dla działu i roli pracownika
         latest_survey = Survey.objects.filter(
             department=emp.department,
             role__in=[emp.role, "both"]
         ).order_by("-created_at").first()
 
         has_survey = False
-        manager_evaluated = False  # dodajemy status oceny przez managera
+        manager_status = None  # 'submitted', 'draft', None
+        hr_status = None  # 'completed', 'draft', None
 
         if latest_survey:
-            # Sprawdź, czy pracownik wypełnił tę ankietę
             latest_survey_response = SurveyResponse.objects.filter(
                 survey=latest_survey,
                 user=emp
@@ -158,23 +172,33 @@ def manager_employees(request):
             if latest_survey_response:
                 has_survey = latest_survey_response.status in ["submitted", "closed"]
 
-                # Sprawdź, czy manager ocenił ankietę
-                manager_evaluated = EmployeeEvaluation.objects.filter(
-                    employee_response=latest_survey_response
-                ).exists()
+                # Manager status
+                manager_eval_qs = EmployeeEvaluation.objects.filter(employee_response=latest_survey_response)
+                if manager_eval_qs.exists():
+                    statuses = manager_eval_qs.values_list('status', flat=True)
+                    if all(s == 'submitted' for s in statuses):
+                        manager_status = 'submitted'
+                    elif any(s == 'draft' for s in statuses):
+                        manager_status = 'draft'
+
+                # HR status
+                try:
+                    hr_eval = EmployeeEvaluationHR.objects.get(employee_response=latest_survey_response)
+                    hr_status = hr_eval.status  # 'draft' lub 'completed'
+                except EmployeeEvaluationHR.DoesNotExist:
+                    hr_status = None
 
         employees_with_survey.append({
             "employee": emp,
             "has_survey": has_survey,
-            "manager_evaluated": manager_evaluated,
+            "manager_status": manager_status,
+            "hr_status": hr_status,
             "latest_survey": latest_survey
         })
-
     context = {
         "employees_with_survey": employees_with_survey,
     }
     return render(request, "evaluations/manager_employees.html", context)
-
 
 @login_required
 def employee_surveys(request, user_id):
@@ -196,18 +220,30 @@ def employee_surveys(request, user_id):
             response = None
             has_survey = False
 
-        # Pobieramy ocenę managera (dla bieżącego zalogowanego managera lub wszystkich)
+        # Status oceny managera
         manager_eval_status = None
         if response:
             manager_eval = EmployeeEvaluation.objects.filter(employee_response=response).first()
             if manager_eval:
                 manager_eval_status = manager_eval.status
 
+        # Status oceny HR
+        hr_eval_status = None
+        hr_eval = None
+        if response:
+            try:
+                hr_eval = EmployeeEvaluationHR.objects.get(employee_response=response)
+                hr_eval_status = hr_eval.status
+            except EmployeeEvaluationHR.DoesNotExist:
+                hr_eval_status = None
+
         surveys_with_status.append({
             "survey": survey,
             "has_survey": has_survey,
             "response": response,
             "manager_eval_status": manager_eval_status,  # draft / submitted / None
+            "hr_eval_status": hr_eval_status,          # draft / completed / None
+            "hr_eval": hr_eval,                        # obiekt HR jeśli istnieje
         })
 
     return render(request, "evaluations/employee_surveys.html", {
@@ -215,7 +251,6 @@ def employee_surveys(request, user_id):
         "surveys_with_status": surveys_with_status
     })
 
-    
 @login_required
 def manager_evaluate_employee(request, response_id):
     # Pobranie odpowiedzi pracownika
@@ -295,15 +330,12 @@ def manager_survey_overview(request, response_id):
     # Odpowiedzi managera
     answers_manager = EmployeeEvaluation.objects.filter(employee_response=response_user)
 
-    # ⬇️ Kto oceniał
-    manager_user = None
-    if answers_manager.exists():
-        manager_user = answers_manager.first().manager
+    # Kto oceniał
+    manager_user = answers_manager.first().manager if answers_manager.exists() else None
 
-    # Przygotowanie wykresu radarowego
+    # Wykres radarowy
     radar_labels, radar_user_values, radar_manager_values = [], [], []
     competencies = Competency.objects.all()
-
     for comp in competencies:
         comp_questions = survey.surveyquestion_set.filter(question__competency=comp)
         if comp_questions.exists():
@@ -323,13 +355,25 @@ def manager_survey_overview(request, response_id):
     radar_data = list(zip(radar_labels, radar_user_values, radar_manager_values))
     scale_range = range(1, 11)
 
-    # 🔹 SUMA PUNKTÓW – tylko oceny managera
+    # Suma punktów managera
     manager_scored = [a.scale_value for a in answers_manager if a.scale_value]
     manager_total_points = sum(manager_scored)
     manager_max_points = len(manager_scored) * 10 if manager_scored else 0
     manager_percentage = round((manager_total_points / manager_max_points) * 100, 2) if manager_max_points else 0
-
     show_radar = len(radar_labels) >= 3
+
+    # 🔹 Pobranie komentarza HR jeśli istnieje i jest completed
+    hr_comment = None
+    hr_comment_user = None
+    hr_comment_date = None
+    try:
+        hr_eval = EmployeeEvaluationHR.objects.get(employee_response=response_user)
+        if hr_eval.status == 'completed':
+            hr_comment = hr_eval.comment
+            hr_comment_user = hr_eval.created_by  # osoba która dodała komentarz
+            hr_comment_date = hr_eval.completed_at
+    except EmployeeEvaluationHR.DoesNotExist:
+        pass
 
     return render(request, 'evaluations/manager_survey_overview.html', {
         "survey": survey,
@@ -346,7 +390,11 @@ def manager_survey_overview(request, response_id):
         "manager_max_points": manager_max_points,
         "manager_percentage": manager_percentage,
         "show_radar": show_radar,
+        "hr_comment": hr_comment,
+        "hr_comment_user": hr_comment_user,
+        "hr_comment_date": hr_comment_date,
     })
+
 CustomUser = get_user_model()
 
 
@@ -472,3 +520,52 @@ class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
         img_base64 = base64.b64encode(buf.read()).decode('utf-8')
         plt.close(fig)
         return img_base64
+
+@login_required
+def hr_comment_employee(request, response_id):
+    if request.user.role not in ['hr', 'admin']:
+        messages.error(request, "Brak dostępu do tego widoku.")
+        return redirect('home')
+
+    response = get_object_or_404(SurveyResponse, id=response_id)
+    survey = response.survey
+    viewed_user = response.user
+
+    # Pobranie odpowiedzi pracownika i managera
+    answers_user = response.answers.all()
+    answers_manager = EmployeeEvaluation.objects.filter(employee_response=response)
+
+    # Pobranie lub utworzenie komentarza HR
+    hr_eval, created = EmployeeEvaluationHR.objects.get_or_create(employee_response=response)
+
+    if request.method == 'POST':
+        hr_comment = request.POST.get('hr_comment', '').strip()
+        hr_eval.comment = hr_comment
+
+        action = request.POST.get('action')
+        if action == 'draft':
+            hr_eval.status = 'draft'
+            hr_eval.completed_at = None
+            messages.success(request, "Komentarz HR został zapisany jako roboczy.")
+        elif action == 'completed':
+            hr_eval.mark_completed(user=request.user)
+            messages.success(request, "Komentarz HR został zapisany i wysłany do pracownika.")
+
+        hr_eval.save()
+        return redirect('employee_surveys', user_id=viewed_user.id)
+
+    scale_range = range(1, 11)
+
+    context = {
+        'survey': survey,
+        'viewed_user': viewed_user,
+        'answers_user': answers_user,
+        'answers_manager': answers_manager,
+        'scale_range': scale_range,
+        'hr_comment': hr_eval.comment,
+        'manager_user': answers_manager.first().manager if answers_manager.exists() else None,
+        'show_radar': False,
+        'hr_eval': hr_eval,  # dodajemy cały obiekt HR
+    }
+
+    return render(request, 'evaluations/hr_comment_survey.html', context)

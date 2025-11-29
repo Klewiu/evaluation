@@ -14,6 +14,7 @@
                 <th>Rok ankiety</th>
                 <th class="d-none d-md-table-cell">Status ankiety</th>
                 <th class="d-none d-md-table-cell">Status oceny managera</th>
+                <th class="d-none d-md-table-cell">Status oceny HR</th>
                 <th>Akcje</th>
             </tr>
         </thead>
@@ -44,6 +45,16 @@
                             <span class="text-danger">Brak oceny</span>
                         {% endif %}
                     </td>
+                    <!-- Status oceny HR -->
+                    <td class="d-none d-md-table-cell">
+                        {% if item.hr_eval_status == 'completed' %}
+                            <i class="bi bi-check-lg text-primary" title="Zakończona"></i>
+                        {% elif item.hr_eval_status == 'draft' %}
+                            <i class="bi bi-hourglass-split text-warning" title="W trakcie oceny"></i>
+                        {% else %}
+                            <i class="bi bi-x-lg text-danger" title="Brak oceny"></i>
+                        {% endif %}
+                    </td>
 
                     <!-- Akcje -->
                     <td>
@@ -64,7 +75,7 @@
                             <a href="{% url 'survey_pdf' item.survey.id %}" target="_blank" class="btn btn-sm btn-secondary" title="Moja ocena w PDF">
                                 <i class="bi bi-file-earmark-pdf"></i>
                             </a>
-                            {% if item.manager_eval_status == 'submitted' %}
+                            {% if item.show_manager_overview %}
                                 <a href="{% url 'manager_survey_overview' item.response.id %}" class="btn btn-sm btn-primary" title="Ocena przełożonego">
                                     <i class="bi bi-trophy-fill"></i>
                                 </a>

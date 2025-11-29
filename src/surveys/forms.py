@@ -60,7 +60,7 @@ class SurveyForm(forms.ModelForm):
         labels = {
             'name': 'Nazwa ankiety',
             'department': 'Dział',
-            'year': 'Rok',
+            'year': 'Oceniany rok',
             'role': 'Rola użytkownika',
         }
         widgets = {

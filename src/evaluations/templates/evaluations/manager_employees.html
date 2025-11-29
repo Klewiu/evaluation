@@ -20,6 +20,7 @@
                         <th class="d-none d-md-table-cell">Rola</th>
                         <th>Status ankiety</th>
                         <th>Status oceny</th>
+                        <th>Komentarz HR</th>
                         <th>Akcje</th>
                     </tr>
                 </thead>
@@ -46,15 +47,29 @@
                                 {% endif %}
                             </td>
 
-                            <!-- Status oceny przez managera -->
+                            <!-- Status oceny managera -->
                             <td>
-                                {% if item.manager_evaluated %}
+                                {% if item.manager_status == 'submitted' %}
                                     <i class="bi bi-check-lg text-primary" title="Oceniona przez managera"></i>
+                                {% elif item.manager_status == 'draft' %}
+                                    <i class="bi bi-hourglass-split text-secondary" title="W trakcie oceny managera"></i>
                                 {% else %}
-                                    <i class="bi bi-x-lg text-danger" title="Nie oceniona"></i>
+                                    <i class="bi bi-x-lg text-danger" title="Nie oceniona przez managera"></i>
                                 {% endif %}
                             </td>
 
+                            <!-- Status oceny HR -->
+                            <td>
+                                {% if item.hr_status == 'completed' %}
+                                    <i class="bi bi-check-lg text-primary" title="Oceniona przez HR"></i>
+                                {% elif item.hr_status == 'draft' %}
+                                    <i class="bi bi-hourglass-split text-secondary" title="W trakcie oceny HR"></i>
+                                {% else %}
+                                    <i class="bi bi-x-lg text-danger" title="Nie oceniona przez HR"></i>
+                                {% endif %}
+                            </td>
+                                                        
+                            <!-- Akcje -->
                             <td>
                                 <a href="{% url 'employee_surveys' item.employee.id %}" class="btn btn-sm btn-primary" title="Historia ankiet">
                                     <i class="bi bi-database"></i>

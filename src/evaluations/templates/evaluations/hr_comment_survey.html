@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Komentarz HR - {{ viewed_user.get_full_name }}{% endblock %}
+
+{% block content %}
+<style>
+.radar-container {
+  max-width: 800px;
+  height: 600px;
+  margin: auto;
+}
+.table-container {
+  max-width: 700px;
+  margin: 20px auto;
+}
+.rating-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 5px;
+}
+.rating-group input[type="radio"] {
+  display: none;
+}
+.rating-group label {
+  position: relative;
+  padding-left: 25px;
+  cursor: default;
+  user-select: none;
+}
+.rating-group label::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #6c757d;
+  background-color: #fff;
+}
+.rating-group.employee input[type="radio"]:checked + label::before {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+.rating-group.employee input[type="radio"]:checked + label {
+  color: #0d6efd;
+}
+.rating-group.manager input[type="radio"]:checked + label::before {
+  background-color: #000;
+  border-color: #000;
+}
+.rating-group.manager input[type="radio"]:checked + label {
+  color: #000;
+}
+</style>
+
+<div class="container mt-4">
+
+  <!-- KARTA INFORMACYJNA -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h2 class="card-title mb-3">{{ survey.name }}</h2>
+      <p class="mb-1 text-muted"><strong>Pracownik:</strong></p>
+      <h4 class="text-primary mb-2">{{ viewed_user.get_full_name }}</h4>
+      <p class="mb-1 text-muted"><strong>Dział:</strong></p>
+      <h5 class="text-secondary mb-3">{{ viewed_user.department.name }}</h5>
+      {% if manager_user %}
+      <p class="mb-1 text-muted"><strong>Oceniający:</strong></p>
+      <h5 class="text-dark mb-2">{{ manager_user.get_full_name }}</h5>
+      {% endif %}
+      <p class="mb-0 text-muted"><strong>Data ankiety:</strong> {{ survey.created_at|date:"d.m.Y H:i" }}</p>
+    </div>
+  </div>
+
+  <!-- PYTANIA I ODPOWIEDZI -->
+  <h4 class="text-secondary mb-3">Odpowiedzi pracownika i osoby oceniającej:</h4>
+  <div class="mt-4">
+    {% for sq in survey.surveyquestion_set.all %}
+      <div class="mb-3 p-3 border rounded shadow-sm bg-light">
+        <p><strong>{{ forloop.counter }}. {{ sq.question.text }}</strong></p>
+
+        <!-- Ocena pracownika -->
+        {% for ans in answers_user %}
+          {% if ans.question.id == sq.question.id %}
+            {% if ans.scale_value %}
+              <div>
+                Ocena pracownika:
+                <div class="rating-group employee">
+                  {% for i in scale_range %}
+                    <input type="radio" id="user_{{ sq.question.id }}_{{ i }}" name="user_{{ sq.question.id }}" value="{{ i }}" disabled
+                      {% if ans.scale_value == i %}checked{% endif %}>
+                    <label for="user_{{ sq.question.id }}_{{ i }}">{{ i }}</label>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+            {% if ans.text_value %}
+              <div class="mt-1"><strong>Komentarz pracownika:</strong> {{ ans.text_value }}</div>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+
+        <!-- Ocena managera -->
+        {% for ans in answers_manager %}
+          {% if ans.question.id == sq.question.id %}
+            {% if ans.scale_value %}
+              <div class="mt-2">
+                Ocena osoby oceniającej:
+                <div class="rating-group manager">
+                  {% for i in scale_range %}
+                    <input type="radio" id="manager_{{ sq.question.id }}_{{ i }}" name="manager_{{ sq.question.id }}" value="{{ i }}" disabled
+                      {% if ans.scale_value == i %}checked{% endif %}>
+                    <label for="manager_{{ sq.question.id }}_{{ i }}">{{ i }}</label>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+            {% if ans.text_value %}
+              <div class="mt-1"><strong>Komentarz osoby oceniającej:</strong> {{ ans.text_value }}</div>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- KOMENTARZ HR -->
+  {% if manager_user %}
+  <div class="card shadow-sm mt-4 mb-4">
+    <div class="card-body">
+      <h5>Komentarz HR:</h5>
+      <form method="post">
+        {% csrf_token %}
+        <textarea name="hr_comment" class="form-control" rows="5">{{ hr_comment }}</textarea>
+
+        <div class="mt-2">
+            <button type="submit" name="action" value="draft" class="btn btn-secondary">
+            Zapisz roboczo
+            </button>
+            <button type="submit" name="action" value="completed" class="btn btn-info">
+            Zapisz komentarz HR i wyślij ankietę do pracownika
+            </button>
+        </div>
+        </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- PRZYCISK POWROTU -->
+  <div class="text-center my-4">
+    <a href="{% url 'employee_surveys' user_id=viewed_user.id %}" class="btn btn-secondary">Powrót</a>
+  </div>
+
+</div>
+{% endblock %}
