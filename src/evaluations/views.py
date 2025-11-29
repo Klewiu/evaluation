@@ -101,8 +101,8 @@ def home(request):
             hr_eval_status = None
             show_manager_overview = False
 
-            if response and user.role == 'employee':
-                # ocena managera
+            if response:
+                # ocena managera (również gdy ocenia admin!)
                 eval_qs = EmployeeEvaluation.objects.filter(employee_response=response)
                 if eval_qs.exists():
                     statuses = eval_qs.values_list('status', flat=True)
@@ -114,12 +114,15 @@ def home(request):
                 # ocena HR
                 try:
                     hr_eval = EmployeeEvaluationHR.objects.get(employee_response=response)
-                    hr_eval_status = hr_eval.status  # 'completed' lub 'draft'
+                    hr_eval_status = hr_eval.status
                 except EmployeeEvaluationHR.DoesNotExist:
                     hr_eval_status = None
 
-                # Pokaż przycisk podglądu tylko jeśli manager submitted i HR completed
-                show_manager_overview = manager_eval_status == 'submitted' and hr_eval_status == 'completed'
+                # pokazujemy overview tylko gdy obie oceny zakończone
+                show_manager_overview = (
+                    manager_eval_status == 'submitted' and 
+                    hr_eval_status == 'completed'
+                )
 
             surveys_list.append({
                 "survey": survey,
@@ -129,9 +132,7 @@ def home(request):
                 "show_manager_overview": show_manager_overview,
             })
 
-    context = {
-        "surveys": surveys_list,
-    }
+    context = {"surveys": surveys_list}
     return render(request, 'evaluations/home.html', context)
 
 @login_required
