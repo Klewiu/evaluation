@@ -11,6 +11,9 @@ from surveys.models import Survey, SurveyResponse
 
 from django.http import JsonResponse
 
+from surveys.models import Survey, SurveyResponse, SurveyAnswer, Competency
+
+
 @login_required
 def get_surveys(request):
     department_id = request.GET.get("department")
@@ -106,6 +109,74 @@ def department_report(request):
     }
 
     return render(request, "reports/department_report.html", context)
+
+def department_radar_report(request):
+    department_id = request.GET.get("department")
+    year = request.GET.get("year")
+    survey_id = request.GET.get("survey")
+    score_type = request.GET.get("score_type", "employee")  # "employee" lub "manager"
+
+    selected_department = None
+    current_survey = None
+    radar_labels = []
+    radar_data = []
+    avg_scores = []
+
+    if department_id and survey_id:
+        # Pobierz ankietę
+        current_survey = get_object_or_404(Survey, id=survey_id)
+        selected_department = current_survey.department
+
+        # Pobierz wszystkich pracowników, którzy wzięli udział w ankiecie
+        responses = SurveyResponse.objects.filter(
+            survey=current_survey,
+            user__department_id=department_id,
+            status="submitted"
+        )
+
+        competencies = list(Competency.objects.all())
+        radar_labels = [c.name for c in competencies]
+
+        for resp in responses:
+            if score_type == "employee":
+                answers = SurveyAnswer.objects.filter(response=resp)
+            else:  # manager
+                answers = EmployeeEvaluation.objects.filter(employee_response=resp)
+
+            # Oblicz wynik dla każdej kompetencji
+            scores = []
+            for comp in competencies:
+                comp_questions = current_survey.surveyquestion_set.filter(question__competency=comp)
+                if comp_questions.exists():
+                    max_total = len(comp_questions) * 10
+                    total = sum(
+                        [a.scale_value for a in answers if a.question in [q.question for q in comp_questions] and a.scale_value]
+                    )
+                    scores.append(round(total / max_total * 100, 2) if max_total else 0)
+                else:
+                    scores.append(0)
+
+            radar_data.append({
+                "employee": resp.user.get_full_name(),
+                "scores": scores
+            })
+
+        # 🔹 Obliczenie średniej dla działu
+        if radar_data:
+            num_employees = len(radar_data)
+            avg_scores = [
+                round(sum(emp["scores"][i] for emp in radar_data) / num_employees, 2)
+                for i in range(len(radar_labels))
+            ]
+
+    return render(request, "reports/department_radar_report.html", {
+        "selected_department": selected_department,
+        "current_survey": current_survey,
+        "radar_labels": radar_labels,
+        "radar_data": radar_data,
+        "score_type": score_type,
+        "avg_scores": avg_scores  # Przekazanie średniej do szablonu
+    })
 
 
 @login_required
