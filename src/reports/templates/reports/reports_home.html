@@ -11,6 +11,7 @@
       <div class="card shadow-sm h-100">
         <div class="card-body text-center bg-light">
           <h3 class="card-title mb-3 header-font">Raporty działu</h3>
+          <h5 class="card-title mb-3 header-font text-primary">Uzyskana oceny - wykres słupkowy</h3>
           <form id="deptForm" method="get" action="{% url 'department_report' %}">
 
               <!-- Wybór działu -->
@@ -91,7 +92,7 @@
             <div class="mb-4">
               <p>Porównanie wszystkich pracowników z wszystkich działów</p>
             </div>
-            <button type="submit" class="btn btn-primary w-100" formaction="{% url 'department_report' %}">
+            <button type="submit" class="btn btn-primary w-100">
               OK
             </button>
           </form>
