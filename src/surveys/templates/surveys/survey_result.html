@@ -35,9 +35,12 @@
 }
 
 .radar-container {
-  max-width: 800px;
-  height: 600px;
+  max-width: 900px;
   margin: auto;
+}
+
+#radarChart {
+  height: 650px !important;
 }
 
 .table-container {
@@ -108,7 +111,7 @@
 
     <!-- Radar Chart -->
     {% if show_radar %}
-    <div class="mt-5 radar-container text-center">
+    <div class="mt-5 radar-container text-center mb-5">
         <h3 class="mb-4">Wykres kompetencji</h3>
         <canvas id="radarChart"></canvas>
     </div>
@@ -152,7 +155,7 @@ const labels = {{ radar_labels|safe }};
 const values = {{ radar_values|safe }};
 
 const data = {
-    labels: labels.map(label => label.length > 7 ? label.substring(0,7) + '…' : label),
+    labels: labels,
     datasets: [{
         label: 'Twoja ocena [%]',
         data: values,
@@ -172,6 +175,9 @@ const config = {
     options: {
         responsive: true,
         maintainAspectRatio: false,
+        layout: {
+            padding: 5
+        },
         scales: {
             r: {
                 angleLines: { display: true },
@@ -183,6 +189,13 @@ const config = {
                         if ([0,20,40,60,80,100].includes(value)) return value + "%";
                         return '';
                     }
+                },
+                pointLabels: {
+                    font: {
+                        size: 16,      // ← większa czcionka opisów osi
+                        weight: 'bold'
+                    },
+                    padding: 12      // ← większy odstęp od wykresu
                 }
             }
         },

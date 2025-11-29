@@ -219,57 +219,69 @@ def employee_surveys(request, user_id):
 
 @login_required
 def manager_evaluate_employee(request, response_id):
+    # Pobranie odpowiedzi pracownika
     employee_response = get_object_or_404(SurveyResponse, id=response_id)
 
+    # Pobranie pytań i ocen
     employee_answers = SurveyAnswer.objects.filter(response=employee_response)
-    manager_evals = EmployeeEvaluation.objects.filter(employee_response=employee_response, manager=request.user)
+    manager_evals = EmployeeEvaluation.objects.filter(
+        employee_response=employee_response,
+        manager=request.user
+    )
     manager_evals_dict = {e.question.id: e for e in manager_evals}
-    scale_choices = list(range(1, 11))
+    scale_choices = list(range(1, 11))  # 1-10
 
     if request.method == "POST":
         save_type = request.POST.get("save_type", "draft")  # draft lub submitted
 
-        # 🔹 Walidacja tylko przy finalnym zakończeniu
+        # 🔹 Walidacja przy finalnym zapisie
         if save_type == "submitted":
-            missing = []
+            missing_questions = []
             for ans in employee_answers:
                 if ans.scale_value is not None:  # pytanie punktowe
-                    scale = request.POST.get(f'manager_scale_{ans.question.id}')
-                    if not scale:
-                        missing.append(ans.question.text)
-            if missing:
-                messages.error(request, "Musisz wypełnić wszystkie pola oceny managera.")
+                    scale_value = request.POST.get(f'manager_scale_{ans.question.id}')
+                    if not scale_value:
+                        missing_questions.append(ans.question.text)
+
+            if missing_questions:
+                messages.error(
+                    request,
+                    "Musisz wypełnić wszystkie pola oceny managera."
+                )
                 return redirect(request.path)
 
         # 🔹 Zapis ocen
         for ans in employee_answers:
-            scale = request.POST.get(f'manager_scale_{ans.question.id}')
-            text = request.POST.get(f'text_{ans.question.id}', '')
-            if scale or text:
+            scale_value = request.POST.get(f'manager_scale_{ans.question.id}')
+            text_value = request.POST.get(f'text_{ans.question.id}', '')
+
+            if scale_value or text_value:
                 EmployeeEvaluation.objects.update_or_create(
                     employee_response=employee_response,
                     question=ans.question,
                     manager=request.user,
                     defaults={
-                        'scale_value': int(scale) if scale else None,
-                        'text_value': text,
+                        'scale_value': int(scale_value) if scale_value else None,
+                        'text_value': text_value,
                         'status': save_type
                     }
                 )
 
-        if save_type == "draft":
-            messages.success(request, "Oceny zostały zapisane jako robocze.")
-            return redirect(request.path)  # pozostajemy na stronie
-        else:
-            messages.success(request, "Oceny zostały zakończone i zapisane.")
-            return redirect('manager_employees')
+        # 🔹 Przekierowanie po zapisaniu (draft i submitted w to samo miejsce)
+        messages.success(
+            request,
+            "Oceny zostały zapisane." if save_type == "draft" else "Oceny zostały zakończone i zapisane."
+        )
+        return redirect('employee_surveys', user_id=employee_response.user.id)
 
-    return render(request, 'evaluations/manager_evaluate.html', {
+    # GET — renderowanie formularza
+    context = {
         'employee_response': employee_response,
         'employee_answers': employee_answers,
         'manager_evals_dict': manager_evals_dict,
         'scale_choices': scale_choices,
-    })
+    }
+    return render(request, 'evaluations/manager_evaluate.html', context)
 
 @login_required
 @manager_or_privileged_access_required

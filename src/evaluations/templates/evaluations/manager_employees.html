@@ -40,7 +40,7 @@
                             <!-- Status wypełnienia ankiety przez pracownika -->
                             <td>
                                 {% if item.has_survey %}
-                                    <i class="bi bi-check-lg text-success" title="Wypełniona"></i>
+                                    <i class="bi bi-check-lg text-primary" title="Wypełniona"></i>
                                 {% else %}
                                     <i class="bi bi-x-lg text-danger" title="Nie wypełniona"></i>
                                 {% endif %}
@@ -49,7 +49,7 @@
                             <!-- Status oceny przez managera -->
                             <td>
                                 {% if item.manager_evaluated %}
-                                    <i class="bi bi-check-lg text-success" title="Oceniona przez managera"></i>
+                                    <i class="bi bi-check-lg text-primary" title="Oceniona przez managera"></i>
                                 {% else %}
                                     <i class="bi bi-x-lg text-danger" title="Nie oceniona"></i>
                                 {% endif %}
