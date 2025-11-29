@@ -107,12 +107,13 @@ def employee_report(request):
             if not manager_answers.exists():
                 continue
 
-            manager_scored = [a.scale_value for a in manager_answers if a.scale_value]
+            manager_scored = [a.scale_value for a in manager_answers if a.scale_value is not None]
             manager_total_points = sum(manager_scored)
             manager_max_points = len(manager_scored) * 10 if manager_scored else 0
             manager_percentage = round((manager_total_points / manager_max_points) * 100, 2) if manager_max_points else 0
 
-            chart_labels.append(response.created_at.strftime("%Y-%m-%d"))  # data ankiety
+            # zamiast daty dodajemy nazwę ankiety
+            chart_labels.append(response.survey.name)
             chart_values.append(manager_percentage)
 
         # konwersja na listy, aby JS poprawnie odczytał dane
@@ -125,7 +126,6 @@ def employee_report(request):
         "chart_values": chart_values,
     }
     return render(request, "reports/employee_report.html", context)
-
 
 @login_required
 def latest_survey_report(request):

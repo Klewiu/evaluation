@@ -75,34 +75,31 @@ def home(request):
     surveys_list = []
 
     if user.department:
+        # filtrowanie ankiet w zależności od roli
         if user.role == 'employee':
             department_surveys = Survey.objects.filter(
                 department=user.department,
-                role__in=["employee", "both"]
+                role__in=["employee", "both"],
+                created_at__gte=user.date_joined  # tylko ankiety po zatrudnieniu
             ).order_by('-created_at')
 
         elif user.role == 'manager':
             department_surveys = Survey.objects.filter(
                 department=user.department,
-                role__in=["manager", "both"]
+                role__in=["manager", "both"],
+                created_at__gte=user.date_joined  # analogicznie dla managera
             ).order_by('-created_at')
         else:
             department_surveys = Survey.objects.none()
 
         for survey in department_surveys:
-            try:
-                response = SurveyResponse.objects.get(survey=survey, user=user)
-            except SurveyResponse.DoesNotExist:
-                response = None
+            # sprawdzenie, czy użytkownik już wypełnił ankietę
+            response = SurveyResponse.objects.filter(survey=survey, user=user).first()
 
             manager_eval_status = None
             if response and user.role == 'employee':
-                # Pobierz ostatnią ocenę managera (jeśli jest)
                 eval_qs = EmployeeEvaluation.objects.filter(employee_response=response)
                 if eval_qs.exists():
-                    # zakładam, że dla każdego pytania manager może mieć oddzielną ocenę
-                    # jeśli chcemy pokazać przycisk dopiero gdy **wszystkie** oceny są submitted,
-                    # sprawdzamy minimum statusu
                     statuses = eval_qs.values_list('status', flat=True)
                     if all(s == 'submitted' for s in statuses):
                         manager_eval_status = 'submitted'
@@ -119,7 +116,6 @@ def home(request):
         "surveys": surveys_list,
     }
     return render(request, 'evaluations/home.html', context)
-
 
 @login_required
 def manager_employees(request):
@@ -184,9 +180,11 @@ def manager_employees(request):
 def employee_surveys(request, user_id):
     employee = get_object_or_404(CustomUser, pk=user_id)
     
+    # Filtrowanie ankiet po roli i po dacie zatrudnienia
     surveys = Survey.objects.filter(
         department=employee.department,
-        role__in=[employee.role, "both"]
+        role__in=[employee.role, "both"],
+        created_at__gte=employee.date_joined  # tylko ankiety po zatrudnieniu
     ).order_by("-created_at")
 
     surveys_with_status = []
@@ -217,6 +215,7 @@ def employee_surveys(request, user_id):
         "surveys_with_status": surveys_with_status
     })
 
+    
 @login_required
 def manager_evaluate_employee(request, response_id):
     # Pobranie odpowiedzi pracownika
