@@ -135,24 +135,27 @@ def home(request):
     context = {"surveys": surveys_list}
     return render(request, 'evaluations/home.html', context)
 
-@login_required
 def manager_employees(request):
     user = request.user
     employees_with_survey = []
 
-    # Manager → tylko pracownicy jego działu
+    # Manager → tylko aktywni pracownicy jego działu
     if user.role == "manager" and user.department:
         employees = CustomUser.objects.filter(
             department=user.department,
-            role="employee"
+            role="employee",
+            is_active=True       # ← DODANE
         )
-    # Admin lub HR → wszyscy użytkownicy (managerowie i pracownicy)
+
+    # Admin lub HR → wszyscy aktywni użytkownicy (managerowie i pracownicy)
     elif user.role in ["admin", "hr"] or user.is_superuser:
         employees = CustomUser.objects.filter(
-            role__in=["employee", "manager"]
+            role__in=["employee", "manager"],
+            is_active=True        # ← DODANE
         )
+
     else:
-        employees = CustomUser.objects.none()  # inni nie mają dostępu
+        employees = CustomUser.objects.none()
 
     for emp in employees:
         latest_survey = Survey.objects.filter(
@@ -161,8 +164,8 @@ def manager_employees(request):
         ).order_by("-created_at").first()
 
         has_survey = False
-        manager_status = None  # 'submitted', 'draft', None
-        hr_status = None  # 'completed', 'draft', None
+        manager_status = None
+        hr_status = None
 
         if latest_survey:
             latest_survey_response = SurveyResponse.objects.filter(
@@ -173,7 +176,6 @@ def manager_employees(request):
             if latest_survey_response:
                 has_survey = latest_survey_response.status in ["submitted", "closed"]
 
-                # Manager status
                 manager_eval_qs = EmployeeEvaluation.objects.filter(employee_response=latest_survey_response)
                 if manager_eval_qs.exists():
                     statuses = manager_eval_qs.values_list('status', flat=True)
@@ -182,10 +184,9 @@ def manager_employees(request):
                     elif any(s == 'draft' for s in statuses):
                         manager_status = 'draft'
 
-                # HR status
                 try:
                     hr_eval = EmployeeEvaluationHR.objects.get(employee_response=latest_survey_response)
-                    hr_status = hr_eval.status  # 'draft' lub 'completed'
+                    hr_status = hr_eval.status
                 except EmployeeEvaluationHR.DoesNotExist:
                     hr_status = None
 
@@ -196,10 +197,10 @@ def manager_employees(request):
             "hr_status": hr_status,
             "latest_survey": latest_survey
         })
-    context = {
+
+    return render(request, "evaluations/manager_employees.html", {
         "employees_with_survey": employees_with_survey,
-    }
-    return render(request, "evaluations/manager_employees.html", context)
+    })
 
 @login_required
 def employee_surveys(request, user_id):
