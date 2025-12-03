@@ -94,13 +94,19 @@ def home(request):
         if user.role == 'employee':
             department_surveys = Survey.objects.filter(
                 department=user.department,
-                role__in=["employee", "both"],
+                role__in=["employee"],
                 created_at__gte=user.date_joined
             ).order_by('-created_at')
         elif user.role == 'manager':
             department_surveys = Survey.objects.filter(
                 department=user.department,
-                role__in=["manager", "both"],
+                role__in=["manager" ],
+                created_at__gte=user.date_joined
+            ).order_by('-created_at')
+        elif user.role == 'team_leader':
+            department_surveys = Survey.objects.filter(
+                department=user.department,
+                role__in=["team_leader"],
                 created_at__gte=user.date_joined
             ).order_by('-created_at')
         else:
@@ -158,9 +164,10 @@ def manager_employees(request):
     if user.role == "manager" and user.department:
         employees = CustomUser.objects.filter(
             department=user.department,
-            role="employee",
+            role__in=["employee", "team_leader"],  # uwzględniamy obie role
             is_active=True
         )
+
 
     # ------------------------------
     # Team Leader → tylko jego pracownicy
