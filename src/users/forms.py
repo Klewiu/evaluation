@@ -86,7 +86,9 @@ class AdminUserCreateForm(forms.ModelForm):
             "inputmode": "email",
             "autocomplete": "email",
         }),
-        error_messages={"invalid": "Błędny format e-mail"},
+        error_messages={
+            "invalid": "Błędny format e-mail",
+        },
     )
 
     password1 = forms.CharField(
@@ -106,6 +108,7 @@ class AdminUserCreateForm(forms.ModelForm):
             "role":       forms.Select(attrs={"class": "form-select"}),
             "first_name": forms.TextInput(attrs={"class": "form-control"}),
             "last_name":  forms.TextInput(attrs={"class": "form-control"}),
+            "email":      forms.TextInput(attrs={"class": "form-control"}),
             "department": forms.Select(attrs={"class": "form-select"}),
         }
 
@@ -114,36 +117,35 @@ class AdminUserCreateForm(forms.ModelForm):
         self.fields["department"].required = False
         self.fields["department"].empty_label = "-"
 
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip()
+
+        if not email:
+            return email  # EmailField i tak pilnuje required/formatu
+
+        # ✅ unikalność emaila przy tworzeniu – NIE ma co wykluczać pk
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("Ten adres e-mail jest już zajęty.")
+
+        return email
+
     def clean(self):
         cleaned = super().clean()
 
-        # ✅ UNIQUE USERNAME
-        username = cleaned.get("username", "").strip()
+        # ✅ login unikalny
+        username = (cleaned.get("username") or "").strip()
         if username and User.objects.filter(username__iexact=username).exists():
             self.add_error("username", "Ten login jest już zajęty.")
 
-        # ✅ UNIQUE EMAIL (NOWE)
-        email = cleaned.get("email", "").strip().lower()
-        if email and User.objects.filter(email__iexact=email).exists():
-            self.add_error("email", "Ten adres e-mail jest już zajęty.")
-
-        # ✅ PASSWORDS
+        # ✅ hasła
         p1 = cleaned.get("password1")
         p2 = cleaned.get("password2")
-
         if p1 or p2:
             if p1 != p2:
                 self.add_error("password2", "Hasła nie są takie same.")
             else:
                 dummy = User(username=username or None)
                 password_validation.validate_password(p1, user=dummy)
-
-        # ✅ TEAM LEADER VALIDATION
-        if cleaned.get("role") == "team_leader":
-            if not self.data.getlist("team_members"):
-                raise forms.ValidationError(
-                    "Dla Team Leadera musisz przypisać przynajmniej jednego pracownika."
-                )
 
         return cleaned
 
@@ -155,6 +157,7 @@ class AdminUserCreateForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
 
 
 class DepartmentForm(forms.ModelForm):

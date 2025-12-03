@@ -90,26 +90,26 @@
         {% endif %}
       </div>
 
-      <!-- ✅ EMAIL + LIVE CHECK -->
+      <!-- ✅ EMAIL + LIVE CHECK (JEDEN KOMUNIKAT) -->
       <div class="col-12">
         <label class="form-label">E-mail</label>
+
         <input
           type="email"
           name="email"
           id="id_email"
           value="{{ form.email.value|default_if_none:'' }}"
-          class="form-control{% if form.email.errors %} is-invalid{% endif %}"
+          class="form-control"
           hx-get="{% url 'check_email' %}"
           hx-target="#email-hint"
           hx-trigger="keyup changed delay:400ms">
 
-        {% if form.email.errors %}
-          <div class="invalid-feedback d-block">
+        <div id="email-hint"
+             class="form-text {% if form.email.errors %}text-danger{% endif %}">
+          {% if form.email.errors %}
             {{ form.email.errors|striptags }}
-          </div>
-        {% endif %}
-
-        <div id="email-hint" class="form-text"></div>
+          {% endif %}
+        </div>
       </div>
 
       <!-- DEPARTMENT -->
@@ -123,7 +123,9 @@
       </div>
 
       <!-- ✅ TEAM LEADER SECTION -->
-      <div id="team-leader-section" class="col-12 d-none">
+      <div
+        id="team-leader-section"
+        class="col-12 {% if form.role.value == 'team_leader' %}{% else %}d-none{% endif %}">
         <hr class="mt-2 mb-2">
 
         <div class="d-flex align-items-center justify-content-between mb-2">
@@ -220,66 +222,95 @@
 <!-- ✅ TEAM LEADER JS -->
 <script>
 (function () {
-  const roleSelect = document.getElementById("id_role");
-  const deptSelect = document.getElementById("id_department");
-  const teamLeaderSection = document.getElementById("team-leader-section");
-  const teamMembersContainer = document.getElementById("team-members-container");
-  const selectedDisplay = document.getElementById("selected-members-display");
 
-  function updateTeamLeaderVisibility() {
-    const isTL = roleSelect.value === "team_leader";
+  function initCreateTeamLeader() {
+    const roleSelect = document.getElementById("id_role");
+    const deptSelect = document.getElementById("id_department");
+    const teamLeaderSection = document.getElementById("team-leader-section");
+    const teamMembersContainer = document.getElementById("team-members-container");
+    const selectedDisplay = document.getElementById("selected-members-display");
 
-    if (isTL) {
-      teamLeaderSection.classList.remove("d-none");
-      teamMembersContainer.innerHTML = '<div class="text-muted small">Załadowanie…</div>';
-
-      if (deptSelect.value) {
-        fetchTeamMembers(deptSelect.value);
-      }
-    } else {
-      teamLeaderSection.classList.add("d-none");
-      teamMembersContainer.innerHTML = "";
-      selectedDisplay.textContent = "Brak wybranych pracowników";
-    }
-  }
-
-  function fetchTeamMembers(deptId) {
-    fetch(`{% url 'team_members_by_dept' 0 %}`.replace("0", deptId))
-      .then(r => r.text())
-      .then(html => {
-        teamMembersContainer.innerHTML = html;
-        updateSelectedDisplay();
-      });
-  }
-
-  function updateSelectedDisplay() {
-    const checked = [...document.querySelectorAll('[name="team_members"]:checked')];
-
-    if (!checked.length) {
-      selectedDisplay.textContent = "Brak wybranych pracowników";
+    if (!roleSelect || !deptSelect || !teamLeaderSection || !teamMembersContainer || !selectedDisplay) {
       return;
     }
 
-    const names = checked.map(cb => {
-      const label = document.querySelector(`label[for="${cb.id}"]`);
-      return label ? label.textContent.trim() : "";
+    function fetchTeamMembers(deptId) {
+      if (!deptId) {
+        teamMembersContainer.innerHTML = '<div class="text-muted small">Brak działu – brak pracowników.</div>';
+        selectedDisplay.textContent = "Brak wybranych pracowników";
+        return;
+      }
+
+      fetch(`{% url 'team_members_by_dept' 0 %}`.replace("0", deptId))
+        .then(r => r.text())
+        .then(html => {
+          teamMembersContainer.innerHTML = html;
+          updateSelectedDisplay();
+        });
+    }
+
+    function updateSelectedDisplay() {
+      const checked = [...document.querySelectorAll('[name="team_members"]:checked')];
+
+      if (!checked.length) {
+        selectedDisplay.textContent = "Brak wybranych pracowników";
+        return;
+      }
+
+      const names = checked.map(cb => {
+        const label = document.querySelector(`label[for="${cb.id}"]`);
+        return label ? label.textContent.trim() : "";
+      });
+
+      selectedDisplay.textContent = "Wybrani: " + names.join(", ");
+    }
+
+    function updateTeamLeaderVisibility() {
+      const isTL = roleSelect.value === "team_leader";
+
+      if (isTL) {
+        teamLeaderSection.classList.remove("d-none");
+
+        if (deptSelect.value) {
+          fetchTeamMembers(deptSelect.value);
+        } else {
+          teamMembersContainer.innerHTML = '<div class="text-muted small">Brak działu – brak pracowników.</div>';
+          selectedDisplay.textContent = "Brak wybranych pracowników";
+        }
+      } else {
+        teamLeaderSection.classList.add("d-none");
+        teamMembersContainer.innerHTML = "";
+        selectedDisplay.textContent = "Brak wybranych pracowników";
+      }
+    }
+
+    roleSelect.addEventListener("change", updateTeamLeaderVisibility);
+
+    deptSelect.addEventListener("change", () => {
+      if (roleSelect.value === "team_leader") {
+        fetchTeamMembers(deptSelect.value);
+      }
     });
 
-    selectedDisplay.textContent = "Wybrani: " + names.join(", ");
+    teamMembersContainer.addEventListener("change", (e) => {
+      if (e.target.name === "team_members") {
+        updateSelectedDisplay();
+      }
+    });
+
+    // start
+    updateTeamLeaderVisibility();
   }
 
-  roleSelect.addEventListener("change", updateTeamLeaderVisibility);
-
-  deptSelect.addEventListener("change", () => {
-    if (roleSelect.value === "team_leader" && deptSelect.value) {
-      fetchTeamMembers(deptSelect.value);
+  // ✅ HTMX: po podmianie zawartości modala (błąd walidacji itp.)
+  document.addEventListener("htmx:afterSwap", function (e) {
+    if (e.target.id === "create-user-modal-content") {
+      setTimeout(initCreateTeamLeader, 30);
     }
   });
 
-  teamMembersContainer.addEventListener("change", (e) => {
-    if (e.target.name === "team_members") updateSelectedDisplay();
-  });
+  // ✅ pierwszy load
+  setTimeout(initCreateTeamLeader, 50);
 
-  updateTeamLeaderVisibility();
 })();
 </script>
