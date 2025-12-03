@@ -56,4 +56,7 @@ urlpatterns = [
 
     # TEAM MEMBERS BY DEPARTMENT
     path('team-members/<int:department_id>/', views.get_team_members_by_department, name='team_members_by_dept'),
+
+    # TEAMS OVERVIEW
+    path('teams/', views.teams_list, name='teams_list'),
 ]

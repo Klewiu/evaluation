@@ -506,3 +506,21 @@ def department_delete(request, pk):
     resp["HX-Trigger"] = json.dumps(payload)
     resp["HX-Trigger-After-Settle"] = json.dumps(payload)
     return resp
+
+
+# ---------------- TEAM OVERVIEW ----------------
+@login_required
+@user_passes_test(is_admin_or_superuser)
+def teams_list(request):
+    team_leaders = (
+        User.objects
+        .filter(role="team_leader", is_active=True)
+        .select_related("department")
+        .prefetch_related("team_members")
+        .order_by("first_name", "last_name")
+    )
+
+    return render(request, "users/teams_list.html", {
+        "team_leaders": team_leaders
+    })
+

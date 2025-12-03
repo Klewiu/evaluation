@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="header-font text-primary mb-0">
+      Zespoły
+    </h2>
+
+    <a href="{% url 'users_list' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> Wróć do użytkowników
+    </a>
+  </div>
+
+  {% if team_leaders %}
+    <div class="row g-4">
+
+      {% for tl in team_leaders %}
+        <div class="col-12 col-md-6 col-lg-4">
+
+          <div class="card h-100 shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <div>
+                <strong>{{ tl.get_full_name|default:tl.username }}</strong>
+                <div class="small text-muted">
+                  {{ tl.department|default:"Brak działu" }}
+                </div>
+              </div>
+
+              <span class="badge bg-primary">
+                {{ tl.team_members.count }} osób
+              </span>
+            </div>
+
+            <div class="card-body">
+
+              {% if tl.team_members.all %}
+                <ul class="list-group list-group-flush">
+
+                  {% for emp in tl.team_members.all %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                      <span>
+                        {{ emp.get_full_name|default:emp.username }}
+                      </span>
+                      <small class="text-muted">
+                        {{ emp.email }}
+                      </small>
+                    </li>
+                  {% endfor %}
+
+                </ul>
+              {% else %}
+                <div class="text-muted small text-center py-3">
+                  Brak przypisanych pracowników
+                </div>
+              {% endif %}
+
+            </div>
+          </div>
+
+        </div>
+      {% endfor %}
+
+    </div>
+  {% else %}
+    <div class="alert alert-secondary text-center">
+      Brak zespołów do wyświetlenia.
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}
