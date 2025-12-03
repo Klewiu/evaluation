@@ -56,7 +56,7 @@
               <a class="nav-link" href="{% url 'users_list' %}">Użytkownicy</a>
             </li>
             {% endif %}
-            {% if user.role == 'hr' or user.role == 'manager' or user.role == 'admin' or user.is_superuser %}
+            {% if user.role == 'hr' or user.role == 'manager' or user.role == 'admin' or user.is_superuser or user.role == 'team_leader' %}
             <li class="nav-item">
               <a class="nav-link" href="{% url 'manager_employees' %}">Oceny pracowników</a>
             </li>

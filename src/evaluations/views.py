@@ -61,13 +61,25 @@ def manager_or_privileged_access_required(view_func):
                 return view_func(request, response_id, *args, **kwargs)
             raise PermissionDenied
 
-        # 🔹 3. Pracownik — może zobaczyć *tylko własną* ocenę
+        # 🔹 3. Team Leader — dostęp do:
+        #     ✔ własnej oceny
+        #     ✔ ocen pracowników, którzy mają team_leader = request.user
+        if request.user.role == 'team_leader':
+            if viewed_user == request.user:
+                return view_func(request, response_id, *args, **kwargs)
+
+            if viewed_user.team_leader == request.user:
+                return view_func(request, response_id, *args, **kwargs)
+
+            raise PermissionDenied
+
+        # 🔹 4. Pracownik — może zobaczyć tylko własną ocenę
         if request.user.role == 'employee':
             if viewed_user == request.user:
                 return view_func(request, response_id, *args, **kwargs)
             raise PermissionDenied
 
-        # 🔹 4. Inne role — brak dostępu
+        # 🔹 5. Inne role — brak dostępu
         raise PermissionDenied
 
     return wrapper
@@ -135,28 +147,45 @@ def home(request):
     context = {"surveys": surveys_list}
     return render(request, 'evaluations/home.html', context)
 
+@login_required
 def manager_employees(request):
     user = request.user
     employees_with_survey = []
 
-    # Manager → tylko aktywni pracownicy jego działu
+    # ------------------------------
+    # Manager → cały dział
+    # ------------------------------
     if user.role == "manager" and user.department:
         employees = CustomUser.objects.filter(
             department=user.department,
             role="employee",
-            is_active=True       # ← DODANE
+            is_active=True
         )
 
-    # Admin lub HR → wszyscy aktywni użytkownicy (managerowie i pracownicy)
+    # ------------------------------
+    # Team Leader → tylko jego pracownicy
+    # ------------------------------
+    elif user.role == "team_leader":
+        employees = CustomUser.objects.filter(
+            team_leader=user,
+            is_active=True
+        )
+
+    # ------------------------------
+    # Admin / HR → wszyscy
+    # ------------------------------
     elif user.role in ["admin", "hr"] or user.is_superuser:
         employees = CustomUser.objects.filter(
-            role__in=["employee", "manager"],
-            is_active=True        # ← DODANE
+            role__in=["employee", "manager", "team_leader"],
+            is_active=True
         )
 
     else:
         employees = CustomUser.objects.none()
 
+    # -----------------------------------------------------
+    # LOGIKA POBIERANIA ANKIET I STATUSÓW (bez zmian)
+    # -----------------------------------------------------
     for emp in employees:
         latest_survey = Survey.objects.filter(
             department=emp.department,
@@ -201,6 +230,7 @@ def manager_employees(request):
     return render(request, "evaluations/manager_employees.html", {
         "employees_with_survey": employees_with_survey,
     })
+
 
 @login_required
 def employee_surveys(request, user_id):

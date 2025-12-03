@@ -33,33 +33,57 @@ from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseForbidden
 from functools import wraps
 
-def user_owns_response_or_is_privileged(view_func):
+def manager_or_privileged_access_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        # Pobieramy survey_id z kwargs (np. z URL)
+        current = request.user
+        response = None
+
+        # Pobranie survey_id: sprawdzamy 'survey_id' lub 'pk' (dla CBV)
         survey_id = kwargs.get('survey_id') or kwargs.get('pk')
-        if not survey_id:
-            raise PermissionDenied("Brak survey_id w URL")
+        user_id = kwargs.get('user_id')
 
-        survey = get_object_or_404(Survey, id=survey_id)
-        responses = SurveyResponse.objects.filter(survey=survey)
-        user_response = responses.filter(user=request.user).first()
+        # Pobranie response
+        if 'response_id' in kwargs:
+            response = get_object_or_404(SurveyResponse, id=kwargs.get('response_id'))
+        elif survey_id and user_id:
+            response = SurveyResponse.objects.filter(survey_id=survey_id, user_id=user_id).first()
+            if not response:
+                raise PermissionDenied("Brak odpowiedzi dla tego użytkownika")
+        elif survey_id:
+            # Pobieramy ankietę zalogowanego użytkownika
+            response = SurveyResponse.objects.filter(survey_id=survey_id, user=current).first()
+            if not response:
+                raise PermissionDenied("Brak Twojej ankiety dla tej ankiety")
+        else:
+            raise PermissionDenied("Brak danych do weryfikacji dostępu")
 
-        # Admin / HR mają pełny dostęp
-        if request.user.role in ['hr', 'admin']:
+        target_user = response.user
+
+        # --- ADMIN / HR / SUPERUSER ---
+        if current.role in ['admin', 'hr'] or current.is_superuser:
             return view_func(request, *args, **kwargs)
 
-        # Manager: tylko pracownicy z jego działu
-        if request.user.role == 'manager':
-            if any(r.user.department == request.user.department for r in responses):
+        # --- MANAGER ---
+        if current.role == 'manager':
+            if target_user.department_id == current.department_id:
                 return view_func(request, *args, **kwargs)
             raise PermissionDenied
 
-        # Pracownik: tylko własny wynik
-        if user_response:
-            return view_func(request, *args, **kwargs)
+        # --- TEAM LEADER ---
+        if current.role == 'team_leader':
+            if target_user == current or target_user.team_leader_id == current.id:
+                return view_func(request, *args, **kwargs)
+            raise PermissionDenied
+
+        # --- PRACOWNIK ---
+        if current.role == 'employee':
+            if target_user == current:
+                return view_func(request, *args, **kwargs)
+            raise PermissionDenied
 
         raise PermissionDenied
+
     return wrapper
 
 # Kompetencje
@@ -415,7 +439,7 @@ def survey_submit(request, pk):
         'scale_range': scale_range
     })
 
-@user_owns_response_or_is_privileged
+@manager_or_privileged_access_required
 @login_required
 def survey_result(request, survey_id, user_id=None):
     # Pobranie ankiety
@@ -539,7 +563,7 @@ from django.contrib.staticfiles.finders import find
 from wkhtmltopdf.views import PDFTemplateView
 
 from django.utils.decorators import method_decorator
-@method_decorator(user_owns_response_or_is_privileged, name='dispatch')
+@method_decorator(manager_or_privileged_access_required, name='dispatch')
 class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
     template_name = "surveys/survey_pdf.html"
 
