@@ -158,7 +158,12 @@ def department_radar_report(request):
             status="submitted"
         )
 
-        competencies = list(Competency.objects.all())
+        competencies = list(
+            Competency.objects.filter(
+                questions__surveyquestion__survey=current_survey
+            ).distinct()
+        )
+
         radar_labels = [c.name for c in competencies]
 
         for resp in responses:

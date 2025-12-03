@@ -2,6 +2,7 @@
 {% block title %}Radar - raport działu{% endblock %}
 
 {% block content %}
+
 <div class="container mt-4">
   <h1 class="mb-4 text-center header-font text-primary">
     Radar - raport działu {% if selected_department %}{{ selected_department.name }}{% endif %}
@@ -62,31 +63,34 @@ const labels = {{ radar_labels|safe }};
 const radarData = {{ radar_data|safe }};
 const avgScores = {{ avg_scores|safe }};
 
-// Tworzymy dataset dla każdego pracownika
-const datasets = radarData.map((emp, i) => {
-    const colors = [
-        'rgba(54, 162, 235, 0.2)',
-        'rgba(255, 99, 132, 0.2)',
-        'rgba(255, 206, 86, 0.2)',
-        'rgba(75, 192, 192, 0.2)',
-        'rgba(153, 102, 255, 0.2)',
-        'rgba(255, 159, 64, 0.2)'
-    ];
-    const borderColors = colors.map(c => c.replace('0.2', '0.8'));
-    return {
-        label: emp.employee,
-        data: emp.scores,
-        fill: true,
-        backgroundColor: colors[i % colors.length],
-        borderColor: borderColors[i % borderColors.length],
-        borderWidth: 1,
-        pointBackgroundColor: borderColors[i % borderColors.length],
-        pointBorderColor: '#fff',
-        tension: 0.3
-    };
-});
+// Mobile / desktop detection
+const isMobile = window.innerWidth < 768;
 
-// Dodajemy średnią działu jako przerywaną czarną linię
+// Colors for datasets
+const baseColors = [
+    'rgba(54, 162, 235, 0.2)',
+    'rgba(255, 99, 132, 0.2)',
+    'rgba(255, 206, 86, 0.2)',
+    'rgba(75, 192, 192, 0.2)',
+    'rgba(153, 102, 255, 0.2)',
+    'rgba(255, 159, 64, 0.2)'
+];
+const borderColors = baseColors.map(c => c.replace('0.2', '0.8'));
+
+// Tworzymy dataset dla każdego pracownika
+const datasets = radarData.map((emp, i) => ({
+    label: emp.employee,
+    data: emp.scores,
+    fill: !isMobile,  // radar: fill = true, bar: fill = false
+    backgroundColor: baseColors[i % baseColors.length],
+    borderColor: borderColors[i % borderColors.length],
+    borderWidth: 2,
+    pointBackgroundColor: borderColors[i % borderColors.length],
+    pointBorderColor: '#fff',
+    tension: 0.3
+}));
+
+// ŚREDNIA DZIAŁU
 if (avgScores.length) {
     datasets.push({
         label: 'Średnia działu',
@@ -94,31 +98,42 @@ if (avgScores.length) {
         fill: false,
         borderColor: 'black',
         borderWidth: 2,
-        borderDash: [5,5],
-        pointBackgroundColor: 'black',
-        pointBorderColor: '#fff',
-        tension: 0.3
+        borderDash: isMobile ? [] : [5, 5], // brak przerywanej linii na bar chart
+        backgroundColor: 'rgba(0,0,0,0.2)'
     });
 }
 
+// TWORZENIE WYKRESU
 new Chart(document.getElementById('radarChart'), {
-    type: 'radar',
-    data: {
-        labels: labels,
-        datasets: datasets
-    },
+    type: isMobile ? 'bar' : 'radar',
+    data: { labels: labels, datasets: datasets },
     options: {
         responsive: true,
-        scales: {
+        indexAxis: isMobile ? 'y' : 'x', // poziomy wykres na mobile
+        scales: isMobile ? {
+            x: {
+                beginAtZero: true,
+                max: 100,
+                ticks: { callback: v => v + "%" }
+            }
+        } : {
             r: {
                 beginAtZero: true,
                 max: 100,
-                ticks: { stepSize: 10, callback: val => val + "%" },
-                pointLabels: { font: { size: 14, weight: 'bold' } }
+                ticks: { stepSize: 10, callback: v => v + "%" },
+                pointLabels: {
+                    font: {
+                        size: window.innerWidth < 768 ? 10 : 14,
+                        weight: 'bold'
+                    }
+                }
             }
         },
         plugins: {
-            legend: { position: 'top', labels: { font: { size: 12 } } }
+            legend: {
+                position: 'top',
+                labels: { font: { size: 12 } }
+            }
         }
     }
 });
