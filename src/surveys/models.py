@@ -14,9 +14,10 @@ class Competency(models.Model):
 # Pytania przypisane do kompetencji
 class Question(models.Model):
     ROLE_CHOICES = [
-        ("both", "Pracownik i Manager"),
+        ("all", "Pracownik, Manager i Team Leader"),
         ("manager", "Manager"),
         ("employee", "Pracownik"),
+        ("team_leader", "Team Leader"),
     ]
 
     SCALE = "scale"
@@ -57,9 +58,10 @@ class Survey(models.Model):
     year = models.PositiveIntegerField(blank=True, null=True)
 
     ROLE_CHOICES = [
-        # ("both", "Pracownik i Manager"),
+       
         ("manager", "Manager"),
         ("employee", "Pracownik"),
+        ("team_leader", "Team Leader"),
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="both")
 

@@ -4,9 +4,11 @@
 {% block content %}
 <div class="container">
     {% if request.user.role == "manager" %}
-        <h2 class="mb-4 header-font">Pracownicy działu <span class="text-primary">{{ request.user.department.name }}</span></h2>
-    {% else %}
-        <h2 class="mb-4 header-font text-primary">Oceny pracowników</h2>
+        <h2 class="mb-4 header-font text-primary">Pracownicy całego działu: <span class="text-primary">{{ request.user.department.name }}</span></h2>
+    {% elif request.user.role == "team_leader"%}
+        <h2 class="mb-4 header-font text-primary">Pracownicy twojego zespołu:</span></h2>
+        {% else %}
+        <h2 class="mb-4 header-font text-primary">Oceny wszystkich pracowników:</h2>
     {% endif %}
 
     {% if employees_with_survey %}
