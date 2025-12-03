@@ -284,7 +284,7 @@ def survey_add(request):
             if not question_ids or question_ids == ['']:
                 questions = Question.objects.filter(
                     Q(departments=survey.department) | Q(departments__isnull=True),
-                    Q(role=survey.role) | Q(role="both"),   # <-- filtrowanie po roli
+                    Q(role=survey.role) | Q(role="all"),   # <-- filtrowanie po roli
                     is_active=True
                 ).distinct().order_by("id")
 
