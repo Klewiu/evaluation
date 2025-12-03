@@ -160,20 +160,25 @@ def user_create(request):
     email = user.email
     password = form.cleaned_data.get("password1")
 
-    # ✅ TEAM LEADER – przypisanie pracowników
+    # ✅ TEAM LEADER – przypisanie pracowników (OPCJONALNE)
     if user.role == "team_leader":
-        selected = request.POST.getlist("team_members")
-        User.objects.filter(pk__in=selected).update(team_leader=user)
+        selected = request.POST.getlist("team_members")  # może być puste
+        if selected:
+            User.objects.filter(pk__in=selected).update(team_leader=user)
 
     if email:
         send_credentials_email(user, username, password, email)
 
-    messages.success(request, "Użytkownik utworzony. Email z loginem i hasłem wysłany do użytkownika")
+    messages.success(
+        request,
+        "Użytkownik utworzony. Email z loginem i hasłem wysłany do użytkownika"
+    )
 
     users = User.objects.all().order_by("username")
     resp = render(request, "users/_tbody_oob.html", {"users": users})
     resp["HX-Trigger"] = json.dumps({"userCreated": True})
     return resp
+
 
 
 # --------------------- EDIT --------------------
@@ -204,29 +209,33 @@ def user_update(request, pk):
         })
 
     user = form.save(commit=False)
-
     new_role = user.role
     new_department = user.department_id
 
-    # ✅ ZMIANA HASŁA
+    # ✅ zmiana hasła
     pwd1 = form.cleaned_data.get("password1")
     if pwd1:
         user.set_password(pwd1)
 
     user.save()
 
-    # ✅ JEŚLI BYŁ TEAM LEADER I ZMIENIŁ ROLĘ → ODPINAMY WSZYSTKICH
+    # ✅ jeśli był TL i przestał – odpinamy wszystkich
     if old_role == "team_leader" and new_role != "team_leader":
         User.objects.filter(team_leader=user).update(team_leader=None)
 
-    # ✅ JEŚLI ZMIENIONO DZIAŁ TEAM LEADERA → CZYŚCIMY PODPIĘCIA
+    # ✅ jeśli zmienił dział jako TL – odpinamy wszystkich
     if new_role == "team_leader" and old_department != new_department:
         User.objects.filter(team_leader=user).update(team_leader=None)
 
-    # ✅ PRZYPISANIE NOWYCH EMPLOYEE
+    # ✅ aktualizacja podwładnych (TU NAPRAWA ODZNACZANIA)
     if new_role == "team_leader":
-        selected = request.POST.getlist("team_members")
-        User.objects.filter(pk__in=selected).update(team_leader=user)
+        selected_ids = request.POST.getlist("team_members")
+        # najpierw odpinamy wszystkich obecnych podwładnych,
+        # którzy nie są zaznaczeni
+        User.objects.filter(team_leader=user).exclude(pk__in=selected_ids).update(team_leader=None)
+        # potem dopinamy zaznaczonych
+        if selected_ids:
+            User.objects.filter(pk__in=selected_ids).update(team_leader=user)
 
     messages.success(request, "Użytkownik zaktualizowany.")
 

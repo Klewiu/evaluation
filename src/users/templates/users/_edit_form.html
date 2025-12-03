@@ -55,27 +55,27 @@
     </div>
 
     <!-- ✅ EMAIL + LIVE CHECK (EDIT) -->
-    <div class="col-12">
-      <label class="form-label">E-mail</label>
+<div class="col-12">
+  <label class="form-label">E-mail</label>
 
-      <input
-        type="email"
-        name="email"
-        id="id_email"
-        value="{{ form.email.value|default_if_none:'' }}"
-        class="form-control{% if form.email.errors %} is-invalid{% endif %}"
-        hx-get="{% url 'check_email_edit' user_obj.pk %}"
-        hx-trigger="keyup changed delay:400ms"
-        hx-target="#email-hint-edit">
+  <input
+    type="email"
+    name="email"
+    id="id_email"
+    value="{{ form.email.value|default_if_none:'' }}"
+    class="form-control"
+    hx-get="{% url 'check_email_edit' user_obj.pk %}"
+    hx-trigger="keyup changed delay:400ms"
+    hx-target="#email-hint-edit">
 
-      {% if form.email.errors %}
-        <div class="invalid-feedback d-block">
-          {{ form.email.errors|striptags }}
-        </div>
-      {% endif %}
+  <div id="email-hint-edit"
+       class="form-text {% if form.email.errors %}text-danger{% endif %}">
+    {% if form.email.errors %}
+      {{ form.email.errors|striptags }}
+    {% endif %}
+  </div>
+</div>
 
-      <div id="email-hint-edit" class="form-text"></div>
-    </div>
 
     <!-- ROLA -->
     <div class="col-md-6">
@@ -220,17 +220,23 @@
 (function () {
 
 function initTeamLeaderEditor() {
-
   const roleSelect = document.getElementById("id_role");
   const deptSelect = document.getElementById("id_department");
-
   const teamSection   = document.getElementById("team-leader-section");
   const teamContainer = document.getElementById("team-members-container");
   const selectedDisp  = document.getElementById("selected-members-display");
 
-  if (!roleSelect || !deptSelect || !teamSection) return;
+  if (!roleSelect || !deptSelect || !teamSection || !teamContainer || !selectedDisp) {
+    return;
+  }
 
   function loadEmployees(deptId) {
+    if (!deptId) {
+      teamContainer.innerHTML = '<div class="text-muted small">Brak działu – brak pracowników.</div>';
+      selectedDisp.textContent = "Brak wybranych pracowników";
+      return;
+    }
+
     fetch(
       `{% url 'team_members_by_dept' 0 %}`.replace("0", deptId)
       + "?current_user_pk={{ user_obj.pk }}"
@@ -265,6 +271,9 @@ function initTeamLeaderEditor() {
       teamSection.classList.remove("d-none");
       if (deptSelect.value) {
         loadEmployees(deptSelect.value);
+      } else {
+        teamContainer.innerHTML = '<div class="text-muted small">Brak działu – brak pracowników.</div>';
+        selectedDisp.textContent = "Brak wybranych pracowników";
       }
     } else {
       teamSection.classList.add("d-none");
@@ -274,22 +283,26 @@ function initTeamLeaderEditor() {
   }
 
   roleSelect.addEventListener("change", refreshTeamVisibility);
-
   deptSelect.addEventListener("change", () => {
     if (roleSelect.value === "team_leader") {
-      teamContainer.innerHTML = "";
-      selectedDisp.textContent = "Zmień pracowników";
       loadEmployees(deptSelect.value);
     }
   });
-
   teamContainer.addEventListener("change", updateSelected);
 
+  // start
   refreshTeamVisibility();
 }
 
-// ✅ SSH / HTMX bezpieczna inicjalizacja
-setTimeout(initTeamLeaderEditor, 80);
+// ✅ HTMX potrafi podmieniać zawartość modala – inicjujemy:
+document.addEventListener("htmx:afterSwap", function (e) {
+  if (e.target.id === "edit-user-modal-content") {
+    setTimeout(initTeamLeaderEditor, 30);
+  }
+});
+
+// oraz pierwszy raz, jeśli modal był załadowany z pełnej strony
+setTimeout(initTeamLeaderEditor, 50);
 
 })();
 </script>
