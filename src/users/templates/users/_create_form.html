@@ -1,31 +1,29 @@
 {# templates/users/_create_form.html #}
 
 <script>
-  /**
-   * Generates a secure, randomized password of a given length.
-   * Guarantees at least one capital letter, one digit, and one special character.
-   */
+  // ✅ BEZPIECZNY GENERATOR HASEŁ (bez znaków niszczących HTML)
   function generatePassword(length = 14) {
-    const specialChars = '!@#$%^&*()_+~`|}{[]:;?><,./-=';
-    const digits = '0123456789';
-    const capitals = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const lowers = 'abcdefghijklmnopqrstuvwxyz';
-    const allChars = capitals + lowers + digits + specialChars;
+    const digits = '23456789';
+    const lowers = 'abcdefghijkmnopqrstuvwxyz';
+    const capitals = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const safeSpecials = '!@#$%&*_-+=';
+
+    const allChars = digits + lowers + capitals + safeSpecials;
 
     let passwordArray = [];
-    // ensure each category
     passwordArray.push(capitals[Math.floor(Math.random() * capitals.length)]);
     passwordArray.push(digits[Math.floor(Math.random() * digits.length)]);
-    passwordArray.push(specialChars[Math.floor(Math.random() * specialChars.length)]);
-    // fill the rest
+    passwordArray.push(safeSpecials[Math.floor(Math.random() * safeSpecials.length)]);
+
     for (let i = passwordArray.length; i < length; i++) {
       passwordArray.push(allChars[Math.floor(Math.random() * allChars.length)]);
     }
-    // shuffle
+
     for (let i = passwordArray.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [passwordArray[i], passwordArray[j]] = [passwordArray[j], passwordArray[i]];
     }
+
     return passwordArray.join('');
   }
 </script>
@@ -41,9 +39,12 @@
     hx-post="{% url 'user_create' %}"
     hx-target="#create-user-modal-content"
     hx-swap="innerHTML">
+
     {% csrf_token %}
 
     <div class="row g-3">
+
+      <!-- ✅ LOGIN + LIVE CHECK -->
       <div class="col-md-6">
         <label class="form-label">Nazwa użytkownika (login)</label>
         <input
@@ -55,101 +56,230 @@
           autocomplete="off" autocapitalize="off" spellcheck="false"
           hx-get="{% url 'check_username' %}"
           hx-target="#username-hint"
-          hx-trigger="keyup changed delay:400ms"
-          _="on input remove .is-invalid from me then if #username-error exists then add .d-none to #username-error end">
+          hx-trigger="keyup changed delay:400ms">
         {% if form.username.errors %}
-          <div id="username-error" class="invalid-feedback d-block">
-            {{ form.username.errors|striptags }}
-          </div>
+          <div class="invalid-feedback d-block">{{ form.username.errors|striptags }}</div>
         {% endif %}
         <div id="username-hint" class="form-text"></div>
       </div>
 
+      <!-- ROLE -->
       <div class="col-md-6">
         <label class="form-label">Rola</label>
         {{ form.role }}
-        {% if form.role.errors %}<div class="text-danger small">{{ form.role.errors|striptags }}</div>{% endif %}
+        {% if form.role.errors %}
+          <div class="text-danger small">{{ form.role.errors|striptags }}</div>
+        {% endif %}
       </div>
 
+      <!-- FIRST NAME -->
       <div class="col-md-6">
         <label class="form-label">Imię</label>
         {{ form.first_name }}
-        {% if form.first_name.errors %}<div class="text-danger small">{{ form.first_name.errors|striptags }}</div>{% endif %}
+        {% if form.first_name.errors %}
+          <div class="text-danger small">{{ form.first_name.errors|striptags }}</div>
+        {% endif %}
       </div>
 
+      <!-- LAST NAME -->
       <div class="col-md-6">
         <label class="form-label">Nazwisko</label>
         {{ form.last_name }}
-        {% if form.last_name.errors %}<div class="text-danger small">{{ form.last_name.errors|striptags }}</div>{% endif %}
+        {% if form.last_name.errors %}
+          <div class="text-danger small">{{ form.last_name.errors|striptags }}</div>
+        {% endif %}
       </div>
 
+      <!-- ✅ EMAIL + LIVE CHECK -->
       <div class="col-12">
         <label class="form-label">E-mail</label>
-        {{ form.email }}
-        {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors|striptags }}</div>{% endif %}
+        <input
+          type="email"
+          name="email"
+          id="id_email"
+          value="{{ form.email.value|default_if_none:'' }}"
+          class="form-control{% if form.email.errors %} is-invalid{% endif %}"
+          hx-get="{% url 'check_email' %}"
+          hx-target="#email-hint"
+          hx-trigger="keyup changed delay:400ms">
+
+        {% if form.email.errors %}
+          <div class="invalid-feedback d-block">
+            {{ form.email.errors|striptags }}
+          </div>
+        {% endif %}
+
+        <div id="email-hint" class="form-text"></div>
       </div>
 
+      <!-- DEPARTMENT -->
       <div class="col-12">
         <label class="form-label">Dział</label>
         {{ form.department }}
         <div class="form-text">Wybierz „-”, aby pozostawić bez przypisania.</div>
-        {% if form.department.errors %}<div class="text-danger small">{{ form.department.errors|striptags }}</div>{% endif %}
+        {% if form.department.errors %}
+          <div class="text-danger small">{{ form.department.errors|striptags }}</div>
+        {% endif %}
+      </div>
+
+      <!-- ✅ TEAM LEADER SECTION -->
+      <div id="team-leader-section" class="col-12 d-none">
+        <hr class="mt-2 mb-2">
+
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <label class="form-label mb-0">Zarządzaj pracownikami zespołu</label>
+          <button type="button"
+                  class="btn btn-sm btn-outline-primary"
+                  _="on click toggle .d-none on #team-members-modal">
+            Wybierz pracowników
+          </button>
+        </div>
+
+        <div id="team-members-modal" class="card border-primary d-none mb-2">
+          <div class="card-header bg-primary text-white">Wybierz pracowników</div>
+          <div class="card-body" id="team-members-container">
+            <div class="text-muted small">Załadowanie…</div>
+          </div>
+        </div>
+
+        <div id="selected-members-display" class="small text-muted">
+          Brak wybranych pracowników
+        </div>
       </div>
 
       <hr class="mt-2 mb-1">
 
+      <!-- ✅ PASSWORD TOOLS -->
       <div class="col-12 d-flex align-items-center justify-content-between">
         <label class="form-label mb-0">Hasło i potwierdzenie</label>
-        <div class="btn-group btn-group-sm" role="group" aria-label="Password actions">
+
+        <div class="btn-group btn-group-sm">
           <button type="button" class="btn btn-outline-primary"
-                  title="Generuje bezpieczne hasło (14 znaków)"
                   _="on click 
-                       call generatePassword() 
-                       then set value of #id_password1 to result 
-                       then set value of #id_password2 to result 
-                       then set #toggle-passwords's innerText to 'Ukryj hasło' 
-                       then set #id_password1's type to 'text'
-                       then set #id_password2's type to 'text'">
+                       call generatePassword()
+                       then set value of #id_password1 to result
+                       then set value of #id_password2 to result
+                       then set #toggle-passwords.innerText to 'Ukryj hasło'
+                       then set #id_password1.type to 'text'
+                       then set #id_password2.type to 'text'">
             <i class="bi bi-shield-lock"></i> Generuj Silne Hasło
           </button>
 
           <button type="button" class="btn btn-outline-secondary"
                   id="toggle-passwords"
-                  _="
-                    on click
-                      if #id_password1's type is 'password'
-                        set #id_password1's type to 'text'
-                        set #id_password2's type to 'text'
+                  _="on click
+                      if #id_password1.type is 'password'
+                        set #id_password1.type to 'text'
+                        set #id_password2.type to 'text'
                         put 'Ukryj hasło' into me.innerText
                       else
-                        set #id_password1's type to 'password'
-                        set #id_password2's type to 'password'
+                        set #id_password1.type to 'password'
+                        set #id_password2.type to 'password'
                         put 'Pokaż hasło' into me.innerText
-                      end
-                  ">
+                      end">
             Pokaż hasło
           </button>
         </div>
       </div>
 
+      <!-- PASSWORD FIELDS -->
       <div class="col-md-6">
         {{ form.password1 }}
-        {% if form.password1.errors %}<div class="text-danger small">{{ form.password1.errors|striptags }}</div>{% endif %}
+        {% if form.password1.errors %}
+          <div class="text-danger small">{{ form.password1.errors|striptags }}</div>
+        {% endif %}
       </div>
 
       <div class="col-md-6">
         {{ form.password2 }}
-        {% if form.password2.errors %}<div class="text-danger small">{{ form.password2.errors|striptags }}</div>{% endif %}
+        {% if form.password2.errors %}
+          <div class="text-danger small">{{ form.password2.errors|striptags }}</div>
+        {% endif %}
       </div>
 
       {% if form.non_field_errors %}
-        <div class="col-12 text-danger small">{{ form.non_field_errors|striptags }}</div>
+        <div class="col-12 text-danger small">
+          {{ form.non_field_errors|striptags }}
+        </div>
       {% endif %}
+
     </div>
 
     <div class="modal-footer px-2 mt-4">
-      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
-      <button type="submit" class="btn btn-primary" formnovalidate>Utwórz</button>
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+        Anuluj
+      </button>
+      <button type="submit" class="btn btn-primary">
+        Utwórz
+      </button>
     </div>
+
   </form>
 </div>
+
+<!-- ✅ TEAM LEADER JS -->
+<script>
+(function () {
+  const roleSelect = document.getElementById("id_role");
+  const deptSelect = document.getElementById("id_department");
+  const teamLeaderSection = document.getElementById("team-leader-section");
+  const teamMembersContainer = document.getElementById("team-members-container");
+  const selectedDisplay = document.getElementById("selected-members-display");
+
+  function updateTeamLeaderVisibility() {
+    const isTL = roleSelect.value === "team_leader";
+
+    if (isTL) {
+      teamLeaderSection.classList.remove("d-none");
+      teamMembersContainer.innerHTML = '<div class="text-muted small">Załadowanie…</div>';
+
+      if (deptSelect.value) {
+        fetchTeamMembers(deptSelect.value);
+      }
+    } else {
+      teamLeaderSection.classList.add("d-none");
+      teamMembersContainer.innerHTML = "";
+      selectedDisplay.textContent = "Brak wybranych pracowników";
+    }
+  }
+
+  function fetchTeamMembers(deptId) {
+    fetch(`{% url 'team_members_by_dept' 0 %}`.replace("0", deptId))
+      .then(r => r.text())
+      .then(html => {
+        teamMembersContainer.innerHTML = html;
+        updateSelectedDisplay();
+      });
+  }
+
+  function updateSelectedDisplay() {
+    const checked = [...document.querySelectorAll('[name="team_members"]:checked')];
+
+    if (!checked.length) {
+      selectedDisplay.textContent = "Brak wybranych pracowników";
+      return;
+    }
+
+    const names = checked.map(cb => {
+      const label = document.querySelector(`label[for="${cb.id}"]`);
+      return label ? label.textContent.trim() : "";
+    });
+
+    selectedDisplay.textContent = "Wybrani: " + names.join(", ");
+  }
+
+  roleSelect.addEventListener("change", updateTeamLeaderVisibility);
+
+  deptSelect.addEventListener("change", () => {
+    if (roleSelect.value === "team_leader" && deptSelect.value) {
+      fetchTeamMembers(deptSelect.value);
+    }
+  });
+
+  teamMembersContainer.addEventListener("change", (e) => {
+    if (e.target.name === "team_members") updateSelectedDisplay();
+  });
+
+  updateTeamLeaderVisibility();
+})();
+</script>

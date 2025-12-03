@@ -21,10 +21,14 @@ urlpatterns = [
     path('new/',    views.user_new,    name='user_new'),
     path('create/', views.user_create, name='user_create'),
     path('check-username/', views.check_username, name='check_username'),
+    path('check-email/', views.check_email, name='check_email'),
+    
+
 
     # EDIT
     path('<int:pk>/edit/',   views.user_edit,   name='user_edit'),
     path('<int:pk>/update/', views.user_update, name='user_update'),
+    path('<int:pk>/check-email/', views.check_email_edit, name='check_email_edit'),
 
     # TOGGLE ACTIVE (block/unblock)
     path('<int:pk>/toggle-active/', views.user_toggle_active, name='user_toggle_active'),
@@ -49,4 +53,7 @@ urlpatterns = [
     # Delete
     path('departments/<int:pk>/confirm-delete/', views.department_confirm_delete, name='department_confirm_delete'),
     path('departments/<int:pk>/delete/',         views.department_delete,         name='department_delete'),
+
+    # TEAM MEMBERS BY DEPARTMENT
+    path('team-members/<int:department_id>/', views.get_team_members_by_department, name='team_members_by_dept'),
 ]
