@@ -1,26 +1,33 @@
 # users/views.py
+
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST
 from django.http import HttpResponse
-from django.contrib.auth import get_user_model
+from django.template.loader import render_to_string
 from django.contrib import messages
-import json
-
-# NEW for HTML email
+from django.contrib.auth import get_user_model
 from django.core.mail import EmailMultiAlternatives
 from django.utils.html import strip_tags
-
-# ---- for departments ----
 from django.db.models import Count, OuterRef, Subquery, IntegerField
+import json
+from django.db import models
+
 from .models import Department
 from .forms import AdminUserUpdateForm, AdminUserCreateForm, DepartmentForm
-# -------------------------
 
 User = get_user_model()
 
 
-# ✅ Helper: send pretty HTML email with credentials
+# ======================================================
+# HELPERS
+# ======================================================
+
+def is_admin_or_superuser(user):
+    return user.is_authenticated and (user.is_superuser or getattr(user, "role", "") == "admin")
+
+
+# ✅ Helper: send HTML email with credentials
 def send_credentials_email(user, username, password, email):
     subject = "Twoje dane logowania do Oceny Pracownicze ATS"
 
@@ -47,7 +54,8 @@ def send_credentials_email(user, username, password, email):
         ">
           <p style="margin:0; font-size: 15px;">
             ✅ <strong>Login:</strong> {username}<br>
-            ✅ <strong>Hasło:</strong> {password}
+            ✅ <strong>Hasło:</strong>
+            <span style="font-family: monospace;">{password}</span>
           </p>
         </div>
 
@@ -76,22 +84,21 @@ def send_credentials_email(user, username, password, email):
     </div>
     """
 
-    # plain-text fallback for email clients that block HTML
     text_content = strip_tags(html_content)
 
     msg = EmailMultiAlternatives(
         subject=subject,
         body=text_content,
-        from_email=None,  # Uses DEFAULT_FROM_EMAIL
+        from_email=None,
         to=[email],
     )
     msg.attach_alternative(html_content, "text/html")
     msg.send()
 
 
-def is_admin_or_superuser(user):
-    return user.is_authenticated and (user.is_superuser or getattr(user, "role", "") == "admin")
-
+# ======================================================
+# USERS
+# ======================================================
 
 @login_required
 def home(request):
@@ -131,6 +138,7 @@ def users_list(request):
 
 
 # -------------------- CREATE --------------------
+
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def user_new(request):
@@ -152,6 +160,11 @@ def user_create(request):
     email = user.email
     password = form.cleaned_data.get("password1")
 
+    # ✅ TEAM LEADER – przypisanie pracowników
+    if user.role == "team_leader":
+        selected = request.POST.getlist("team_members")
+        User.objects.filter(pk__in=selected).update(team_leader=user)
+
     if email:
         send_credentials_email(user, username, password, email)
 
@@ -161,10 +174,10 @@ def user_create(request):
     resp = render(request, "users/_tbody_oob.html", {"users": users})
     resp["HX-Trigger"] = json.dumps({"userCreated": True})
     return resp
-# ------------------ /CREATE --------------------
 
 
 # --------------------- EDIT --------------------
+
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def user_edit(request, pk):
@@ -178,25 +191,52 @@ def user_edit(request, pk):
 @require_POST
 def user_update(request, pk):
     user_obj = get_object_or_404(User, pk=pk)
+
+    old_role = user_obj.role
+    old_department = user_obj.department_id
+
     form = AdminUserUpdateForm(request.POST, instance=user_obj)
+
     if not form.is_valid():
-        return render(request, "users/_edit_form.html", {"form": form, "user_obj": user_obj})
+        return render(request, "users/_edit_form.html", {
+            "form": form,
+            "user_obj": user_obj
+        })
 
     user = form.save(commit=False)
+
+    new_role = user.role
+    new_department = user.department_id
+
+    # ✅ ZMIANA HASŁA
     pwd1 = form.cleaned_data.get("password1")
     if pwd1:
         user.set_password(pwd1)
+
     user.save()
+
+    # ✅ JEŚLI BYŁ TEAM LEADER I ZMIENIŁ ROLĘ → ODPINAMY WSZYSTKICH
+    if old_role == "team_leader" and new_role != "team_leader":
+        User.objects.filter(team_leader=user).update(team_leader=None)
+
+    # ✅ JEŚLI ZMIENIONO DZIAŁ TEAM LEADERA → CZYŚCIMY PODPIĘCIA
+    if new_role == "team_leader" and old_department != new_department:
+        User.objects.filter(team_leader=user).update(team_leader=None)
+
+    # ✅ PRZYPISANIE NOWYCH EMPLOYEE
+    if new_role == "team_leader":
+        selected = request.POST.getlist("team_members")
+        User.objects.filter(pk__in=selected).update(team_leader=user)
 
     messages.success(request, "Użytkownik zaktualizowany.")
 
     resp = render(request, "users/_row_oob.html", {"u": user})
     resp["HX-Trigger"] = json.dumps({"userUpdated": True})
     return resp
-# ------------------- /EDIT ---------------------
 
 
-# ------------------- TOGGLE ACTIVE -------------
+# ------------------- TOGGLE ACTIVE -------------------
+
 @login_required
 @user_passes_test(is_admin_or_superuser)
 @require_POST
@@ -216,10 +256,10 @@ def user_toggle_active(request, pk):
     )
 
     return render(request, "users/_row_oob.html", {"u": user_obj})
-# ----------------- /TOGGLE ACTIVE --------------
 
 
-# --------------------- DELETE ------------------
+# --------------------- DELETE --------------------
+
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def user_confirm_delete(request, pk):
@@ -234,9 +274,11 @@ def user_confirm_delete(request, pk):
 @require_POST
 def user_delete(request, pk):
     user_obj = get_object_or_404(User, pk=pk)
+
     if user_obj.pk == request.user.pk:
         messages.error(request, "Nie możesz usunąć sam siebie.")
         return HttpResponse("Nie możesz usunąć samego siebie.", status=400)
+
     if user_obj.is_superuser and not request.user.is_superuser:
         messages.error(request, "Nie masz uprawnień do usunięcia superużytkownika.")
         return HttpResponse("Brak uprawnień.", status=403)
@@ -244,8 +286,9 @@ def user_delete(request, pk):
     user_obj.delete()
     messages.success(request, "Użytkownik usunięty.")
     return HttpResponse("")
-# ------------------- /DELETE -------------------
 
+
+# ------------------- LIVE CHECK USERNAME / EMAIL -------------------
 
 @login_required
 @user_passes_test(is_admin_or_superuser)
@@ -264,6 +307,88 @@ def check_username(request):
     return HttpResponse(html)
 
 
+@login_required
+@user_passes_test(is_admin_or_superuser)
+def check_email(request):
+    raw = request.GET.get("email") or request.GET.get("q") or ""
+    email = raw.strip().lower()
+    taken = User.objects.filter(email__iexact=email).exists() if email else False
+
+    if not email:
+        html = ""
+    elif taken:
+        html = "<small class='text-danger'>Ten adres e-mail jest już zajęty.</small>"
+    else:
+        html = "<small class='text-success'>E-mail dostępny.</small>"
+
+    return HttpResponse(html)
+
+@login_required
+@user_passes_test(is_admin_or_superuser)
+def check_email_edit(request, pk):
+    raw = request.GET.get("email", "").strip()
+
+    if not raw:
+        return HttpResponse("")
+
+    exists = (
+        User.objects
+        .filter(email__iexact=raw)
+        .exclude(pk=pk)
+        .exists()
+    )
+
+    if exists:
+        html = "<small class='text-danger'>Ten adres e-mail jest już zajęty.</small>"
+    else:
+        html = "<small class='text-success'>Adres e-mail dostępny.</small>"
+
+    return HttpResponse(html)
+
+
+
+# ------------------- TEAM MEMBERS BY DEPARTMENT -------------------
+
+@login_required
+@user_passes_test(is_admin_or_superuser)
+def get_team_members_by_department(request, department_id):
+    try:
+        dept_id = int(department_id)
+    except (TypeError, ValueError):
+        return HttpResponse("", status=400)
+
+    current_user_pk = request.GET.get("current_user_pk")
+
+    # ✅ POKAZUJEMY WSZYSTKICH Z DZIAŁU (bez filtrowania po TL!)
+    employees = User.objects.filter(
+        department_id=dept_id,
+        role="employee",
+        is_active=True
+    ).order_by("first_name", "last_name")
+
+    # ✅ zaznaczamy TYLKO tych przypisanych do EDYTOWANEGO TL
+    selected_members = []
+    if current_user_pk:
+        selected_members = list(
+            User.objects.filter(team_leader_id=current_user_pk)
+            .values_list("pk", flat=True)
+        )
+
+    html = render_to_string(
+        "users/_team_members_checkboxes.html",
+        {
+            "employees": employees,
+            "current_user_pk": current_user_pk,
+            "selected_members": selected_members,
+        },
+        request=request
+    )
+
+    return HttpResponse(html)
+
+
+
+
 # ======================================================
 # DEPARTMENTS
 # ======================================================
@@ -278,16 +403,19 @@ def departments_list(request):
         .annotate(c=Count("*"))
         .values("c")
     )
+
     departments = (
         Department.objects
         .all()
         .annotate(user_count=Subquery(count_qs, output_field=IntegerField()))
         .order_by("name")
     )
+
     return render(request, "departments/list.html", {"departments": departments})
 
 
 # ---------- CREATE ----------
+
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def department_new(request):
@@ -300,6 +428,7 @@ def department_new(request):
 @require_POST
 def department_create(request):
     form = DepartmentForm(request.POST)
+
     if not form.is_valid():
         return render(request, "departments/_create_form.html", {"form": form})
 
@@ -313,10 +442,10 @@ def department_create(request):
     resp["HX-Trigger"] = json.dumps(payload)
     resp["HX-Trigger-After-Settle"] = json.dumps(payload)
     return resp
-# ---------- /CREATE ----------
 
 
 # ---------- EDIT ----------
+
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def department_edit(request, pk):
@@ -331,6 +460,7 @@ def department_edit(request, pk):
 def department_update(request, pk):
     d = get_object_or_404(Department, pk=pk)
     form = DepartmentForm(request.POST, instance=d)
+
     if not form.is_valid():
         return render(request, "departments/_edit_form.html", {"form": form, "dept": d})
 
@@ -344,10 +474,10 @@ def department_update(request, pk):
     resp["HX-Trigger"] = json.dumps(payload)
     resp["HX-Trigger-After-Settle"] = json.dumps(payload)
     return resp
-# ---------- /EDIT ----------
 
 
 # ---------- DELETE ----------
+
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def department_confirm_delete(request, pk):
@@ -361,6 +491,7 @@ def department_confirm_delete(request, pk):
 @require_POST
 def department_delete(request, pk):
     d = get_object_or_404(Department, pk=pk)
+
     row_id = f"department-row-{d.pk}"
     name = d.name
     d.delete()
@@ -375,4 +506,21 @@ def department_delete(request, pk):
     resp["HX-Trigger"] = json.dumps(payload)
     resp["HX-Trigger-After-Settle"] = json.dumps(payload)
     return resp
-# ---------- /DELETE ----------
+
+
+# ---------------- TEAM OVERVIEW ----------------
+@login_required
+@user_passes_test(is_admin_or_superuser)
+def teams_list(request):
+    team_leaders = (
+        User.objects
+        .filter(role="team_leader", is_active=True)
+        .select_related("department")
+        .prefetch_related("team_members")
+        .order_by("first_name", "last_name")
+    )
+
+    return render(request, "users/teams_list.html", {
+        "team_leaders": team_leaders
+    })
+
