@@ -11,6 +11,18 @@
         <h2 class="mb-4 header-font text-primary">Oceny wszystkich pracowników:</h2>
     {% endif %}
 
+
+    {% comment %} Sortowanie {% endcomment %}
+     <a href="?" class="btn btn-outline-primary btn-sm {% if not sort %}active{% endif %}">
+       Sortuj po nazwisku
+    </a> 
+    <a href="?sort=department" class="btn btn-outline-primary btn-sm {% if sort == 'department' %}active{% endif %}">
+        Sortuj po dziale
+    </a>
+     <a href="?sort=role" class="btn btn-outline-primary btn-sm {% if sort == 'role' %}active{% endif %}">
+        Sortuj po roli
+    </a>
+
     {% if employees_with_survey %}
         <div class="table-responsive">
             <table class="table table-striped table-bordered align-middle text-center">
@@ -19,7 +31,10 @@
                         <th>Lp</th>
                         <th>Imię i nazwisko</th>
                         <th class="d-none d-md-table-cell">Dział</th>
+                        <div class="mb-3">
+                       
                         <th class="d-none d-md-table-cell">Rola</th>
+                        
                         <th>Status ankiety</th>
                         <th>Status oceny</th>
                         <th>Komentarz HR</th>

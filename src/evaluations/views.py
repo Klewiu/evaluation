@@ -156,21 +156,22 @@ def home(request):
 @login_required
 def manager_employees(request):
     user = request.user
-    employees_with_survey = []
+    sort = request.GET.get("sort")  # sortowanie z URL
+
+    employees = CustomUser.objects.none()
 
     # ------------------------------
-    # Manager → cały dział
+    # Manager → dział
     # ------------------------------
     if user.role == "manager" and user.department:
         employees = CustomUser.objects.filter(
             department=user.department,
-            role__in=["employee", "team_leader"],  # uwzględniamy obie role
+            role__in=["employee", "team_leader"],
             is_active=True
         )
 
-
     # ------------------------------
-    # Team Leader → tylko jego pracownicy
+    # Team Leader → jego pracownicy
     # ------------------------------
     elif user.role == "team_leader":
         employees = CustomUser.objects.filter(
@@ -187,12 +188,15 @@ def manager_employees(request):
             is_active=True
         )
 
+    # ---------- SORTOWANIE ----------
+    if sort == "department":
+        employees = employees.order_by("department__name", "last_name")
+    elif sort == "role":
+        employees = employees.order_by("role", "last_name")
     else:
-        employees = CustomUser.objects.none()
-
-    # -----------------------------------------------------
-    # LOGIKA POBIERANIA ANKIET I STATUSÓW (bez zmian)
-    # -----------------------------------------------------
+        employees = employees.order_by("last_name")  # domyślne sortowanie
+    # ---------- LOGIKA ANKIET ----------
+    employees_with_survey = []
     for emp in employees:
         latest_survey = Survey.objects.filter(
             department=emp.department,
@@ -236,6 +240,7 @@ def manager_employees(request):
 
     return render(request, "evaluations/manager_employees.html", {
         "employees_with_survey": employees_with_survey,
+        "sort": sort
     })
 
 
