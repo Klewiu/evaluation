@@ -4,19 +4,22 @@
 {% block content %}
 
 <style>
-
 .radar-container {
+  width: 100%;
   max-width: 900px;
-  margin: auto;
+  margin: 40px auto 60px auto;
+  height: 600px;
+}
+.radar-container canvas {
+  width: 100% !important;
+  height: 100% !important;
 }
 
-#radarChart {
-  height: 650px !important;
-}
 .table-container {
   max-width: 700px;
   margin: 20px auto;
 }
+
 .rating-group {
   display: flex;
   gap: 8px;
@@ -28,7 +31,7 @@
   display: none;
 }
 
-/* Labely – standardowe obrzeże, kolor przy zaznaczeniu */
+/* Labely – standardowe obrzeże */
 .rating-group label {
   position: relative;
   padding-left: 25px;
@@ -46,7 +49,7 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 2px solid #6c757d; /* standardowe szare obrzeże */
+  border: 2px solid #6c757d;
   background-color: #fff;
 }
 
@@ -62,12 +65,28 @@
   border-color: #000;
 }
 
-/* Opcjonalnie – tekst label też w kolorze zaznaczenia */
+/* Tekst label w kolorze zaznaczenia */
 .rating-group.employee input[type="radio"]:checked + label {
   color: #0d6efd;
 }
 .rating-group.manager input[type="radio"]:checked + label {
   color: #000;
+}
+
+/* Responsywne radio buttony na mobile */
+@media (max-width: 576px) {
+  .rating-group {
+    flex-direction: row; /* nadal poziomo */
+    flex-wrap: wrap;     /* zawijanie do nowego wiersza jeśli nie mieści się w jednej linii */
+    gap: 5px;
+  }
+  .rating-group label::before {
+    width: 16px;
+    height: 16px;
+  }
+  .rating-group label {
+    font-size: 0.9rem; /* trochę mniejszy tekst, żeby lepiej się mieściło */
+  }
 }
 </style>
 
@@ -152,16 +171,16 @@
     {% endfor %}
   </div>
 
-  <!-- 🔹 WYKRES RADAROWY -->
-   {% if show_radar %}
+  <!-- 🔹 WYKRES RADAROWY / BARCHART -->
+  {% if show_radar %}
   <div class="radar-container text-center my-4">
     <h3 class="my-4">Wykres kompetencji</h3>
     <canvas id="radarChart"></canvas>
   </div>
-{% endif %}
+  {% endif %}
 
   <!-- 🔹 TABELA WYNIKÓW -->
-  <div class="table-container mt-5">
+  <div class="table-container pt-5">
     <table class="table table-bordered text-center">
       <thead class="table-light">
         <tr>
@@ -182,7 +201,7 @@
     </table>
   </div>
 
-    <!-- 🔹 SUMA PUNKTÓW -->
+  <!-- 🔹 SUMA PUNKTÓW -->
   <div class="text-center mt-4 mb-5">
     <div class="alert alert-secondary d-inline-block px-4 py-3 shadow-sm">
       <h5 class="mb-0">
@@ -193,23 +212,22 @@
     </div>
   </div>
 
-  {% comment %} Komentarz HR {% endcomment %}
-{% if hr_comment %}
-<div class="card shadow-sm mt-4 mb-4 mx-auto" style="max-width: 600px;">
-  <div class="card-body">
-    <h5 class="card-title header-font text-primary fs-2 text-center">Komentarz działu kadr</h5>
-    <p class="card-text"><i>{{ hr_comment }}</i></p>
-    <small class="text-muted">
-      {% if hr_comment_user %}
-        Dodany przez: {{ hr_comment_user.get_full_name }}<br>
-      {% endif %}
-      {% if hr_comment_date %}
-        Data: {{ hr_comment_date|date:"d.m.Y H:i" }}
-      {% endif %}
-    </small>
+  {% if hr_comment %}
+  <div class="card shadow-sm mt-4 mb-4 mx-auto" style="max-width: 600px;">
+    <div class="card-body">
+      <h5 class="card-title header-font text-primary fs-2 text-center">Komentarz działu kadr</h5>
+      <p class="card-text"><i>{{ hr_comment }}</i></p>
+      <small class="text-muted">
+        {% if hr_comment_user %}
+          Dodany przez: {{ hr_comment_user.get_full_name }}<br>
+        {% endif %}
+        {% if hr_comment_date %}
+          Data: {{ hr_comment_date|date:"d.m.Y H:i" }}
+        {% endif %}
+      </small>
+    </div>
   </div>
-</div>
-{% endif %}
+  {% endif %}
 
   <!-- 🔹 PRZYCISK POWROTU -->
   <div class="text-center my-4">
@@ -228,64 +246,67 @@ const labels = {{ radar_labels|safe }};
 const user_values = {{ radar_user_values|safe }};
 const manager_values = {{ radar_manager_values|safe }};
 
+// Wybór typu wykresu: radar na desktop, bar na mobile
+const chartType = window.innerWidth < 576 ? 'bar' : 'radar';
+
 const data = {
   labels: labels.map(label => label.length > 20 ? label.substring(0,20) + "…" : label),
   datasets: [
     {
       label: 'Osoba oceniająca [%]',
       data: manager_values,
-      fill: true,
-      backgroundColor: 'rgba(0,0,0,0.2)',
-      borderColor: 'rgba(0,0,0,1)',
-      pointBackgroundColor: 'rgba(0,0,0,1)',
-      pointBorderColor: '#fff',
+      fill: chartType === 'radar',
+     backgroundColor: 'rgba(0, 0, 0, 0.28)',
+      borderColor: 'rgba(0, 0, 0, 0.46)',
+      borderWidth: 1,
+      pointBackgroundColor: chartType === 'radar' ? 'rgba(0, 0, 0, 1)' : undefined
     },
     {
       label: 'Pracownik [%]',
       data: user_values,
-      fill: true,
-      backgroundColor: 'rgba(13, 110, 253, 0.2)',
-      borderColor: 'rgba(13, 110, 253, 1)',
-      pointBackgroundColor: 'rgba(13, 110, 253, 1)',
-      pointBorderColor: '#fff',
+      fill: chartType === 'radar',
+      backgroundColor: 'rgba(13, 109, 253, 0.28)',
+      borderColor: 'rgba(13, 109, 253, 0.46)',
+      borderWidth: 1,
+      pointBackgroundColor: chartType === 'radar' ? 'rgba(13, 110, 253, 1)' : undefined
     }
   ]
 };
 
 const config = {
-  type: 'radar',
+  type: chartType,
   data: data,
   options: {
     responsive: true,
     maintainAspectRatio: false,
-    scales: {
+    scales: chartType === 'radar' ? {
       r: {
         angleLines: { display: true },
         min: 0,
         max: 100,
         ticks: { stepSize: 10, callback: val => val + "%" },
-        pointLabels: {
-          font: {
-            size: 18,       // większe labele
-            weight: 'bold'  // pogrubione
-          }
-        }
+        pointLabels: { font: { size: 18, weight: 'bold' } }
+      }
+    } : {
+      y: {
+        min: 0,
+        max: 100,
+        ticks: { callback: val => val + "%" }
       }
     },
-    plugins: { 
-      legend: { 
+    plugins: {
+      legend: {
         position: 'top',
-        labels: {
-          font: {
-            size: 14,
-            weight: 'bold'
-          }
-        }
-      } 
+        labels: { font: { size: 14, weight: 'bold' } }
+      }
     }
   }
 };
 
 new Chart(document.getElementById('radarChart'), config);
+
+// Odśwież wykres przy zmianie rozmiaru ekranu
+window.addEventListener('resize', () => location.reload());
 </script>
+
 {% endblock %}
