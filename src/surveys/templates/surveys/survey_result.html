@@ -46,7 +46,7 @@
   margin: 0 auto;
   position: relative;
 
-  /* zapewnia proporcje (jak 650px wysokości przy 900px szerokości) */
+  /* proporcje wykresu */
   aspect-ratio: 1 / 0.72;
 }
 
@@ -162,25 +162,37 @@
 
 {% if show_radar %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
 const labels = {{ radar_labels|safe }};
 const values = {{ radar_values|safe }};
 
+// --- Dynamiczny rozmiar etykiet dla radar chart ---
+let labelFontSize = 12;
+if (window.innerWidth > 1200) {
+    labelFontSize = 18;
+} else if (window.innerWidth > 768) {
+    labelFontSize = 14;
+}
+
+// --- Wybór typu wykresu ---
+let chartType = window.innerWidth < 768 ? 'bar' : 'radar';
+
+const data = {
+    labels: labels,
+    datasets: [{
+        label: 'Twoja ocena [%]',
+        data: values,
+        backgroundColor: 'rgba(13, 109, 253, 0.11)',
+        borderColor: 'rgba(13, 109, 253, 0.46)',
+        borderWidth: 1,
+        fill: chartType === 'radar' ? true : false,
+        pointBackgroundColor: chartType === 'radar' ? 'rgba(13, 110, 253, 1)' : undefined
+    }]
+};
+
 const config = {
-    type: 'radar',
-    data: {
-        labels: labels,
-        datasets: [{
-            label: 'Twoja ocena [%]',
-            data: values,
-            fill: true,
-            backgroundColor: 'rgba(13, 110, 253, 0.2)',
-            borderColor: 'rgba(13, 110, 253, 1)',
-            pointBackgroundColor: 'rgba(13, 110, 253, 1)',
-            pointBorderColor: '#fff'
-        }]
-    },
+    type: chartType,
+    data: data,
     options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -188,7 +200,7 @@ const config = {
             tooltip: { enabled: true },
             legend: { position: 'top' }
         },
-        scales: {
+        scales: chartType === 'radar' ? {
             r: {
                 beginAtZero: true,
                 min: 0,
@@ -198,6 +210,18 @@ const config = {
                     callback: function(value) {
                         return [0,20,40,60,80,100].includes(value) ? value + "%" : "";
                     }
+                },
+                pointLabels: {
+                    font: { size: labelFontSize, weight: 'bold' },
+                    padding: 12
+                }
+            }
+        } : {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                    callback: function(value) { return value + "%"; }
                 }
             }
         }
@@ -208,4 +232,4 @@ new Chart(document.getElementById("radarChart"), config);
 </script>
 {% endif %}
 
-{% endblock %}
+{% endblock %}  
