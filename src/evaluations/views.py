@@ -46,6 +46,9 @@ from surveys.models import SurveyResponse
 from .models import EmployeeEvaluation, EmployeeEvaluationHR
 from django.utils import timezone
 
+from django.utils.text import slugify
+
+
 def manager_or_privileged_access_required(view_func):
     def wrapper(request, response_id, *args, **kwargs):
         response = get_object_or_404(SurveyResponse, id=response_id)
@@ -442,7 +445,6 @@ def manager_survey_overview(request, response_id):
 CustomUser = get_user_model()
 
 
-
 class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
     template_name = "evaluations/manager_survey_overview_pdf.html"
 
@@ -452,6 +454,19 @@ class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
         'footer-spacing': '5',
         'margin-bottom': '15mm',
     }
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        
+        # Pobranie obiektu odpowiedzi
+        survey_response = self.get_response()
+        survey_name = slugify(survey_response.survey.name)
+        user_full_name = slugify(survey_response.user.get_full_name())
+
+        filename = f"{survey_name}_{user_full_name}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Type'] = 'application/pdf'
+        return response
 
 
     def get_response(self):
@@ -539,8 +554,10 @@ class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
         ax.set_xticks(angles)
         ax.set_xticklabels(labels, fontsize=12)
         ax.set_ylim(0, 100)
+        ax.set_yticks(range(0, 101, 10))  # linie co 10%
         ax.set_rlabel_position(0)
-        ax.grid(True, linestyle='--', linewidth=0.7)
+        ax.yaxis.grid(True, linestyle='--', linewidth=0.5)  # poziome linie pomocnicze
+        ax.xaxis.grid(False) 
 
         # Linie siatki
         for angle in angles:
