@@ -307,7 +307,7 @@ def manager_evaluate_employee(request, response_id):
         manager=request.user
     )
     manager_evals_dict = {e.question.id: e for e in manager_evals}
-    scale_choices = list(range(1, 11))  # 1-10
+    scale_choices = list(range(0, 11))  # 0-10
 
     if request.method == "POST":
         save_type = request.POST.get("save_type", "draft")  # draft lub submitted
@@ -386,21 +386,21 @@ def manager_survey_overview(request, response_id):
             max_total = len(comp_questions) * 10
             user_total = sum([
                 a.scale_value for a in answers_user
-                if a.question in [q.question for q in comp_questions] and a.scale_value
+                if a.question in [q.question for q in comp_questions] and a.scale_value is not None 
             ])
             manager_total = sum([
                 a.scale_value for a in answers_manager
-                if a.question in [q.question for q in comp_questions] and a.scale_value
+                if a.question in [q.question for q in comp_questions] and a.scale_value is not None
             ])
             radar_labels.append(comp.name)
             radar_user_values.append(round(user_total / max_total * 100, 2) if max_total else 0)
             radar_manager_values.append(round(manager_total / max_total * 100, 2) if max_total else 0)
 
     radar_data = list(zip(radar_labels, radar_user_values, radar_manager_values))
-    scale_range = range(1, 11)
+    scale_range = range(0, 11)
 
     # Suma punktów managera
-    manager_scored = [a.scale_value for a in answers_manager if a.scale_value]
+    manager_scored = [a.scale_value for a in answers_manager if a.scale_value is not None]
     manager_total_points = sum(manager_scored)
     manager_max_points = len(manager_scored) * 10 if manager_scored else 0
     manager_percentage = round((manager_total_points / manager_max_points) * 100, 2) if manager_max_points else 0
@@ -515,7 +515,7 @@ class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
             "radar_image": radar_image,
             "radar_data": radar_data,
             "show_radar": True,
-            "scale_range": range(1, 11),
+            "scale_range": range(0, 11),
             "logo_base64": logo_base64,
             "manager_total_points": manager_total_points,
             "manager_max_points": manager_max_points,
@@ -598,7 +598,7 @@ def hr_comment_employee(request, response_id):
         hr_eval.save()
         return redirect('employee_surveys', user_id=viewed_user.id)
 
-    scale_range = range(1, 11)
+    scale_range = range(0, 11)
 
     context = {
         'survey': survey,

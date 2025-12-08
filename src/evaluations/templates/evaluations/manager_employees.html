@@ -13,6 +13,8 @@
 
 
     {% comment %} Sortowanie {% endcomment %}
+     {% comment %} Sortowanie tylko dla HR i admin {% endcomment %}
+    {% if request.user.role == "hr"  or request.user.role == "admin" %}  
      <a href="?" class="btn btn-outline-primary btn-sm {% if not sort %}active{% endif %}">
        Sortuj po nazwisku
     </a> 
@@ -22,6 +24,7 @@
      <a href="?sort=role" class="btn btn-outline-primary btn-sm {% if sort == 'role' %}active{% endif %}">
         Sortuj po roli
     </a>
+    {% endif %}
 
     {% if employees_with_survey %}
         <div class="table-responsive">

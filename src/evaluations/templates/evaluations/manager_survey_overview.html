@@ -129,7 +129,7 @@
         <!-- Ocena pracownika -->
         {% for ans in answers_user %}
           {% if ans.question.id == sq.question.id %}
-            {% if ans.scale_value %}
+             {% if ans.scale_value is not None %}
               <div>
                 Ocena pracownika:
                 <div class="rating-group employee">
@@ -150,7 +150,7 @@
         <!-- Ocena managera -->
         {% for ans in answers_manager %}
           {% if ans.question.id == sq.question.id %}
-            {% if ans.scale_value %}
+            {% if ans.scale_value is not None %}
               <div class="mt-2">
                 Ocena osoby oceniającej:
                 <div class="rating-group manager">

@@ -358,7 +358,7 @@ def survey_delete(request, pk):
 def survey_preview(request, pk):
     survey = get_object_or_404(Survey, pk=pk)
     questions = survey.surveyquestion_set.select_related('question').all()
-    scale_range = range(1, 11)  # liczby od 1 do 10
+    scale_range = range(0, 11)  # liczby od 1 do 10
     return render(request, "surveys/survey_preview.html", {
         "survey": survey,
         "questions": questions,
@@ -432,7 +432,7 @@ def survey_submit(request, pk):
 
     # GET – wyświetlamy formularz do wypełnienia
     questions = survey.surveyquestion_set.select_related('question').all()
-    scale_range = range(1, 11)
+    scale_range = range(0, 11)
     return render(request, 'surveys/survey_fill.html', {
         'survey': survey,
         'questions': questions,
@@ -459,7 +459,7 @@ def survey_result(request, survey_id, user_id=None):
         response = None
 
     answers = SurveyAnswer.objects.filter(response=response) if response else []
-    scale_range = range(1, 11)
+    scale_range = range(0, 11)
 
     # Przygotowanie danych do wykresu radar
     radar_labels, radar_values = [], []
@@ -621,7 +621,7 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         except SurveyResponse.DoesNotExist:
             answers = []
 
-        scale_range = range(1, 11)
+        scale_range = range(0, 11)
         # Upewnij się, że używasz właściwych klas/funkcji dla radar_labels i values
         radar_labels, radar_values = self._calculate_competency_scores(survey, answers)
         radar_image = self._generate_radar_chart(radar_labels, radar_values)
