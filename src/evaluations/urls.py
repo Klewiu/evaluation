@@ -14,7 +14,7 @@ urlpatterns = [
     # Podgląd wyników ankiety (dla admin/manager)
     path('survey/<int:survey_id>/result/', survey_result, name='survey_result'),
     # PDF ankiety
-    path('survey/<int:survey_id>/pdf/<int:user_id>/', SurveyPDFView.as_view(), name='survey_pdf'),
+    path('survey/<uuid:slug>/pdf/<int:user_id>/', SurveyPDFView.as_view(), name='survey_pdf'),
     # Ocena pracownika przez managera
     path('evaluate/<int:response_id>/', views.manager_evaluate_employee, name='manager_evaluate_employee'),
     # Podgląd oceny pracownika przez managera

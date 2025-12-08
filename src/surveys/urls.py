@@ -30,17 +30,17 @@ urlpatterns = [
     path("survey/<int:pk>/save-order/", views.save_question_order, name="save_question_order"),
     
     # WYPEŁNIANIE ANKIETY
-    path("survey/<int:pk>/fill/", views.survey_fill, name="survey_fill"),
-    path('survey/<int:pk>/submit/', views.survey_submit, name='survey_submit'),
+    path("survey/<uuid:slug>/fill/", views.survey_fill, name="survey_fill"),
+    path('survey/<uuid:slug>/submit/', views.survey_submit, name='survey_submit'),
     # Podgląd wyników dla pracownika (prywatny)
-    path('survey/<int:survey_id>/result/', survey_result, name='survey_result'),
+    path('survey/<uuid:slug>/result/', survey_result, name='survey_result'),
     # Podgląd wyników dla managera/admina (dla wybranego użytkownika)
-    path('survey/<int:survey_id>/result/<int:user_id>/', survey_result, name='survey_result_for_user'),
+    path('survey/<uuid:slug>/result/<int:user_id>/', survey_result, name='survey_result_for_user'),
     
-    path('survey/<int:pk>/edit-response/', views.survey_edit_response, name='survey_edit_response'),
+    path('survey/<uuid:slug>/edit-response/', views.survey_edit_response, name='survey_edit_response'),
 
     # PDF
-    path('survey/<int:pk>/pdf/', SurveyPDFView.as_view(), name='survey_pdf'),
+    path('survey/<uuid:slug>/pdf/', SurveyPDFView.as_view(), name='survey_pdf'),
 
     # HTMX pytania
     path("load-questions/", views.load_questions, name="load_questions"),

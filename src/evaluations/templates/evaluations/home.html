@@ -59,20 +59,20 @@
                     <!-- Akcje -->
                     <td>
                         {% if not item.response %}
-                            <a href="{% url 'survey_fill' item.survey.id %}" class="btn btn-sm btn-primary">Wypełnij</a>
+                            <a href="{% url 'survey_fill' item.survey.slug  %}" class="btn btn-sm btn-primary">Wypełnij</a>
                         {% elif item.response.status == "draft" %}
-                            <a href="{% url 'survey_edit_response' item.survey.id %}" class="btn btn-sm btn-dark">Edytuj</a>
+                            <a href="{% url 'survey_edit_response' item.survey.slug %}" class="btn btn-sm btn-dark">Edytuj</a>
                             <button class="btn btn-sm btn-primary" 
                                     data-bs-toggle="modal" 
                                     data-bs-target="#submitModal" 
-                                    data-survey-id="{{ item.survey.id }}">
+                                    data-survey-id="{{ item.survey.slug  }}">
                                 Zakończ i wyślij
                             </button>
                         {% elif item.response.status == "submitted" or item.response.status == "closed" %}
-                            <a href="{% url 'survey_result' item.survey.id %}" class="btn btn-sm btn-dark" title="Moja ocena">
+                            <a href="{% url 'survey_result' item.survey.slug  %}" class="btn btn-sm btn-dark" title="Moja ocena">
                                 <i class="bi bi-search"></i>
                             </a>
-                            <a href="{% url 'survey_pdf' item.survey.id %}" target="_blank" class="btn btn-sm btn-secondary" title="Moja ocena w PDF">
+                            <a href="{% url 'survey_pdf' item.survey.slug  %}" target="_blank" class="btn btn-sm btn-secondary" title="Moja ocena w PDF">
                                 <i class="bi bi-file-earmark-pdf"></i>
                             </a>
                             {% if item.show_manager_overview %}

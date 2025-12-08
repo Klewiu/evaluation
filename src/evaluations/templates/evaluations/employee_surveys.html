@@ -65,14 +65,14 @@
                             {% if item.has_survey %}
                                 <!-- Podgląd ankiety -->
                                 <a class="btn btn-sm btn-primary" 
-                                href="{% url 'survey_result_for_user' survey_id=item.survey.id user_id=employee.id %}" 
+                                href="{% url 'survey_result_for_user' slug=item.survey.slug user_id=employee.id %}" 
                                 title="Podgląd wyników">
                                     <i class="bi bi-search"></i>
                                 </a>
 
                                 <!-- Pobierz PDF ankiety -->
                                 <a class="btn btn-sm btn-secondary" 
-                                href="{% url 'survey_pdf' survey_id=item.survey.id user_id=employee.id %}" 
+                                href="{% url 'survey_pdf' slug=item.survey.slug user_id=employee.id %}" 
                                 title="Pobierz PDF" target="_blank">
                                     <i class="bi bi-file-earmark-pdf"></i>
                                 </a>

@@ -142,7 +142,7 @@
               </div>
             {% endif %}
             {% if ans.text_value %}
-              <div class="mt-1"><strong>Komentarz pracownika:</strong> {{ ans.text_value }}</div>
+              <div class="mt-1 text-primary"><strong>Komentarz pracownika:</strong><i> {{ ans.text_value }}</i></div>
             {% endif %}
           {% endif %}
         {% endfor %}
@@ -163,7 +163,7 @@
               </div>
             {% endif %}
             {% if ans.text_value %}
-              <div class="mt-1"><strong>Komentarz osoby oceniającej:</strong> {{ ans.text_value }}</div>
+              <div class="mt-1"><strong>Komentarz osoby oceniającej:</strong><i> {{ ans.text_value }}</i></div>
             {% endif %}
           {% endif %}
         {% endfor %}
