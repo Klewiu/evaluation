@@ -46,6 +46,9 @@ from surveys.models import SurveyResponse
 from .models import EmployeeEvaluation, EmployeeEvaluationHR
 from django.utils import timezone
 
+from django.utils.text import slugify
+
+
 def manager_or_privileged_access_required(view_func):
     def wrapper(request, response_id, *args, **kwargs):
         response = get_object_or_404(SurveyResponse, id=response_id)
@@ -156,21 +159,22 @@ def home(request):
 @login_required
 def manager_employees(request):
     user = request.user
-    employees_with_survey = []
+    sort = request.GET.get("sort")  # sortowanie z URL
+
+    employees = CustomUser.objects.none()
 
     # ------------------------------
-    # Manager → cały dział
+    # Manager → dział
     # ------------------------------
     if user.role == "manager" and user.department:
         employees = CustomUser.objects.filter(
             department=user.department,
-            role__in=["employee", "team_leader"],  # uwzględniamy obie role
+            role__in=["employee", "team_leader"],
             is_active=True
         )
 
-
     # ------------------------------
-    # Team Leader → tylko jego pracownicy
+    # Team Leader → jego pracownicy
     # ------------------------------
     elif user.role == "team_leader":
         employees = CustomUser.objects.filter(
@@ -187,12 +191,15 @@ def manager_employees(request):
             is_active=True
         )
 
+    # ---------- SORTOWANIE ----------
+    if sort == "department":
+        employees = employees.order_by("department__name", "last_name")
+    elif sort == "role":
+        employees = employees.order_by("role", "last_name")
     else:
-        employees = CustomUser.objects.none()
-
-    # -----------------------------------------------------
-    # LOGIKA POBIERANIA ANKIET I STATUSÓW (bez zmian)
-    # -----------------------------------------------------
+        employees = employees.order_by("last_name")  # domyślne sortowanie
+    # ---------- LOGIKA ANKIET ----------
+    employees_with_survey = []
     for emp in employees:
         latest_survey = Survey.objects.filter(
             department=emp.department,
@@ -236,6 +243,7 @@ def manager_employees(request):
 
     return render(request, "evaluations/manager_employees.html", {
         "employees_with_survey": employees_with_survey,
+        "sort": sort
     })
 
 
@@ -302,7 +310,7 @@ def manager_evaluate_employee(request, response_id):
         manager=request.user
     )
     manager_evals_dict = {e.question.id: e for e in manager_evals}
-    scale_choices = list(range(1, 11))  # 1-10
+    scale_choices = list(range(0, 11))  # 0-10
 
     if request.method == "POST":
         save_type = request.POST.get("save_type", "draft")  # draft lub submitted
@@ -381,21 +389,21 @@ def manager_survey_overview(request, response_id):
             max_total = len(comp_questions) * 10
             user_total = sum([
                 a.scale_value for a in answers_user
-                if a.question in [q.question for q in comp_questions] and a.scale_value
+                if a.question in [q.question for q in comp_questions] and a.scale_value is not None 
             ])
             manager_total = sum([
                 a.scale_value for a in answers_manager
-                if a.question in [q.question for q in comp_questions] and a.scale_value
+                if a.question in [q.question for q in comp_questions] and a.scale_value is not None
             ])
             radar_labels.append(comp.name)
             radar_user_values.append(round(user_total / max_total * 100, 2) if max_total else 0)
             radar_manager_values.append(round(manager_total / max_total * 100, 2) if max_total else 0)
 
     radar_data = list(zip(radar_labels, radar_user_values, radar_manager_values))
-    scale_range = range(1, 11)
+    scale_range = range(0, 11)
 
     # Suma punktów managera
-    manager_scored = [a.scale_value for a in answers_manager if a.scale_value]
+    manager_scored = [a.scale_value for a in answers_manager if a.scale_value is not None]
     manager_total_points = sum(manager_scored)
     manager_max_points = len(manager_scored) * 10 if manager_scored else 0
     manager_percentage = round((manager_total_points / manager_max_points) * 100, 2) if manager_max_points else 0
@@ -437,7 +445,6 @@ def manager_survey_overview(request, response_id):
 CustomUser = get_user_model()
 
 
-
 class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
     template_name = "evaluations/manager_survey_overview_pdf.html"
 
@@ -447,6 +454,19 @@ class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
         'footer-spacing': '5',
         'margin-bottom': '15mm',
     }
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        
+        # Pobranie obiektu odpowiedzi
+        survey_response = self.get_response()
+        survey_name = slugify(survey_response.survey.name)
+        user_full_name = slugify(survey_response.user.get_full_name())
+
+        filename = f"{survey_name}_{user_full_name}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Type'] = 'application/pdf'
+        return response
 
 
     def get_response(self):
@@ -510,7 +530,7 @@ class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
             "radar_image": radar_image,
             "radar_data": radar_data,
             "show_radar": True,
-            "scale_range": range(1, 11),
+            "scale_range": range(0, 11),
             "logo_base64": logo_base64,
             "manager_total_points": manager_total_points,
             "manager_max_points": manager_max_points,
@@ -534,8 +554,10 @@ class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
         ax.set_xticks(angles)
         ax.set_xticklabels(labels, fontsize=12)
         ax.set_ylim(0, 100)
+        ax.set_yticks(range(0, 101, 10))  # linie co 10%
         ax.set_rlabel_position(0)
-        ax.grid(True, linestyle='--', linewidth=0.7)
+        ax.yaxis.grid(True, linestyle='--', linewidth=0.5)  # poziome linie pomocnicze
+        ax.xaxis.grid(False) 
 
         # Linie siatki
         for angle in angles:
@@ -593,7 +615,7 @@ def hr_comment_employee(request, response_id):
         hr_eval.save()
         return redirect('employee_surveys', user_id=viewed_user.id)
 
-    scale_range = range(1, 11)
+    scale_range = range(0, 11)
 
     context = {
         'survey': survey,

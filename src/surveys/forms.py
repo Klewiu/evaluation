@@ -104,7 +104,7 @@ class SurveyFillForm(forms.Form):
 
             if q.type == Question.SCALE:
                 self.fields[field_name_scale] = forms.ChoiceField(
-                    choices=[(i, str(i)) for i in range(1, 11)],
+                    choices=[(i, str(i)) for i in range(0, 11)],
                     widget=forms.RadioSelect(attrs={"class": "form-check-input me-1"}),
                     label=q.text,
                     required=True
@@ -125,7 +125,7 @@ class SurveyFillForm(forms.Form):
                 )
             elif q.type == Question.BOTH:
                 self.fields[field_name_scale] = forms.ChoiceField(
-                    choices=[(i, str(i)) for i in range(1, 11)],
+                    choices=[(i, str(i)) for i in range(0, 11)],
                     widget=forms.RadioSelect(attrs={"class": "form-check-input me-1"}),
                     label=q.text + " (skala)",
                     required=True

@@ -1,6 +1,8 @@
 from django.db import models
 from django.conf import settings
 from users.models import Department
+from datetime import date
+import uuid
 
 # Słownik kompetencji dodawany przez HR
 class Competency(models.Model):
@@ -55,7 +57,8 @@ class Survey(models.Model):
         related_name='surveys'
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    year = models.PositiveIntegerField(blank=True, null=True)
+    year = models.PositiveIntegerField(default=date.today().year)
+    slug = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
     ROLE_CHOICES = [
        

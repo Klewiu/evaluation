@@ -39,9 +39,16 @@ def manager_or_privileged_access_required(view_func):
         current = request.user
         response = None
 
-        # Pobranie survey_id: sprawdzamy 'survey_id' lub 'pk' (dla CBV)
+        # Pobranie slug lub survey_id (dla kompatybilności)
+        slug = kwargs.get('slug')
         survey_id = kwargs.get('survey_id') or kwargs.get('pk')
+
         user_id = kwargs.get('user_id')
+
+        # Jeśli mamy slug, pobieramy Survey
+        if slug:
+            survey = get_object_or_404(Survey, slug=slug)
+            survey_id = survey.id
 
         # Pobranie response
         if 'response_id' in kwargs:
@@ -51,7 +58,6 @@ def manager_or_privileged_access_required(view_func):
             if not response:
                 raise PermissionDenied("Brak odpowiedzi dla tego użytkownika")
         elif survey_id:
-            # Pobieramy ankietę zalogowanego użytkownika
             response = SurveyResponse.objects.filter(survey_id=survey_id, user=current).first()
             if not response:
                 raise PermissionDenied("Brak Twojej ankiety dla tej ankiety")
@@ -358,7 +364,7 @@ def survey_delete(request, pk):
 def survey_preview(request, pk):
     survey = get_object_or_404(Survey, pk=pk)
     questions = survey.surveyquestion_set.select_related('question').all()
-    scale_range = range(1, 11)  # liczby od 1 do 10
+    scale_range = range(0, 11)  # liczby od 1 do 10
     return render(request, "surveys/survey_preview.html", {
         "survey": survey,
         "questions": questions,
@@ -369,8 +375,8 @@ def survey_preview(request, pk):
 from .forms import SurveyFillForm
 
 @login_required
-def survey_fill(request, pk):
-    survey = get_object_or_404(Survey, pk=pk)
+def survey_fill(request, slug):
+    survey = get_object_or_404(Survey, slug=slug)
 
     if not (survey.role == "both" or survey.role == request.user.role):
         return HttpResponseForbidden("Nie masz uprawnień do wypełnienia tej ankiety.")
@@ -401,8 +407,8 @@ def survey_fill(request, pk):
 
 
 @login_required
-def survey_submit(request, pk):
-    survey = get_object_or_404(Survey, pk=pk)
+def survey_submit(request, slug):
+    survey = get_object_or_404(Survey, slug=slug)
 
     # Pobierz lub utwórz odpowiedź użytkownika
     response, created = SurveyResponse.objects.get_or_create(
@@ -432,7 +438,7 @@ def survey_submit(request, pk):
 
     # GET – wyświetlamy formularz do wypełnienia
     questions = survey.surveyquestion_set.select_related('question').all()
-    scale_range = range(1, 11)
+    scale_range = range(0, 11)
     return render(request, 'surveys/survey_fill.html', {
         'survey': survey,
         'questions': questions,
@@ -441,9 +447,9 @@ def survey_submit(request, pk):
 
 @manager_or_privileged_access_required
 @login_required
-def survey_result(request, survey_id, user_id=None):
+def survey_result(request, slug, user_id=None):
     # Pobranie ankiety
-    survey = get_object_or_404(Survey, pk=survey_id)
+    survey = get_object_or_404(Survey, slug=slug)
       # Pobierz odpowiedź tylko tego użytkownika
 
     # Jeśli podano user_id (manager/admin) – pobieramy tego użytkownika
@@ -459,7 +465,7 @@ def survey_result(request, survey_id, user_id=None):
         response = None
 
     answers = SurveyAnswer.objects.filter(response=response) if response else []
-    scale_range = range(1, 11)
+    scale_range = range(0, 11)
 
     # Przygotowanie danych do wykresu radar
     radar_labels, radar_values = [], []
@@ -488,8 +494,8 @@ def survey_result(request, survey_id, user_id=None):
     })
 
 @login_required
-def survey_edit_response(request, pk):
-    survey = get_object_or_404(Survey, pk=pk)
+def survey_edit_response(request, slug):
+    survey = get_object_or_404(Survey, slug=slug)
 
     if not (survey.role == "both" or survey.role == request.user.role):
         return HttpResponseForbidden("Nie masz uprawnień do edycji tej ankiety.")
@@ -582,9 +588,8 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         return self.request.user
 
     def get_survey(self):
-        survey_id = self.kwargs.get("pk") or self.kwargs.get("survey_id")
-        # Użyj swojej klasy modelu Survey
-        return get_object_or_404(Survey, pk=survey_id) 
+        slug = self.kwargs.get("slug")
+        return get_object_or_404(Survey, slug=slug)
 
     def get_filename(self):
         survey = self.get_survey()
@@ -621,7 +626,7 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         except SurveyResponse.DoesNotExist:
             answers = []
 
-        scale_range = range(1, 11)
+        scale_range = range(0, 11)
         # Upewnij się, że używasz właściwych klas/funkcji dla radar_labels i values
         radar_labels, radar_values = self._calculate_competency_scores(survey, answers)
         radar_image = self._generate_radar_chart(radar_labels, radar_values)
