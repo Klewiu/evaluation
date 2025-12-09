@@ -31,47 +31,60 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+
 <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
   <div class="container-fluid">
-    <a class="navbar-brand header-font d-flex  align-items-center" href="{% url 'home' %}">
+    <a class="navbar-brand header-font d-flex align-items-center" href="{% url 'home' %}">
       <img src="{% static 'ats_logo.png' %}" alt="Logo" width="60" class="d-inline-block align-text-top"> 
-        <span class="px-1">OCENY PRACOWNICZE</span>
+      <span class="px-1">OCENY PRACOWNICZE</span>
     </a>
 
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
-      aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+            data-bs-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false"
+            aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
 
     <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
       <ul class="navbar-nav mb-2 mb-lg-0">
+
         {% if user.is_authenticated %}
-            {% if user.role == 'hr' or user.role == 'admin' or user.is_superuser %}
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'surveys_home' %}">Ankiety</a>
-            </li>
-            {% endif %}
-            {% if user.role == 'admin' or user.is_superuser %}
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'users_list' %}">Użytkownicy</a>
-            </li>
-            {% endif %}
-            {% if user.role == 'hr' or user.role == 'manager' or user.role == 'admin' or user.is_superuser or user.role == 'team_leader' %}
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'manager_employees' %}">Oceny pracowników</a>
-            </li>
-            {% endif %}
-            {% if user.role == 'hr' or user.role == 'manager' or user.role == 'admin' or user.is_superuser %}
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'reports_home' %}">Raporty</a>
-            </li>
-            {% endif %}
-            <li class="nav-item">
-              <button type="button" class="btn btn-danger ms-2" data-bs-toggle="modal" data-bs-target="#logoutModal">
-                <i class="bi bi-box-arrow-right"></i> Wyloguj
-              </button>
-            </li>
+
+          {% if user.role == 'hr' or user.role == 'admin' or user.is_superuser %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'surveys_home' %}">Ankiety</a>
+          </li>
+          {% endif %}
+
+          {% if user.role == 'admin' or user.is_superuser %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'users_list' %}">Użytkownicy</a>
+          </li>
+          {% endif %}
+
+          {% if user.role == 'hr' or user.role == 'manager' or user.role == 'admin' or user.is_superuser or user.role == 'team_leader' %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'manager_employees' %}">Oceny pracowników</a>
+          </li>
+          {% endif %}
+
+          {% if user.role == 'hr' or user.role == 'manager' or user.role == 'admin' or user.is_superuser %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'reports_home' %}">Raporty</a>
+          </li>
+          {% endif %}
+
+          <li class="nav-item">
+            <button type="button" class="btn btn-danger ms-2"
+                    data-bs-toggle="modal"
+                    data-bs-target="#logoutModal">
+              <i class="bi bi-box-arrow-right"></i> Wyloguj
+            </button>
+          </li>
+
         {% endif %}
+
       </ul>
     </div>
   </div>
@@ -81,24 +94,29 @@
   {% block content %}{% endblock %}
 </main>
 
-<!-- Modal wylogowania -->
-<div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+<!-- LOGOUT MODAL -->
+<div class="modal fade" id="logoutModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
+
       <div class="modal-header">
-        <h5 class="modal-title" id="logoutModalLabel">Wylogowanie</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+        <h5 class="modal-title">Wylogowanie</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
+
       <div class="modal-body">
         Czy na pewno chcesz się wylogować?
       </div>
+
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+
         <form method="post" action="{% url 'logout' %}">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-danger">Wyloguj</button>
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Wyloguj</button>
         </form>
       </div>
+
     </div>
   </div>
 </div>
@@ -108,45 +126,109 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
+<!-- MODAL CLEANUP -->
 <script>
-  function closeAllModalsAndClean() {
-    document.querySelectorAll('.modal.show').forEach(m => {
-      const modalInstance = bootstrap.Modal.getInstance(m) || bootstrap.Modal.getOrCreateInstance(m);
-      if (modalInstance) modalInstance.hide();
-    });
-    const body = document.body;
-    body.classList.remove('modal-open');
-    body.style.removeProperty('padding-right');
-    body.style.removeProperty('overflow');
-    document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
-  }
-  document.body.addEventListener('userCreated', () => closeAllModalsAndClean());
-  document.body.addEventListener('userUpdated', () => closeAllModalsAndClean());
+function closeAllModalsAndClean() {
+  document.querySelectorAll('.modal.show').forEach(m => {
+    const modalInstance = bootstrap.Modal.getInstance(m) ||
+                          bootstrap.Modal.getOrCreateInstance(m);
+    if (modalInstance) modalInstance.hide();
+  });
+
+  document.body.classList.remove('modal-open');
+  document.body.style.removeProperty('padding-right');
+  document.body.style.removeProperty('overflow');
+  document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+}
+
+document.body.addEventListener('userCreated', closeAllModalsAndClean);
+document.body.addEventListener('userUpdated', closeAllModalsAndClean);
 </script>
+
+<!-- ✅ CREATE USER SPINNER OVERLAY -->
+<div id="global-spinner-overlay"
+     class="position-fixed top-0 start-0 w-100 h-100 d-none align-items-center justify-content-center"
+     style="background: rgba(0,0,0,0.35); z-index: 9999;">
+
+  <div class="card shadow-lg border-0 text-center p-4"
+       style="min-width: 320px; border-radius: 1rem;">
+
+    <div class="card-body">
+      <div class="spinner-border text-primary mb-3" role="status"></div>
+      <h5 class="card-title mb-1">Tworzenie użytkownika</h5>
+      <p class="card-text text-muted small mb-0">
+        Proszę czekać, trwa zapisywanie danych…
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ✅ SPINNER LOGIC (VALIDATION SAFE) -->
+<script>
+/* Show spinner ONLY for create-user submit */
+document.addEventListener("submit", function (e) {
+  const form = e.target;
+  if (form && form.id === "user-create-form") {
+    const spinner = document.getElementById("global-spinner-overlay");
+    if (spinner) {
+      spinner.classList.remove("d-none");
+      spinner.classList.add("d-flex");
+    }
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = true;
+  }
+}, true);
+
+/* Hide spinner if validation failed */
+document.body.addEventListener("htmx:afterSwap", function (evt) {
+  if (evt.target.id === "create-user-modal-content") {
+    const formStillThere = evt.target.querySelector("#user-create-form");
+    if (formStillThere) {
+      const spinner = document.getElementById("global-spinner-overlay");
+      if (spinner) {
+        spinner.classList.add("d-none");
+        spinner.classList.remove("d-flex");
+      }
+    }
+  }
+});
+
+/* Hide spinner after successful creation */
+document.body.addEventListener("userCreated", function () {
+  const spinner = document.getElementById("global-spinner-overlay");
+  if (spinner) {
+    spinner.classList.add("d-none");
+    spinner.classList.remove("d-flex");
+  }
+});
+</script>
+<!-- ✅ END SPINNER -->
 
 {% block extra_js %}{% endblock %}
 
 <footer class="footer-wave mt-4 position-relative" style="overflow-x: hidden;">
-  <!-- Kontener z tekstami nad falą -->
-  <div class="d-flex flex-wrap justify-content-between align-items-center text-white small p-3 position-relative" style="z-index: 2; width: 100%; box-sizing: border-box;">
-    <!-- Lewa strona: dane użytkownika -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center text-white small p-3 position-relative"
+       style="z-index: 2; width: 100%;">
+
     {% if user.is_authenticated %}
     <div class="d-flex align-items-center mb-2 mb-md-0">
       <i class="bi bi-person-circle fs-4 me-2"></i>
-      <div class="text-truncate" style="max-width: 100%;">
-        {{ user.first_name }} {{ user.last_name }} / {{ user.department.name|upper }} / {{ user.role |upper }}
+      <div class="text-truncate">
+        {{ user.first_name }} {{ user.last_name }} /
+        {{ user.department.name|upper }} /
+        {{ user.role|upper }}
       </div>
     </div>
     {% endif %}
 
-    <!-- Prawa strona: prawa autorskie -->
-    <div class="mb-2 mb-md-0" style="max-width: 100%;">
+    <div class="mb-2 mb-md-0">
       © 2025 ATS Display Sp. z o.o. | Wszystkie prawa zastrzeżone
     </div>
   </div>
 
-  <!-- Fala -->
   <div class="wave"><span></span><span></span><span></span></div>
 </footer>
+
 </body>
 </html>

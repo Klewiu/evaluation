@@ -81,6 +81,7 @@ class AdminUserUpdateForm(forms.ModelForm):
 class AdminUserCreateForm(forms.ModelForm):
     email = forms.EmailField(
         label="E-mail",
+        required=False,
         widget=forms.TextInput(attrs={
             "class": "form-control",
             "inputmode": "email",
@@ -121,7 +122,7 @@ class AdminUserCreateForm(forms.ModelForm):
         email = (self.cleaned_data.get("email") or "").strip()
 
         if not email:
-            return email  # EmailField i tak pilnuje required/formatu
+            return email  # EmailField pilnuje formatu, my tylko unikalność
 
         # ✅ unikalność emaila przy tworzeniu – NIE ma co wykluczać pk
         if User.objects.filter(email__iexact=email).exists():
@@ -136,6 +137,12 @@ class AdminUserCreateForm(forms.ModelForm):
         username = (cleaned.get("username") or "").strip()
         if username and User.objects.filter(username__iexact=username).exists():
             self.add_error("username", "Ten login jest już zajęty.")
+
+        # ✅ email wymagany tylko gdy NIE zaznaczono "Utwórz bez email"
+        email = (cleaned.get("email") or "").strip()
+        skip_email = self.data.get("create_without_email")
+        if not skip_email and not email:
+            self.add_error("email", "Adres e-mail jest wymagany lub zaznacz 'Utwórz bez email'.")
 
         # ✅ hasła
         p1 = cleaned.get("password1")
