@@ -1,55 +1,32 @@
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
-from surveys.models import Survey, SurveyResponse, Competency
-from django.contrib import messages
+# SEKCJA IMPORTÓW   
 import os
-from django.contrib.staticfiles.finders import find
-
-from surveys.models import Survey, SurveyResponse, SurveyAnswer
-
-
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from users.models import CustomUser
-from surveys.models import Survey, SurveyResponse
-
-from django.db.models import Q,Exists, OuterRef
-
-from .models import EmployeeEvaluation
-
-from django.contrib.auth.mixins import LoginRequiredMixin
-from wkhtmltopdf.views import PDFTemplateView
 import io
 import base64
+from functools import wraps
+
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
-from django.shortcuts import get_object_or_404
-from surveys.models import SurveyResponse, SurveyAnswer 
-from evaluations.models import EmployeeEvaluation  # dostosuj importy
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
+from django.contrib.staticfiles.finders import find
+from django.core.exceptions import PermissionDenied
+from django.utils import timezone
+from django.utils.text import slugify
+from django.db.models import Q, Exists, OuterRef
 from django.contrib.auth import get_user_model
 
-from evaluations.models import EmployeeEvaluation  # dodaj import
-
-from django.core.exceptions import PermissionDenied
-
-
-
-from django.core.exceptions import PermissionDenied
+from surveys.models import Survey, SurveyResponse, SurveyAnswer, Competency
+from users.models import CustomUser
+from evaluations.models import EmployeeEvaluation, EmployeeEvaluationHR
+from wkhtmltopdf.views import PDFTemplateView
 
 
-from django.core.exceptions import PermissionDenied
-from django.shortcuts import get_object_or_404
-from surveys.models import SurveyResponse
-
-from .models import EmployeeEvaluation, EmployeeEvaluationHR
-from django.utils import timezone
-
-from django.utils.text import slugify
-from functools import wraps
-
-
+# 1 ---- SEKCJA DEKORATORÓW I FUNKCJI POMOCNICZYCH
 
 def hr_or_admin_required(view_func):
     @wraps(view_func)
@@ -58,8 +35,6 @@ def hr_or_admin_required(view_func):
             raise PermissionDenied("Nie masz dostępu do tego widoku.")
         return view_func(request, *args, **kwargs)
     return _wrapped_view
-
-
 
 def employee_surveys_access_required(view_func):
     @wraps(view_func)
@@ -86,10 +61,6 @@ def employee_surveys_access_required(view_func):
         raise PermissionDenied
 
     return wrapper
-
-
-
-
 
 def manager_or_privileged_access_required(view_func):
     def wrapper(request, response_id, *args, **kwargs):
@@ -126,9 +97,12 @@ def manager_or_privileged_access_required(view_func):
 
         # 🔹 5. Inne role — brak dostępu
         raise PermissionDenied
-
     return wrapper
 
+# 2 ----  SEKCJA WIDOKÓW 
+
+
+# GŁÓWNY PANEL UŻYTKOWNIKA - to co widzi po zalogowaniu
 @login_required
 def home(request):
     user = request.user
@@ -198,6 +172,7 @@ def home(request):
     context = {"surveys": surveys_list}
     return render(request, 'evaluations/home.html', context)
 
+# LISTA PRACONIKÓW dla managera / team leadera / admina / HR z statusami ankiet
 @login_required
 def manager_employees(request):
     user = request.user
@@ -288,7 +263,7 @@ def manager_employees(request):
         "sort": sort
     })
 
-
+# LISTA ANKIET PRACOWNIKA z statusami ocen managera i HR (tutaj będą różne ankiety z różnych lat)
 @login_required
 @employee_surveys_access_required
 def employee_surveys(request, user_id):
@@ -341,6 +316,7 @@ def employee_surveys(request, user_id):
         "surveys_with_status": surveys_with_status
     })
 
+# OCENA PRACOWNIKA PRZEZ MANAGERA
 @login_required
 @manager_or_privileged_access_required
 def manager_evaluate_employee(request, response_id):
@@ -408,6 +384,7 @@ def manager_evaluate_employee(request, response_id):
     }
     return render(request, 'evaluations/manager_evaluate.html', context)
 
+# PODGLĄD OCENY PRACOWNIKA PRZEZ MANAGERA
 @login_required
 @manager_or_privileged_access_required
 def manager_survey_overview(request, response_id):
@@ -488,7 +465,7 @@ def manager_survey_overview(request, response_id):
 
 CustomUser = get_user_model()
 
-
+# PDF Z PODGLĄDEM OCENY MANAGERA + WYKRESY
 class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
     template_name = "evaluations/manager_survey_overview_pdf.html"
 
@@ -631,6 +608,8 @@ class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
         plt.close(fig)
         return img_base64
 
+# KOMENTARZ HR DO OCENY PRACOWNIKA I MANAGERA
+# Po zakończeniu oceny managera, HR może dodać swój komentarz do oceny pracownika i dopiero wtedy pracownik zobaczy pełną ocenę
 @login_required
 @hr_or_admin_required
 def hr_comment_employee(request, response_id):
