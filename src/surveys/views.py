@@ -33,42 +33,67 @@ from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseForbidden
 from functools import wraps
 
+
+
+def admin_hr_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        user = request.user
+
+        if user.is_superuser or user.role in ['admin', 'hr']:
+            return view_func(request, *args, **kwargs)
+
+        raise PermissionDenied("Dostęp tylko dla administratora lub HR")
+    return wrapper
+
 def manager_or_privileged_access_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         current = request.user
-        response = None
 
-        # Pobranie slug lub survey_id (dla kompatybilności)
+        # ✅ ADMIN / HR / SUPERUSER – BEZWARUNKOWO WSZYSTKO
+        if current.role in ['admin', 'hr'] or current.is_superuser:
+            return view_func(request, *args, **kwargs)
+
         slug = kwargs.get('slug')
         survey_id = kwargs.get('survey_id') or kwargs.get('pk')
-
         user_id = kwargs.get('user_id')
+        response = None
 
-        # Jeśli mamy slug, pobieramy Survey
+        # ✅ WIDOKI OGÓLNE (LISTY, KOMPETENCJE, PANEL)
+        if not any([slug, survey_id, user_id]):
+            if current.role in ['manager', 'team_leader']:
+                return view_func(request, *args, **kwargs)
+            raise PermissionDenied("Brak dostępu do tego widoku")
+
+        # --- DOSTĘP OBIEKTOWY ---
         if slug:
             survey = get_object_or_404(Survey, slug=slug)
             survey_id = survey.id
 
-        # Pobranie response
         if 'response_id' in kwargs:
             response = get_object_or_404(SurveyResponse, id=kwargs.get('response_id'))
+
         elif survey_id and user_id:
-            response = SurveyResponse.objects.filter(survey_id=survey_id, user_id=user_id).first()
+            response = SurveyResponse.objects.filter(
+                survey_id=survey_id,
+                user_id=user_id
+            ).first()
             if not response:
                 raise PermissionDenied("Brak odpowiedzi dla tego użytkownika")
+
         elif survey_id:
-            response = SurveyResponse.objects.filter(survey_id=survey_id, user=current).first()
+            response = SurveyResponse.objects.filter(
+                survey_id=survey_id,
+                user=current
+            ).first()
             if not response:
-                raise PermissionDenied("Brak Twojej ankiety dla tej ankiety")
+                raise PermissionDenied("Brak Twojej ankiety")
+
         else:
-            raise PermissionDenied("Brak danych do weryfikacji dostępu")
+            raise PermissionDenied("Brak danych dostępu")
 
         target_user = response.user
-
-        # --- ADMIN / HR / SUPERUSER ---
-        if current.role in ['admin', 'hr'] or current.is_superuser:
-            return view_func(request, *args, **kwargs)
 
         # --- MANAGER ---
         if current.role == 'manager':
@@ -82,19 +107,19 @@ def manager_or_privileged_access_required(view_func):
                 return view_func(request, *args, **kwargs)
             raise PermissionDenied
 
-        # --- PRACOWNIK ---
+        # --- EMPLOYEE ---
         if current.role == 'employee':
             if target_user == current:
                 return view_func(request, *args, **kwargs)
             raise PermissionDenied
 
         raise PermissionDenied
-
     return wrapper
 
 # Kompetencje
 # Lista kompetencji (wszystkie w jednym worku)
 @login_required
+@admin_hr_required
 def competencies_list(request):
     competencies = Competency.objects.all()
     context = {
@@ -105,6 +130,7 @@ def competencies_list(request):
 
 # Dodawanie kompetencji
 @login_required
+@admin_hr_required
 def competency_add(request):
     if request.method == "POST":
         form = CompetencyForm(request.POST)
@@ -118,6 +144,7 @@ def competency_add(request):
 
 # Edycja kompetencji
 @login_required
+@admin_hr_required
 def competency_edit(request, pk):
     competency = get_object_or_404(Competency, pk=pk)
     if request.method == "POST":
@@ -138,6 +165,7 @@ def competency_edit(request, pk):
 # Usuwanie kompetencji
 @login_required
 @require_POST
+@admin_hr_required
 def competency_delete(request, pk):
     competency = get_object_or_404(Competency, pk=pk)
     competency.delete()
@@ -163,6 +191,7 @@ from django.contrib.auth.decorators import login_required
 from .models import Question, Department
 
 @login_required
+@admin_hr_required
 def questions_list(request):
     department_id = request.GET.get('department_id')
     selected_role = request.GET.get('role')  # 'manager', 'employee', 'both'
@@ -225,6 +254,7 @@ def questions_list(request):
 # Pytania
 # --- Dodawanie pytania ---
 @login_required
+@admin_hr_required
 def question_add(request):
     if request.method == "POST":
         form = QuestionForm(request.POST)
@@ -238,6 +268,7 @@ def question_add(request):
 # Pytania
 # --- Edycja pytania ---
 @login_required
+@admin_hr_required
 def question_delete(request, pk):
     question = get_object_or_404(Question, pk=pk)
     
@@ -252,6 +283,7 @@ def question_delete(request, pk):
 # Pytania
 # --- Edycja pytania ---
 @login_required
+@admin_hr_required
 def question_edit(request, pk):
     question = get_object_or_404(Question, pk=pk)
     if request.method == "POST":
@@ -267,17 +299,20 @@ def question_edit(request, pk):
 # ANKIETY
 
 @login_required
+@admin_hr_required
 def surveys_home(request):
     surveys = Survey.objects.all()
     return render(request, "surveys/list.html", {"surveys": surveys})
 
 @login_required
+@admin_hr_required
 def surveys_list(request):
     surveys = Survey.objects.all().order_by('-created_at')  # najnowsze pierwsze
     return render(request, "surveys/surveys_list.html", {"surveys": surveys})
 
 # Dodawanie ankiety
 @login_required
+@admin_hr_required
 def survey_add(request):
     if request.method == "POST":
         form = SurveyForm(request.POST)
@@ -313,8 +348,6 @@ def survey_add(request):
     questions = Question.objects.filter(is_active=True)
 
     return render(request, "surveys/survey_add.html", {"form": form, "questions": questions})
-
-
 
 
 # Pobieranie pytań dla wybranego działu (htmx)
@@ -355,12 +388,14 @@ def survey_edit(request, pk):
 # usuwanie ankiety
 @login_required
 @require_POST
+@admin_hr_required
 def survey_delete(request, pk):
     survey = get_object_or_404(Survey, pk=pk)
     survey.delete()
     return redirect('surveys_list')
 
 @login_required
+@admin_hr_required
 def survey_preview(request, pk):
     survey = get_object_or_404(Survey, pk=pk)
     questions = survey.surveyquestion_set.select_related('question').all()

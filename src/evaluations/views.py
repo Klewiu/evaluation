@@ -47,6 +47,48 @@ from .models import EmployeeEvaluation, EmployeeEvaluationHR
 from django.utils import timezone
 
 from django.utils.text import slugify
+from functools import wraps
+
+
+
+def hr_or_admin_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if request.user.role not in ['hr', 'admin']:
+            raise PermissionDenied("Nie masz dostępu do tego widoku.")
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
+
+
+
+def employee_surveys_access_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, user_id, *args, **kwargs):
+        employee = get_object_or_404(CustomUser, pk=user_id)
+
+        # ✅ ADMIN / HR / SUPERUSER → wszystko
+        if request.user.role in ['admin', 'hr'] or request.user.is_superuser:
+            return view_func(request, user_id, *args, **kwargs)
+
+        # ✅ MANAGER → tylko swój dział
+        if request.user.role == 'manager':
+            if employee.department == request.user.department:
+                return view_func(request, user_id, *args, **kwargs)
+            raise PermissionDenied
+
+        # ✅ TEAM LEADER → tylko jego przypisani pracownicy
+        if request.user.role == 'team_leader':
+            if employee.team_leader == request.user:
+                return view_func(request, user_id, *args, **kwargs)
+            raise PermissionDenied
+
+        # ❌ EMPLOYEE → BRAK DOSTĘPU
+        raise PermissionDenied
+
+    return wrapper
+
+
+
 
 
 def manager_or_privileged_access_required(view_func):
@@ -248,6 +290,7 @@ def manager_employees(request):
 
 
 @login_required
+@employee_surveys_access_required
 def employee_surveys(request, user_id):
     employee = get_object_or_404(CustomUser, pk=user_id)
     
@@ -299,6 +342,7 @@ def employee_surveys(request, user_id):
     })
 
 @login_required
+@manager_or_privileged_access_required
 def manager_evaluate_employee(request, response_id):
     # Pobranie odpowiedzi pracownika
     employee_response = get_object_or_404(SurveyResponse, id=response_id)
@@ -455,6 +499,11 @@ class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
         'margin-bottom': '15mm',
     }
 
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role not in ['manager', 'team_leader', 'hr', 'admin'] and not request.user.is_superuser:
+            raise PermissionDenied("Nie masz dostępu do tego pliku PDF.")
+        return super().dispatch(request, *args, **kwargs)
+
     def get(self, request, *args, **kwargs):
         response = super().get(request, *args, **kwargs)
         
@@ -583,6 +632,7 @@ class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
         return img_base64
 
 @login_required
+@hr_or_admin_required
 def hr_comment_employee(request, response_id):
     if request.user.role not in ['hr', 'admin']:
         messages.error(request, "Brak dostępu do tego widoku.")
