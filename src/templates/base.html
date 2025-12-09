@@ -124,6 +124,64 @@
   document.body.addEventListener('userUpdated', () => closeAllModalsAndClean());
 </script>
 
+
+<!-- CREATE FORM SPINNER OVERLAY  -->
+<div id="global-spinner-overlay"
+     class="position-fixed top-0 start-0 w-100 h-100 d-none align-items-center justify-content-center"
+     style="background: rgba(0,0,0,0.35); z-index: 9999;">
+
+  <div class="card shadow-lg border-0 text-center p-4"
+       style="min-width: 320px; border-radius: 1rem;">
+
+    <div class="card-body">
+      <div class="spinner-border text-primary mb-3" role="status"></div>
+
+      <h5 class="card-title mb-1">Tworzenie użytkownika</h5>
+
+      <p class="card-text text-muted small mb-0">
+        Proszę czekać, trwa zapisywanie danych…
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+document.addEventListener("submit", function (e) {
+  const form = e.target;
+
+  // Only react to the "create user" form
+  if (form && form.id === "user-create-form") {
+    const spinner = document.getElementById("global-spinner-overlay");
+    if (spinner) {
+      spinner.classList.remove("d-none");
+      spinner.classList.add("d-flex");
+    }
+
+    // Optional: disable submit button to prevent double submit
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+    }
+  }
+}, true); // 👈 use capture to catch it before HTMX
+</script>
+
+<script>
+const createUserModal = document.getElementById("createUserModal");
+
+if (createUserModal) {
+  createUserModal.addEventListener("hidden.bs.modal", function () {
+    const spinner = document.getElementById("global-spinner-overlay");
+    if (spinner) {
+      spinner.classList.add("d-none");
+      spinner.classList.remove("d-flex");
+    }
+  });
+}
+</script>
+<!-- END CREATE FORM SPINNER OVERLAY -->
+
 {% block extra_js %}{% endblock %}
 
 <footer class="footer-wave mt-4 position-relative" style="overflow-x: hidden;">

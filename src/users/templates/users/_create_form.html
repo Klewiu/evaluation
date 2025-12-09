@@ -34,13 +34,14 @@
 </div>
 
 <div class="modal-body">
-  <form
-    novalidate
-    hx-post="{% url 'user_create' %}"
-    hx-target="#create-user-modal-content"
-    hx-swap="innerHTML">
+<form
+  id="user-create-form"
+  novalidate
+  hx-post="{% url 'user_create' %}"
+  hx-target="#create-user-modal-content"
+  hx-swap="innerHTML">
 
-    {% csrf_token %}
+  {% csrf_token %}
 
     <div class="row g-3">
 
