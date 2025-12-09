@@ -166,13 +166,20 @@ def user_create(request):
         if selected:
             User.objects.filter(pk__in=selected).update(team_leader=user)
 
-    if email:
-        send_credentials_email(user, username, password, email)
+    # ✅ nowa logika: checkbox "Utwórz bez email"
+    skip_email = request.POST.get("create_without_email")
 
-    messages.success(
-        request,
-        "Użytkownik utworzony. Email z loginem i hasłem wysłany do użytkownika"
-    )
+    if email and not skip_email:
+        send_credentials_email(user, username, password, email)
+        messages.success(
+            request,
+            "Użytkownik utworzony. Email z loginem i hasłem wysłany do użytkownika"
+        )
+    else:
+        messages.warning(
+            request,
+            "Użytkownik utworzony bez adresu email."
+        )
 
     users = User.objects.all().order_by("username")
     resp = render(request, "users/_tbody_oob.html", {"users": users})
@@ -331,6 +338,7 @@ def check_email(request):
         html = "<small class='text-success'>E-mail dostępny.</small>"
 
     return HttpResponse(html)
+
 
 @login_required
 @user_passes_test(is_admin_or_superuser)
@@ -532,4 +540,3 @@ def teams_list(request):
     return render(request, "users/teams_list.html", {
         "team_leaders": team_leaders
     })
-

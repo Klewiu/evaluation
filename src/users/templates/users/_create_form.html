@@ -34,14 +34,14 @@
 </div>
 
 <div class="modal-body">
-<form
-  id="user-create-form"
-  novalidate
-  hx-post="{% url 'user_create' %}"
-  hx-target="#create-user-modal-content"
-  hx-swap="innerHTML">
+  <form
+    id="user-create-form"
+    novalidate
+    hx-post="{% url 'user_create' %}"
+    hx-target="#create-user-modal-content"
+    hx-swap="innerHTML">
 
-  {% csrf_token %}
+    {% csrf_token %}
 
     <div class="row g-3">
 
@@ -110,6 +110,23 @@
           {% if form.email.errors %}
             {{ form.email.errors|striptags }}
           {% endif %}
+        </div>
+      </div>
+
+      <!-- ✅ CREATE WITHOUT EMAIL -->
+      <div class="col-12">
+        <div class="form-check mt-1">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            name="create_without_email"
+            id="create_without_email">
+          <label class="form-check-label" for="create_without_email">
+            Utwórz bez email
+          </label>
+        </div>
+        <div class="form-text text-warning">
+          *Przekaż tradycyjnie hasło i nazwę użytkownika tej osobie.
         </div>
       </div>
 

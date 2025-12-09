@@ -54,28 +54,27 @@
       {% endif %}
     </div>
 
-    <!-- ✅ EMAIL + LIVE CHECK (EDIT) -->
-<div class="col-12">
-  <label class="form-label">E-mail</label>
+    <!-- EMAIL -->
+    <div class="col-12">
+      <label class="form-label">E-mail</label>
 
-  <input
-    type="email"
-    name="email"
-    id="id_email"
-    value="{{ form.email.value|default_if_none:'' }}"
-    class="form-control"
-    hx-get="{% url 'check_email_edit' user_obj.pk %}"
-    hx-trigger="keyup changed delay:400ms"
-    hx-target="#email-hint-edit">
+      <input
+        type="email"
+        name="email"
+        id="id_email"
+        value="{{ form.email.value|default_if_none:'' }}"
+        class="form-control"
+        hx-get="{% url 'check_email_edit' user_obj.pk %}"
+        hx-trigger="keyup changed delay:400ms"
+        hx-target="#email-hint-edit">
 
-  <div id="email-hint-edit"
-       class="form-text {% if form.email.errors %}text-danger{% endif %}">
-    {% if form.email.errors %}
-      {{ form.email.errors|striptags }}
-    {% endif %}
-  </div>
-</div>
-
+      <div id="email-hint-edit"
+           class="form-text {% if form.email.errors %}text-danger{% endif %}">
+        {% if form.email.errors %}
+          {{ form.email.errors|striptags }}
+        {% endif %}
+      </div>
+    </div>
 
     <!-- ROLA -->
     <div class="col-md-6">
@@ -98,8 +97,9 @@
       {% endif %}
     </div>
 
-    <!-- ================= TEAM LEADER SECTION ================= -->
-    <div id="team-leader-section" class="col-12 d-none mt-3">
+    <!-- ================= TEAM LEADER SECTION (✅ FIXED) ================= -->
+    <div id="team-leader-section"
+         class="col-12 mt-3 {% if form.role.value != 'team_leader' %}d-none{% endif %}">
 
       <hr>
 
@@ -294,14 +294,13 @@ function initTeamLeaderEditor() {
   refreshTeamVisibility();
 }
 
-// ✅ HTMX potrafi podmieniać zawartość modala – inicjujemy:
+// ✅ HTMX reinit
 document.addEventListener("htmx:afterSwap", function (e) {
   if (e.target.id === "edit-user-modal-content") {
     setTimeout(initTeamLeaderEditor, 30);
   }
 });
 
-// oraz pierwszy raz, jeśli modal był załadowany z pełnej strony
 setTimeout(initTeamLeaderEditor, 50);
 
 })();
