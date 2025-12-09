@@ -91,8 +91,8 @@
         {% endif %}
       </div>
 
-      <!-- ✅ EMAIL + LIVE CHECK (JEDEN KOMUNIKAT) -->
-      <div class="col-12">
+      <!-- ✅ EMAIL + LIVE CHECK -->
+      <div class="col-12" id="email-field-wrapper">
         <label class="form-label">E-mail</label>
 
         <input
@@ -120,8 +120,8 @@
             class="form-check-input"
             type="checkbox"
             name="create_without_email"
-            id="create_without_email">
-          <label class="form-check-label" for="create_without_email">
+            id="no-email-checkbox">
+          <label class="form-check-label" for="no-email-checkbox">
             Utwórz bez email
           </label>
         </div>
@@ -329,6 +329,85 @@
 
   // ✅ pierwszy load
   setTimeout(initCreateTeamLeader, 50);
+
+})();
+</script>
+
+<!-- ✅ NO EMAIL TOGGLE JS -->
+<script>
+(function () {
+
+  function initNoEmailToggle() {
+    const checkbox = document.getElementById("no-email-checkbox");
+    const emailWrapper = document.getElementById("email-field-wrapper");
+    const emailInput = document.getElementById("id_email");
+
+    if (!checkbox || !emailWrapper || !emailInput) return;
+
+    function applyState() {
+      if (checkbox.checked) {
+        emailWrapper.classList.add("d-none");
+        emailInput.value = "";
+        emailInput.disabled = true;
+        emailInput.removeAttribute("required");
+      } else {
+        emailWrapper.classList.remove("d-none");
+        emailInput.disabled = false;
+      }
+    }
+
+    checkbox.addEventListener("change", applyState);
+    applyState();
+  }
+
+  // ✅ init after load
+  setTimeout(initNoEmailToggle, 50);
+
+  // ✅ init after HTMX swap (validation rerender)
+  document.addEventListener("htmx:afterSwap", function (e) {
+    if (e.target.id === "create-user-modal-content") {
+      setTimeout(initNoEmailToggle, 50);
+    }
+  });
+
+})();
+</script>
+
+<!-- ✅ USERNAME VALIDATION CLEANUP (NEW FIX) -->
+<script>
+(function () {
+
+  function initUsernameLiveCleanup() {
+    const usernameInput = document.getElementById("id_username");
+    const hint = document.getElementById("username-hint");
+
+    if (!usernameInput || !hint) return;
+
+    usernameInput.addEventListener("input", function () {
+
+      // ✅ Remove Django server-side error styling
+      usernameInput.classList.remove("is-invalid");
+
+      const serverError = usernameInput
+        .closest(".col-md-6")
+        ?.querySelector(".invalid-feedback");
+
+      if (serverError) {
+        serverError.remove();
+      }
+
+    });
+  }
+
+  // ✅ initial load
+  setTimeout(initUsernameLiveCleanup, 50);
+
+  // ✅ after HTMX validation re-render
+  document.addEventListener("htmx:afterSwap", function (e) {
+    if (e.target.id === "create-user-modal-content") {
+      setTimeout(initUsernameLiveCleanup, 50);
+    }
+  });
 
 })();
 </script>
