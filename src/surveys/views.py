@@ -1,74 +1,109 @@
-import json, os
-from django.conf import settings
-from django.http import JsonResponse, HttpResponseForbidden
+# 0 ---    IMPORTY
 
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
-from django.template.loader import render_to_string
-from django.views.decorators.http import require_POST
-from django.db.models import Q
-
-from django.utils import timezone
-
-from users.models import Department
-from .models import Question, Competency, Survey, SurveyQuestion, SurveyResponse, SurveyAnswer
-from .forms import QuestionForm, CompetencyForm, SurveyForm 
-
-
-from django.contrib.auth.mixins import LoginRequiredMixin
-from wkhtmltopdf.views import PDFTemplateView
+# Standardowe biblioteki
+import os
 import io
+import json
 import base64
+from functools import wraps
+from collections import OrderedDict
+
+# Biblioteki do wykresów
 import matplotlib
-matplotlib.use('Agg') 
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
-from django.views.generic import TemplateView
 
-from users.models import CustomUser
-# KOMPETENCJE
-
+# Django
+from django.conf import settings
+from django.db.models import Q
+from django.utils import timezone
+from django.shortcuts import render, get_object_or_404, redirect
+from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
+from django.template.loader import render_to_string
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponseForbidden
-from functools import wraps
+from django.views.generic import TemplateView
+from django.utils.decorators import method_decorator
+from django.contrib.staticfiles.finders import find
+
+# Zewnętrzne biblioteki
+from wkhtmltopdf.views import PDFTemplateView
+
+# Modele
+from users.models import CustomUser, Department
+from .models import (
+    Question, Competency, Survey, SurveyQuestion, 
+    SurveyResponse, SurveyAnswer
+)
+
+# Formularze
+from .forms import QuestionForm, CompetencyForm, SurveyForm, SurveyFillForm
+
+
+
+# SEKCJA 1 ----  DEKORATORY DOSTĘPU
+def admin_hr_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        user = request.user
+
+        if user.is_superuser or user.role in ['admin', 'hr']:
+            return view_func(request, *args, **kwargs)
+
+        raise PermissionDenied("Dostęp tylko dla administratora lub HR")
+    return wrapper
 
 def manager_or_privileged_access_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         current = request.user
-        response = None
 
-        # Pobranie slug lub survey_id (dla kompatybilności)
+        # ✅ ADMIN / HR / SUPERUSER – BEZWARUNKOWO WSZYSTKO
+        if current.role in ['admin', 'hr'] or current.is_superuser:
+            return view_func(request, *args, **kwargs)
+
         slug = kwargs.get('slug')
         survey_id = kwargs.get('survey_id') or kwargs.get('pk')
-
         user_id = kwargs.get('user_id')
+        response = None
 
-        # Jeśli mamy slug, pobieramy Survey
+        # ✅ WIDOKI OGÓLNE (LISTY, KOMPETENCJE, PANEL)
+        if not any([slug, survey_id, user_id]):
+            if current.role in ['manager', 'team_leader']:
+                return view_func(request, *args, **kwargs)
+            raise PermissionDenied("Brak dostępu do tego widoku")
+
+        # --- DOSTĘP OBIEKTOWY ---
         if slug:
             survey = get_object_or_404(Survey, slug=slug)
             survey_id = survey.id
 
-        # Pobranie response
         if 'response_id' in kwargs:
             response = get_object_or_404(SurveyResponse, id=kwargs.get('response_id'))
+
         elif survey_id and user_id:
-            response = SurveyResponse.objects.filter(survey_id=survey_id, user_id=user_id).first()
+            response = SurveyResponse.objects.filter(
+                survey_id=survey_id,
+                user_id=user_id
+            ).first()
             if not response:
                 raise PermissionDenied("Brak odpowiedzi dla tego użytkownika")
+
         elif survey_id:
-            response = SurveyResponse.objects.filter(survey_id=survey_id, user=current).first()
+            response = SurveyResponse.objects.filter(
+                survey_id=survey_id,
+                user=current
+            ).first()
             if not response:
-                raise PermissionDenied("Brak Twojej ankiety dla tej ankiety")
+                raise PermissionDenied("Brak Twojej ankiety")
+
         else:
-            raise PermissionDenied("Brak danych do weryfikacji dostępu")
+            raise PermissionDenied("Brak danych dostępu")
 
         target_user = response.user
-
-        # --- ADMIN / HR / SUPERUSER ---
-        if current.role in ['admin', 'hr'] or current.is_superuser:
-            return view_func(request, *args, **kwargs)
 
         # --- MANAGER ---
         if current.role == 'manager':
@@ -82,19 +117,21 @@ def manager_or_privileged_access_required(view_func):
                 return view_func(request, *args, **kwargs)
             raise PermissionDenied
 
-        # --- PRACOWNIK ---
+        # --- EMPLOYEE ---
         if current.role == 'employee':
             if target_user == current:
                 return view_func(request, *args, **kwargs)
             raise PermissionDenied
 
         raise PermissionDenied
-
     return wrapper
 
-# Kompetencje
-# Lista kompetencji (wszystkie w jednym worku)
+# SEKCJA 2 ----  WIDOKI 
+
+
+# LISTA KOMPETENCJI
 @login_required
+@admin_hr_required
 def competencies_list(request):
     competencies = Competency.objects.all()
     context = {
@@ -103,8 +140,9 @@ def competencies_list(request):
     return render(request, "surveys/competencies_list.html", context)
 
 
-# Dodawanie kompetencji
+# DODAWANIE KOMPETENCJI
 @login_required
+@admin_hr_required
 def competency_add(request):
     if request.method == "POST":
         form = CompetencyForm(request.POST)
@@ -116,8 +154,9 @@ def competency_add(request):
     return render(request, "surveys/competency_add.html", {"form": form})
 
 
-# Edycja kompetencji
+# EDYTCJA KOMPETENCJI
 @login_required
+@admin_hr_required
 def competency_edit(request, pk):
     competency = get_object_or_404(Competency, pk=pk)
     if request.method == "POST":
@@ -135,34 +174,18 @@ def competency_edit(request, pk):
     )
 
 
-# Usuwanie kompetencji
+# USUWANIE KOMPETENCJI
 @login_required
 @require_POST
+@admin_hr_required
 def competency_delete(request, pk):
     competency = get_object_or_404(Competency, pk=pk)
     competency.delete()
     return redirect("competencies_list")
 
-# PYTANIA
-
-# Pytania
-# --- Wyświetlanie listy pytań ---
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404
-from .models import Question
-from users.models import Department
-
-from collections import OrderedDict
-from django.shortcuts import render, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from .models import Question, Department
-
-from collections import OrderedDict
-from django.shortcuts import render, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from .models import Question, Department
-
+# LISTA PYTAŃ
 @login_required
+@admin_hr_required
 def questions_list(request):
     department_id = request.GET.get('department_id')
     selected_role = request.GET.get('role')  # 'manager', 'employee', 'both'
@@ -220,11 +243,9 @@ def questions_list(request):
     }
     return render(request, "surveys/questions_list.html", context)
 
-
-
-# Pytania
-# --- Dodawanie pytania ---
+# DODAWANIE PYTAŃ
 @login_required
+@admin_hr_required
 def question_add(request):
     if request.method == "POST":
         form = QuestionForm(request.POST)
@@ -235,9 +256,9 @@ def question_add(request):
         form = QuestionForm()
     return render(request, "surveys/question_add.html", {"form": form})
 
-# Pytania
-# --- Edycja pytania ---
+# USUWANIE PYTAŃ
 @login_required
+@admin_hr_required
 def question_delete(request, pk):
     question = get_object_or_404(Question, pk=pk)
     
@@ -249,9 +270,9 @@ def question_delete(request, pk):
     
     return redirect("questions_list")
 
-# Pytania
-# --- Edycja pytania ---
+# EDYTCJA PYTAŃ
 @login_required
+@admin_hr_required
 def question_edit(request, pk):
     question = get_object_or_404(Question, pk=pk)
     if request.method == "POST":
@@ -263,21 +284,23 @@ def question_edit(request, pk):
         form = QuestionForm(instance=question)
     return render(request, 'surveys/question_add.html', {'form': form, 'edit': True})
 
-
-# ANKIETY
-
+# LISTA ANKIET
 @login_required
+@admin_hr_required
 def surveys_home(request):
     surveys = Survey.objects.all()
     return render(request, "surveys/list.html", {"surveys": surveys})
 
+# LISTA ANKIET
 @login_required
+@admin_hr_required
 def surveys_list(request):
     surveys = Survey.objects.all().order_by('-created_at')  # najnowsze pierwsze
     return render(request, "surveys/surveys_list.html", {"surveys": surveys})
 
-# Dodawanie ankiety
+# DODAWANIE ANKIETY
 @login_required
+@admin_hr_required
 def survey_add(request):
     if request.method == "POST":
         form = SurveyForm(request.POST)
@@ -315,8 +338,6 @@ def survey_add(request):
     return render(request, "surveys/survey_add.html", {"form": form, "questions": questions})
 
 
-
-
 # Pobieranie pytań dla wybranego działu (htmx)
 def load_questions(request):
     dept_id = request.GET.get("department")
@@ -352,15 +373,18 @@ def survey_edit(request, pk):
         "title": "Edytuj ankietę"
     })
 
-# usuwanie ankiety
+# USUWANIE ANKIETY 
 @login_required
 @require_POST
+@admin_hr_required
 def survey_delete(request, pk):
     survey = get_object_or_404(Survey, pk=pk)
     survey.delete()
     return redirect('surveys_list')
 
+# PODGLĄD ANKIETY - dla HR i adimna - możeliwość sprawdzenia pytań i przestawienia kolejności drag&drop
 @login_required
+@admin_hr_required
 def survey_preview(request, pk):
     survey = get_object_or_404(Survey, pk=pk)
     questions = survey.surveyquestion_set.select_related('question').all()
@@ -371,9 +395,7 @@ def survey_preview(request, pk):
         "scale_range": scale_range,
     })
 
-
-from .forms import SurveyFillForm
-
+# WYPEŁNIANIE ANKIETY - PRZEZ PRACOWNIKA
 @login_required
 def survey_fill(request, slug):
     survey = get_object_or_404(Survey, slug=slug)
@@ -405,7 +427,7 @@ def survey_fill(request, slug):
 
     return render(request, "surveys/survey_fill.html", {"survey": survey, "form": form})
 
-
+# ZAPISYWANIE ANKIETY - PRZEZ PRACOWNIKA
 @login_required
 def survey_submit(request, slug):
     survey = get_object_or_404(Survey, slug=slug)
@@ -445,6 +467,7 @@ def survey_submit(request, slug):
         'scale_range': scale_range
     })
 
+# PODGLĄD WYNIKÓW ANKIETY - DLA ADMINA I MANAGERA i pracowika (ze sprawdzeniem dostępu)
 @manager_or_privileged_access_required
 @login_required
 def survey_result(request, slug, user_id=None):
@@ -493,6 +516,7 @@ def survey_result(request, slug, user_id=None):
         "viewed_user": viewed_user,  # neutralny alias
     })
 
+# EDYCJA WYPEŁNIONEJ ANKIETY - PRZEZ PRACOWNIKA
 @login_required
 def survey_edit_response(request, slug):
     survey = get_object_or_404(Survey, slug=slug)
@@ -537,6 +561,7 @@ def survey_edit_response(request, slug):
         "form": form
     })
 
+# ZAPISYWANIE KOLEJNOŚCI PYTAŃ ANKIETY - HTMX
 @login_required
 @require_POST
 def save_question_order(request, pk):
@@ -553,22 +578,7 @@ def save_question_order(request, pk):
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
-
-import os
-import io
-import base64
-# Importy do wykresu radarowego (zakładam, że są na początku pliku)
-import numpy as np
-import matplotlib.pyplot as plt
-
-from django.conf import settings
-from django.shortcuts import get_object_or_404
-from django.contrib.auth.mixins import LoginRequiredMixin
-# !!! DODAJ IMPORT FINDERS !!!
-from django.contrib.staticfiles.finders import find 
-from wkhtmltopdf.views import PDFTemplateView
-
-from django.utils.decorators import method_decorator
+# PDF ANKIETY - DLA ADMINA I MANAGERA i pracowika (ze sprawdzeniem dostępu)
 @method_decorator(manager_or_privileged_access_required, name='dispatch')
 class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
     template_name = "surveys/survey_pdf.html"
@@ -689,7 +699,8 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         image_base64 = base64.b64encode(buf.read()).decode('utf-8')
         plt.close(fig)
         return image_base64
-    
+
+# --- IGNORE AWARYJNA METODA DO TWORZENIA PDFa - tworzy duży plik ---
 # class SurveyPDFView(LoginRequiredMixin, TemplateView):
 #     template_name = "surveys/survey_pdf.html"
 

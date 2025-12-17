@@ -1,53 +1,66 @@
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
-from surveys.models import Survey, SurveyResponse, Competency
-from django.contrib import messages
+# SEKCJA IMPORTÓW   
 import os
-from django.contrib.staticfiles.finders import find
-
-from surveys.models import Survey, SurveyResponse, SurveyAnswer
-
-
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from users.models import CustomUser
-from surveys.models import Survey, SurveyResponse
-
-from django.db.models import Q,Exists, OuterRef
-
-from .models import EmployeeEvaluation
-
-from django.contrib.auth.mixins import LoginRequiredMixin
-from wkhtmltopdf.views import PDFTemplateView
 import io
 import base64
+from functools import wraps
+
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
-from django.shortcuts import get_object_or_404
-from surveys.models import SurveyResponse, SurveyAnswer 
-from evaluations.models import EmployeeEvaluation  # dostosuj importy
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
+from django.contrib.staticfiles.finders import find
+from django.core.exceptions import PermissionDenied
+from django.utils import timezone
+from django.utils.text import slugify
+from django.db.models import Q, Exists, OuterRef
 from django.contrib.auth import get_user_model
 
-from evaluations.models import EmployeeEvaluation  # dodaj import
-
-from django.core.exceptions import PermissionDenied
-
-
-
-from django.core.exceptions import PermissionDenied
+from surveys.models import Survey, SurveyResponse, SurveyAnswer, Competency
+from users.models import CustomUser
+from evaluations.models import EmployeeEvaluation, EmployeeEvaluationHR
+from wkhtmltopdf.views import PDFTemplateView
 
 
-from django.core.exceptions import PermissionDenied
-from django.shortcuts import get_object_or_404
-from surveys.models import SurveyResponse
+# 1 ---- SEKCJA DEKORATORÓW I FUNKCJI POMOCNICZYCH
 
-from .models import EmployeeEvaluation, EmployeeEvaluationHR
-from django.utils import timezone
+def hr_or_admin_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if request.user.role not in ['hr', 'admin']:
+            raise PermissionDenied("Nie masz dostępu do tego widoku.")
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
 
-from django.utils.text import slugify
+def employee_surveys_access_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, user_id, *args, **kwargs):
+        employee = get_object_or_404(CustomUser, pk=user_id)
 
+        # ✅ ADMIN / HR / SUPERUSER → wszystko
+        if request.user.role in ['admin', 'hr'] or request.user.is_superuser:
+            return view_func(request, user_id, *args, **kwargs)
+
+        # ✅ MANAGER → tylko swój dział
+        if request.user.role == 'manager':
+            if employee.department == request.user.department:
+                return view_func(request, user_id, *args, **kwargs)
+            raise PermissionDenied
+
+        # ✅ TEAM LEADER → tylko jego przypisani pracownicy
+        if request.user.role == 'team_leader':
+            if employee.team_leader == request.user:
+                return view_func(request, user_id, *args, **kwargs)
+            raise PermissionDenied
+
+        # ❌ EMPLOYEE → BRAK DOSTĘPU
+        raise PermissionDenied
+
+    return wrapper
 
 def manager_or_privileged_access_required(view_func):
     def wrapper(request, response_id, *args, **kwargs):
@@ -84,9 +97,12 @@ def manager_or_privileged_access_required(view_func):
 
         # 🔹 5. Inne role — brak dostępu
         raise PermissionDenied
-
     return wrapper
 
+# 2 ----  SEKCJA WIDOKÓW 
+
+
+# GŁÓWNY PANEL UŻYTKOWNIKA - to co widzi po zalogowaniu
 @login_required
 def home(request):
     user = request.user
@@ -156,6 +172,7 @@ def home(request):
     context = {"surveys": surveys_list}
     return render(request, 'evaluations/home.html', context)
 
+# LISTA PRACONIKÓW dla managera / team leadera / admina / HR z statusami ankiet
 @login_required
 def manager_employees(request):
     user = request.user
@@ -246,8 +263,9 @@ def manager_employees(request):
         "sort": sort
     })
 
-
+# LISTA ANKIET PRACOWNIKA z statusami ocen managera i HR (tutaj będą różne ankiety z różnych lat)
 @login_required
+@employee_surveys_access_required
 def employee_surveys(request, user_id):
     employee = get_object_or_404(CustomUser, pk=user_id)
     
@@ -298,7 +316,9 @@ def employee_surveys(request, user_id):
         "surveys_with_status": surveys_with_status
     })
 
+# OCENA PRACOWNIKA PRZEZ MANAGERA
 @login_required
+@manager_or_privileged_access_required
 def manager_evaluate_employee(request, response_id):
     # Pobranie odpowiedzi pracownika
     employee_response = get_object_or_404(SurveyResponse, id=response_id)
@@ -364,6 +384,7 @@ def manager_evaluate_employee(request, response_id):
     }
     return render(request, 'evaluations/manager_evaluate.html', context)
 
+# PODGLĄD OCENY PRACOWNIKA PRZEZ MANAGERA
 @login_required
 @manager_or_privileged_access_required
 def manager_survey_overview(request, response_id):
@@ -444,7 +465,7 @@ def manager_survey_overview(request, response_id):
 
 CustomUser = get_user_model()
 
-
+# PDF Z PODGLĄDEM OCENY MANAGERA + WYKRESY
 class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
     template_name = "evaluations/manager_survey_overview_pdf.html"
 
@@ -454,6 +475,11 @@ class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
         'footer-spacing': '5',
         'margin-bottom': '15mm',
     }
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role not in ['manager', 'team_leader', 'hr', 'admin'] and not request.user.is_superuser:
+            raise PermissionDenied("Nie masz dostępu do tego pliku PDF.")
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
         response = super().get(request, *args, **kwargs)
@@ -582,7 +608,10 @@ class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
         plt.close(fig)
         return img_base64
 
+# KOMENTARZ HR DO OCENY PRACOWNIKA I MANAGERA
+# Po zakończeniu oceny managera, HR może dodać swój komentarz do oceny pracownika i dopiero wtedy pracownik zobaczy pełną ocenę
 @login_required
+@hr_or_admin_required
 def hr_comment_employee(request, response_id):
     if request.user.role not in ['hr', 'admin']:
         messages.error(request, "Brak dostępu do tego widoku.")
