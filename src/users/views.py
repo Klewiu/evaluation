@@ -383,6 +383,10 @@ def get_team_members_by_department(request, department_id):
         is_active=True
     ).order_by("first_name", "last_name")
 
+    # ⛔ NIE POKAZUJEMY EDYTOWANEGO UŻYTKOWNIKA JAKO PRACOWNIKA
+    if current_user_pk:
+        employees = employees.exclude(pk=current_user_pk)
+
     # ✅ zaznaczamy TYLKO tych przypisanych do EDYTOWANEGO TL
     selected_members = []
     if current_user_pk:
