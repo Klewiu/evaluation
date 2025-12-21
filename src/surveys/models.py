@@ -31,7 +31,7 @@ class Question(models.Model):
         (BOTH, "Skala i opis"),
     ]
 
-    text = models.CharField(max_length=255)
+    text = models.CharField(max_length=1000)
     competency = models.ForeignKey(
         "Competency", on_delete=models.SET_NULL, blank=True, null=True, related_name="questions"
     )
