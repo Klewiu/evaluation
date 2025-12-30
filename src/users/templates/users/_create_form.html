@@ -2,11 +2,11 @@
 
 <script>
   // ✅ BEZPIECZNY GENERATOR HASEŁ (bez znaków niszczących HTML)
-  function generatePassword(length = 14) {
+  function generatePassword(length = 8) {
     const digits = '23456789';
     const lowers = 'abcdefghijkmnopqrstuvwxyz';
     const capitals = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-    const safeSpecials = '!@#$%&*_-+=';
+    const safeSpecials = '@#&';
 
     const allChars = digits + lowers + capitals + safeSpecials;
 

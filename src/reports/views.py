@@ -21,7 +21,7 @@ def hr_or_admin_required(view_func):
     def wrapper(request, *args, **kwargs):
         user = request.user
         # jeśli nie jest zalogowany lub nie ma wymaganej roli
-        if not user.is_authenticated or not (user.is_superuser or user.is_staff or getattr(user, 'role', '') == 'hr' or getattr(user, 'role', '') == 'manager'):
+        if not user.is_authenticated or not (user.is_superuser or user.is_staff or getattr(user, 'role', '') == 'hr' or getattr(user, 'role', '') == 'manager' or getattr(user, 'role', '') == 'admin'):
             raise PermissionDenied
         return view_func(request, *args, **kwargs)
     return wrapper
