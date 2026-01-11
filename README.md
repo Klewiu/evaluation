@@ -1,5 +1,7 @@
 # Employee 360° Evaluation System
 
+![Django](https://img.shields.io/badge/Django-4.2-green?logo=django&logoColor=white)
+
 This is a Django-based application designed for **360-degree employee evaluations**, involving three perspectives: the employee, the supervisor, and HR. It provides a comprehensive platform for managing and conducting performance assessments in an organization.
 
 ## Features
@@ -18,9 +20,3 @@ This is a Django-based application designed for **360-degree employee evaluation
 
 ### Reports
 ![Reports](Oceny%20pracownicze%20-%20reports.jpg)
-
-## Installation
-
-1. Clone the repository:  
-   ```bash
-   git clone <your-repo-url>
