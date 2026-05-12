@@ -104,7 +104,7 @@ def department_report(request):
 
             manager_scored = [a.scale_value for a in manager_answers if a.scale_value is not None]
             manager_total_points = sum(manager_scored)
-            manager_max_points = len(manager_scored) * 10 if manager_scored else 0
+            manager_max_points = len(manager_scored) * 4 if manager_scored else 0
             manager_percentage = round((manager_total_points / manager_max_points) * 100, 2) if manager_max_points else 0
 
             chart_labels.append(f"{emp.first_name} {emp.last_name}")
@@ -177,7 +177,7 @@ def department_radar_report(request):
             for comp in competencies:
                 comp_questions = current_survey.surveyquestion_set.filter(question__competency=comp)
                 if comp_questions.exists():
-                    max_total = len(comp_questions) * 10
+                    max_total = len(comp_questions) * 4
                     total = sum(
                         [a.scale_value for a in answers if a.question in [q.question for q in comp_questions] and a.scale_value]
                     )
@@ -229,7 +229,7 @@ def employee_report(request):
 
             manager_scored = [a.scale_value for a in manager_answers if a.scale_value is not None]
             manager_total_points = sum(manager_scored)
-            manager_max_points = len(manager_scored) * 10 if manager_scored else 0
+            manager_max_points = len(manager_scored) * 4 if manager_scored else 0
             manager_percentage = round((manager_total_points / manager_max_points) * 100, 2) if manager_max_points else 0
 
             # zamiast daty dodajemy nazwę ankiety
@@ -292,7 +292,7 @@ def latest_survey_report(request):
             if not manager_values:
                 continue
 
-            avg_manager_score = round((sum(manager_values) / len(manager_values)) * 10, 2)
+            avg_manager_score = round((sum(manager_values) / len(manager_values)) / 4 * 100, 2)
 
             labels.append(f"{emp.first_name} {emp.last_name} ({dept.name})")
             manager_scores.append(avg_manager_score)

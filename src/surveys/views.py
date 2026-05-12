@@ -388,7 +388,7 @@ def survey_delete(request, pk):
 def survey_preview(request, pk):
     survey = get_object_or_404(Survey, pk=pk)
     questions = survey.surveyquestion_set.select_related('question').all()
-    scale_range = range(0, 11)  # liczby od 1 do 10
+    scale_range = range(0, 5)  # liczby od 0 do 4
     return render(request, "surveys/survey_preview.html", {
         "survey": survey,
         "questions": questions,
@@ -460,7 +460,7 @@ def survey_submit(request, slug):
 
     # GET – wyświetlamy formularz do wypełnienia
     questions = survey.surveyquestion_set.select_related('question').all()
-    scale_range = range(0, 11)
+    scale_range = range(0, 5)
     return render(request, 'surveys/survey_fill.html', {
         'survey': survey,
         'questions': questions,
@@ -488,7 +488,7 @@ def survey_result(request, slug, user_id=None):
         response = None
 
     answers = SurveyAnswer.objects.filter(response=response) if response else []
-    scale_range = range(0, 11)
+    scale_range = range(0, 5)
 
     # Przygotowanie danych do wykresu radar
     radar_labels, radar_values = [], []
@@ -496,7 +496,7 @@ def survey_result(request, slug, user_id=None):
     for comp in competencies:
         comp_questions = survey.questions.filter(competency=comp)
         if comp_questions.exists():
-            max_total = sum([10 for q in comp_questions])
+            max_total = sum([4 for q in comp_questions])
             user_total = sum([a.scale_value for a in answers if a.question in comp_questions and a.scale_value])
             percentage = round(user_total / max_total * 100, 2) if max_total > 0 else 0
             radar_labels.append(comp.name)
@@ -636,7 +636,7 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         except SurveyResponse.DoesNotExist:
             answers = []
 
-        scale_range = range(0, 11)
+        scale_range = range(0, 5)
         # Upewnij się, że używasz właściwych klas/funkcji dla radar_labels i values
         radar_labels, radar_values = self._calculate_competency_scores(survey, answers)
         radar_image = self._generate_radar_chart(radar_labels, radar_values)
@@ -663,7 +663,7 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         competencies = [c for c in raw_competencies if c and str(c).strip()]
         for comp in competencies:
             comp_questions = survey.questions.filter(competency__name=comp)
-            max_total = comp_questions.count() * 10
+            max_total = comp_questions.count() * 4
             user_total = sum(a.scale_value for a in answers
                              if a.question in comp_questions and a.scale_value is not None)
             percentage = round(user_total / max_total * 100, 2) if max_total > 0 else 0
