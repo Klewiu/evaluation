@@ -127,7 +127,7 @@ class SurveyFillForm(forms.Form):
                 self.fields[field_name_scale] = forms.ChoiceField(
                     choices=[(i, str(i)) for i in range(0, 5)],
                     widget=forms.RadioSelect(attrs={"class": "form-check-input me-1"}),
-                    label=q.text + " (skala)",
+                    label=q.text,
                     required=True
                 )
                 self.fields[field_name_text] = forms.CharField(
@@ -136,10 +136,20 @@ class SurveyFillForm(forms.Form):
                         "rows": 2,
                         "placeholder": "Odpowiedź opisowa..."
                     }),
-                    label=q.text + " (uzasadnij powyższą ocenę)",
+                    label="Uzasadnij powyższą ocenę",
                     required=True,
                     validators=[
                         MinLengthValidator(20, message="Odpowiedź musi mieć co najmniej 20 znaków."),
                         MaxLengthValidator(2000, message="Odpowiedź nie może przekraczać 2000 znaków.")
                     ]
                 )
+
+    def grouped_fields(self):
+        """Yields (counter, q_type, scale_field, text_field) grouped per question."""
+        counter = 0
+        for sq in self.survey.surveyquestion_set.select_related("question").all():
+            q = sq.question
+            counter += 1
+            scale_field = self[f"q{q.id}_scale"] if q.type in (Question.SCALE, Question.BOTH) else None
+            text_field = self[f"q{q.id}_text"] if q.type in (Question.TEXT, Question.BOTH) else None
+            yield counter, q.type, scale_field, text_field

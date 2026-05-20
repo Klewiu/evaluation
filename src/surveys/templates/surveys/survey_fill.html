@@ -48,34 +48,61 @@
         {% endif %}
 
         <ul class="list-group mb-3">
-            {% for field in form %}
+            {% for num, q_type, scale_field, text_field in form.grouped_fields %}
             <li class="list-group-item mb-3">
-                <strong>{{ forloop.counter }}.</strong> {{ field.label }}
 
-                {% comment %}
-                Jeśli pole jest radiobuttonami, to ma klasę form-check-input,
-                więc owiniemy je w kontener .radio-group dla poziomego ułożenia
-                {% endcomment %}
-                {% if "form-check-input" in field.field.widget.attrs.class %}
-                <div class="radio-group mt-2">
-                    {% for subwidget in field %}
-                    <div class="form-check">
-                        {{ subwidget.tag }} 
-                        <label class="form-check-label ms-1">{{ subwidget.choice_label }}</label>
+                {% if q_type == "both" %}
+                    {# Skala + opis – jedno pytanie, dwa pola #}
+                    <strong>{{ num }}.</strong> {{ scale_field.label }}
+                    <div class="radio-group mt-2">
+                        {% for subwidget in scale_field %}
+                        <div class="form-check">
+                            {{ subwidget.tag }}
+                            <label class="form-check-label ms-1">{{ subwidget.choice_label }}</label>
+                        </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
-                </div>
+                    {% if scale_field.errors %}
+                    <div class="text-danger mt-1">
+                        {% for error in scale_field.errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <label class="form-label mt-3 fw-semibold">{{ text_field.label }}</label>
+                    {{ text_field }}
+                    {% if text_field.errors %}
+                    <div class="text-danger mt-1">
+                        {% for error in text_field.errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+
+                {% elif q_type == "scale" %}
+                    <strong>{{ num }}.</strong> {{ scale_field.label }}
+                    <div class="radio-group mt-2">
+                        {% for subwidget in scale_field %}
+                        <div class="form-check">
+                            {{ subwidget.tag }}
+                            <label class="form-check-label ms-1">{{ subwidget.choice_label }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if scale_field.errors %}
+                    <div class="text-danger mt-1">
+                        {% for error in scale_field.errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+
                 {% else %}
-                    {{ field }}
+                    {# Typ opisowy #}
+                    <strong>{{ num }}.</strong> {{ text_field.label }}
+                    {{ text_field }}
+                    {% if text_field.errors %}
+                    <div class="text-danger mt-1">
+                        {% for error in text_field.errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
                 {% endif %}
 
-                {% if field.errors %}
-                <div class="text-danger mt-1">
-                    {% for error in field.errors %}
-                        {{ error }}
-                    {% endfor %}
-                </div>
-                {% endif %}
             </li>
             {% endfor %}
         </ul>
