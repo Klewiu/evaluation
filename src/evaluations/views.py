@@ -2,6 +2,7 @@
 import os
 import io
 import base64
+import textwrap
 from functools import wraps
 
 import matplotlib
@@ -574,11 +575,17 @@ class ManagerSurveyOverviewPDFView(LoginRequiredMixin, PDFTemplateView):
         user_values_closed = user_values + [user_values[0]]
         manager_values_closed = manager_values + [manager_values[0]] if manager_values else None
 
-        fig, ax = plt.subplots(figsize=(7,7), subplot_kw=dict(polar=True))  # większy wykres
+        max_len = max((len(l) for l in labels), default=0)
+        wrap_width = 14 if max_len > 20 else 18
+        tick_fontsize = 8 if max_len > 20 else 10
+        wrapped_labels = [textwrap.fill(l, width=wrap_width) for l in labels]
+        fig_size = 9 if max_len > 20 else 7
+
+        fig, ax = plt.subplots(figsize=(fig_size, fig_size), subplot_kw=dict(polar=True))  # większy wykres
         ax.set_theta_offset(np.pi / 2)
         ax.set_theta_direction(-1)
         ax.set_xticks(angles)
-        ax.set_xticklabels(labels, fontsize=12)
+        ax.set_xticklabels(wrapped_labels, fontsize=tick_fontsize)
         ax.set_ylim(0, 100)
         ax.set_yticks(range(0, 101, 10))  # linie co 10%
         ax.set_rlabel_position(0)
