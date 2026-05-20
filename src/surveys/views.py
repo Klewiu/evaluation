@@ -5,6 +5,7 @@ import os
 import io
 import json
 import base64
+import textwrap
 from functools import wraps
 from collections import OrderedDict
 
@@ -680,11 +681,17 @@ class SurveyPDFView(LoginRequiredMixin, PDFTemplateView):
         angles_closed = angles + [angles[0]]
         values_closed = values + [values[0]]
 
-        fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+        max_len = max((len(l) for l in labels), default=0)
+        fig_size = 8 if max_len > 20 else 6
+        fig, ax = plt.subplots(figsize=(fig_size, fig_size), subplot_kw=dict(polar=True))
         ax.set_theta_offset(np.pi / 2)
         ax.set_theta_direction(-1)
+        wrap_width = 14 if max_len > 20 else 18
+        tick_fontsize = 8 if max_len > 20 else 10
+        wrapped_labels = [textwrap.fill(l, width=wrap_width) for l in labels]
+
         ax.set_xticks(angles)
-        ax.set_xticklabels(labels)
+        ax.set_xticklabels(wrapped_labels, fontsize=tick_fontsize)
         ax.set_ylim(0, 100)
         ax.set_rlabel_position(0)
         ax.grid(True)
