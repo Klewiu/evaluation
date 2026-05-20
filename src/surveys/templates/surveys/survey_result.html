@@ -166,19 +166,43 @@
 const labels = {{ radar_labels|safe }};
 const values = {{ radar_values|safe }};
 
-// --- Dynamiczny rozmiar etykiet dla radar chart ---
-let labelFontSize = 12;
+// --- Zawijanie długich etykiet na wiele linii ---
+function wrapLabel(str, maxLen) {
+    if (str.length <= maxLen) return str;
+    const words = str.split(' ');
+    const lines = [];
+    let current = '';
+    for (const word of words) {
+        const candidate = current ? current + ' ' + word : word;
+        if (candidate.length > maxLen) {
+            if (current) lines.push(current);
+            current = word;
+        } else {
+            current = candidate;
+        }
+    }
+    if (current) lines.push(current);
+    return lines.length === 1 ? lines[0] : lines;
+}
+
+const maxLabelLen = Math.max(...labels.map(l => l.length));
+const wrappedLabels = labels.map(l => wrapLabel(l, 18));
+
+// --- Dynamiczny rozmiar etykiet ---
+let labelFontSize;
 if (window.innerWidth > 1200) {
-    labelFontSize = 18;
+    labelFontSize = maxLabelLen > 25 ? 12 : 16;
 } else if (window.innerWidth > 768) {
-    labelFontSize = 14;
+    labelFontSize = maxLabelLen > 25 ? 10 : 13;
+} else {
+    labelFontSize = 9;
 }
 
 // --- Wybór typu wykresu ---
 let chartType = window.innerWidth < 768 ? 'bar' : 'radar';
 
 const data = {
-    labels: labels,
+    labels: wrappedLabels,
     datasets: [{
         label: 'Twoja ocena [%]',
         data: values,
@@ -213,7 +237,7 @@ const config = {
                 },
                 pointLabels: {
                     font: { size: labelFontSize, weight: 'bold' },
-                    padding: 12
+                    padding: maxLabelLen > 25 ? 20 : 12
                 }
             }
         } : {
