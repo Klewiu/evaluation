@@ -246,11 +246,43 @@ const labels = {{ radar_labels|safe }};
 const user_values = {{ radar_user_values|safe }};
 const manager_values = {{ radar_manager_values|safe }};
 
+// --- Zawijanie długich etykiet na wiele linii ---
+function wrapLabel(str, maxLen) {
+    if (str.length <= maxLen) return str;
+    const words = str.split(' ');
+    const lines = [];
+    let current = '';
+    for (const word of words) {
+        const candidate = current ? current + ' ' + word : word;
+        if (candidate.length > maxLen) {
+            if (current) lines.push(current);
+            current = word;
+        } else {
+            current = candidate;
+        }
+    }
+    if (current) lines.push(current);
+    return lines.length === 1 ? lines[0] : lines;
+}
+
+const maxLabelLen = Math.max(...labels.map(l => l.length));
+const wrappedLabels = labels.map(l => wrapLabel(l, 18));
+
+// --- Dynamiczny rozmiar etykiet ---
+let labelFontSize;
+if (window.innerWidth > 1200) {
+    labelFontSize = maxLabelLen > 25 ? 12 : 16;
+} else if (window.innerWidth > 768) {
+    labelFontSize = maxLabelLen > 25 ? 10 : 13;
+} else {
+    labelFontSize = 9;
+}
+
 // Wybór typu wykresu: radar na desktop, bar na mobile
 const chartType = window.innerWidth < 576 ? 'bar' : 'radar';
 
 const data = {
-  labels: labels.map(label => label.length > 20 ? label.substring(0,20) + "…" : label),
+  labels: wrappedLabels,
   datasets: [
     {
       label: 'Osoba oceniająca [%]',
@@ -285,7 +317,7 @@ const config = {
         min: 0,
         max: 100,
         ticks: { stepSize: 10, callback: val => val + "%" },
-        pointLabels: { font: { size: 18, weight: 'bold' } }
+        pointLabels: { font: { size: labelFontSize, weight: 'bold' }, padding: maxLabelLen > 25 ? 20 : 12 }
       }
     } : {
       y: {
