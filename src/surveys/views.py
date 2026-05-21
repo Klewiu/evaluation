@@ -41,7 +41,7 @@ from .models import (
 )
 
 # Formularze
-from .forms import QuestionForm, CompetencyForm, SurveyForm, SurveyFillForm
+from .forms import QuestionForm, QuestionAddForm, CompetencyForm, SurveyForm, SurveyFillForm
 
 
 
@@ -249,12 +249,23 @@ def questions_list(request):
 @admin_hr_required
 def question_add(request):
     if request.method == "POST":
-        form = QuestionForm(request.POST)
+        form = QuestionAddForm(request.POST)
         if form.is_valid():
-            form.save()
+            roles = form.cleaned_data['roles']
+            departments = form.cleaned_data.get('departments')
+            for role in roles:
+                question = Question(
+                    text=form.cleaned_data['text'],
+                    competency=form.cleaned_data.get('competency'),
+                    type=form.cleaned_data['type'],
+                    role=role,
+                )
+                question.save()
+                if departments:
+                    question.departments.set(departments)
             return redirect("questions_list")
     else:
-        form = QuestionForm()
+        form = QuestionAddForm()
     return render(request, "surveys/question_add.html", {"form": form})
 
 # USUWANIE PYTAŃ

@@ -25,6 +25,46 @@ class CompetencyForm(forms.ModelForm):
         if qs.exists():
             raise forms.ValidationError("Taka kompetencja już istnieje!")
         return name
+ROLE_ADD_CHOICES = [
+    ("manager", "Manager"),
+    ("employee", "Pracownik"),
+    ("team_leader", "Team Leader"),
+]
+
+
+class QuestionAddForm(forms.ModelForm):
+    roles = forms.MultipleChoiceField(
+        choices=ROLE_ADD_CHOICES,
+        widget=forms.SelectMultiple(attrs={'class': 'form-select', 'size': 3}),
+        label='Dla kogo pytanie',
+        required=True,
+    )
+
+    class Meta:
+        model = Question
+        fields = ['text', 'competency', 'type', 'departments']
+        labels = {
+            'text': 'Treść pytania',
+            'competency': 'Kompetencja',
+            'type': 'Typ pytania',
+            'departments': 'Działy',
+        }
+        widgets = {
+            'text': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Treść pytania'}),
+            'competency': forms.Select(attrs={'class': 'form-select', 'id': 'id_competency'}),
+            'type': forms.Select(attrs={'class': 'form-select', 'id': 'id_type'}),
+            'departments': forms.SelectMultiple(attrs={'class': 'form-select', 'size': 5}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        competency = cleaned_data.get('competency')
+        type_value = cleaned_data.get('type')
+
+        if competency and type_value == Question.TEXT:
+            self.add_error('type', 'Nie możesz wybrać typu "Opisowe" dla pytań z ustawioną kompetencją.')
+
+
 class QuestionForm(forms.ModelForm):
     class Meta:
         model = Question

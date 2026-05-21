@@ -36,12 +36,22 @@
             {% endfor %}
         </div>
          <small class="text-muted"><i>Pozostaw puste dla wszystkich działów</i></small>
+        {% if edit %}
         <div class="mb-2 mt-3">
             {{ form.role.label_tag }} {{ form.role }}
             {% for error in form.role.errors %}
                 <div class="text-danger">{{ error }}</div>
             {% endfor %}
         </div>
+        {% else %}
+        <div class="mb-0 mt-3">
+            {{ form.roles.label_tag }} {{ form.roles }}
+            {% for error in form.roles.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+        <small class="text-muted"><i>Przytrzymaj Ctrl aby wybrać kilka ról</i></small>
+        {% endif %}
 
        
         <br>
