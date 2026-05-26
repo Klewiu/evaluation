@@ -194,8 +194,8 @@ def questions_list(request):
 
     # Funkcja do filtrowania po roli
     def filter_by_role(queryset):
-        if selected_role and selected_role != 'both':
-            return queryset.filter(Q(role='both') | Q(role=selected_role))
+        if selected_role:
+            return queryset.filter(Q(role='all') | Q(role='both') | Q(role=selected_role))
         return queryset
 
     if department_id and department_id != 'all':
@@ -239,8 +239,12 @@ def questions_list(request):
         'unassigned_questions': unassigned_questions,
         'departments': departments,
         'selected_department': department_id or 'all',
-        'role_choices': Question.ROLE_CHOICES,
-        'selected_role': selected_role or 'both',  # domyślnie 'both'
+        'role_choices': [
+            ('manager', 'Manager'),
+            ('employee', 'Pracownik'),
+            ('team_leader', 'Team Leader'),
+        ],
+        'selected_role': selected_role or '',
     }
     return render(request, "surveys/questions_list.html", context)
 
@@ -290,7 +294,25 @@ def question_edit(request, pk):
     if request.method == "POST":
         form = QuestionForm(request.POST, instance=question)
         if form.is_valid():
-            form.save()
+            roles = form.cleaned_data['roles']
+            departments = form.cleaned_data.get('departments')
+            # Aktualizuj istniejące pytanie pierwszą rolą
+            question.text = form.cleaned_data['text']
+            question.competency = form.cleaned_data.get('competency')
+            question.type = form.cleaned_data['type']
+            question.role = roles[0]
+            question.save()
+            question.departments.set(departments)
+            # Utwórz nowe pytania dla dodatkowych ról
+            for role in roles[1:]:
+                new_q = Question(
+                    text=form.cleaned_data['text'],
+                    competency=form.cleaned_data.get('competency'),
+                    type=form.cleaned_data['type'],
+                    role=role,
+                )
+                new_q.save()
+                new_q.departments.set(departments)
             return redirect('questions_list')
     else:
         form = QuestionForm(instance=question)

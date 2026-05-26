@@ -66,23 +66,38 @@ class QuestionAddForm(forms.ModelForm):
 
 
 class QuestionForm(forms.ModelForm):
+    roles = forms.MultipleChoiceField(
+        choices=ROLE_ADD_CHOICES,
+        widget=forms.SelectMultiple(attrs={'class': 'form-select', 'size': 3}),
+        label='Dla kogo pytanie',
+        required=True,
+    )
+
     class Meta:
         model = Question
-        fields = ['text', 'competency', 'type', 'departments', 'role']
+        fields = ['text', 'competency', 'type', 'departments']
         labels = {
             'text': 'Treść pytania',
             'competency': 'Kompetencja',
             'type': 'Typ pytania',
             'departments': 'Działy',
-            'role': 'Dla kogo pytanie',
         }
         widgets = {
             'text': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Treść pytania'}),
             'competency': forms.Select(attrs={'class': 'form-select', 'id': 'id_competency'}),
             'type': forms.Select(attrs={'class': 'form-select', 'id': 'id_type'}),
             'departments': forms.SelectMultiple(attrs={'class': 'form-select', 'size': 5}),
-            'role': forms.Select(attrs={'class': 'form-select'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.role:
+            role = self.instance.role
+            all_roles = [r[0] for r in ROLE_ADD_CHOICES]
+            if role in ('all', 'both'):
+                self.fields['roles'].initial = all_roles
+            elif role in all_roles:
+                self.fields['roles'].initial = [role]
 
     def clean(self):
         cleaned_data = super().clean()

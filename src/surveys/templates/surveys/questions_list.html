@@ -27,6 +27,8 @@
 
     <div class="mb-3">
         <p class="mb-1"><i class="bi bi-funnel"></i><small>Filtruj pytania według roli:</small></p>
+        <a href="{% url 'questions_list' %}?department_id={{ selected_department }}&role=" 
+           class="btn btn-sm {% if not selected_role %}btn-primary{% else %}btn-outline-primary{% endif %}">Wszystkie</a>
         {% for role_value, role_label in role_choices %}
             <a href="{% url 'questions_list' %}?department_id={{ selected_department }}&role={{ role_value }}" 
                class="btn btn-sm {% if selected_role == role_value %}btn-primary{% else %}btn-outline-primary{% endif %}">
