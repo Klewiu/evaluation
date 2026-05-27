@@ -29,13 +29,14 @@ ROLE_ADD_CHOICES = [
     ("manager", "Manager"),
     ("employee", "Pracownik"),
     ("team_leader", "Team Leader"),
+    ("account_executive", "Account Executive"),
 ]
 
 
 class QuestionAddForm(forms.ModelForm):
     roles = forms.MultipleChoiceField(
         choices=ROLE_ADD_CHOICES,
-        widget=forms.SelectMultiple(attrs={'class': 'form-select', 'size': 3}),
+        widget=forms.SelectMultiple(attrs={'class': 'form-select', 'size': 4}),
         label='Dla kogo pytanie',
         required=True,
     )
@@ -68,7 +69,7 @@ class QuestionAddForm(forms.ModelForm):
 class QuestionForm(forms.ModelForm):
     roles = forms.MultipleChoiceField(
         choices=ROLE_ADD_CHOICES,
-        widget=forms.SelectMultiple(attrs={'class': 'form-select', 'size': 3}),
+        widget=forms.SelectMultiple(attrs={'class': 'form-select', 'size': 4}),
         label='Dla kogo pytanie',
         required=True,
     )

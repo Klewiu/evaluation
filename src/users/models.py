@@ -27,6 +27,7 @@ class CustomUser(AbstractUser):
         ('manager', 'MANAGER'),
         ('team_leader', 'TEAM LEADER'),
         ('employee', 'PRACOWNIK'),
+        ('account_executive', 'ACCOUNT EXECUTIVE'),
         ('hr', 'HR'),
     ]
 
@@ -69,6 +70,9 @@ class CustomUser(AbstractUser):
 
     def is_employee(self):
         return self.role == 'employee'
+
+    def is_account_executive(self):
+        return self.role == 'account_executive'
 
     def __str__(self):
         dept = self.department if self.department else "BRAK DZIAŁU"

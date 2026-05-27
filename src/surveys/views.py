@@ -118,8 +118,8 @@ def manager_or_privileged_access_required(view_func):
                 return view_func(request, *args, **kwargs)
             raise PermissionDenied
 
-        # --- EMPLOYEE ---
-        if current.role == 'employee':
+        # --- EMPLOYEE / ACCOUNT EXECUTIVE ---
+        if current.role in ['employee', 'account_executive']:
             if target_user == current:
                 return view_func(request, *args, **kwargs)
             raise PermissionDenied
@@ -243,6 +243,7 @@ def questions_list(request):
             ('manager', 'Manager'),
             ('employee', 'Pracownik'),
             ('team_leader', 'Team Leader'),
+            ('account_executive', 'Account Executive'),
         ],
         'selected_role': selected_role or '',
     }

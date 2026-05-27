@@ -20,6 +20,7 @@ class Question(models.Model):
         ("manager", "Manager"),
         ("employee", "Pracownik"),
         ("team_leader", "Team Leader"),
+        ("account_executive", "Account Executive"),
     ]
 
     SCALE = "scale"
@@ -61,10 +62,10 @@ class Survey(models.Model):
     slug = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
     ROLE_CHOICES = [
-       
         ("manager", "Manager"),
         ("employee", "Pracownik"),
         ("team_leader", "Team Leader"),
+        ("account_executive", "Account Executive"),
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="both")
 

@@ -90,8 +90,8 @@ def manager_or_privileged_access_required(view_func):
 
             raise PermissionDenied
 
-        # 🔹 4. Pracownik — może zobaczyć tylko własną ocenę
-        if request.user.role == 'employee':
+        # 🔹 4. Pracownik / Account Executive — może zobaczyć tylko własną ocenę
+        if request.user.role in ['employee', 'account_executive']:
             if viewed_user == request.user:
                 return view_func(request, response_id, *args, **kwargs)
             raise PermissionDenied
@@ -115,6 +115,12 @@ def home(request):
             department_surveys = Survey.objects.filter(
                 department=user.department,
                 role__in=["employee"],
+                created_at__gte=user.date_joined
+            ).order_by('-created_at')
+        elif user.role == 'account_executive':
+            department_surveys = Survey.objects.filter(
+                department=user.department,
+                role__in=["account_executive"],
                 created_at__gte=user.date_joined
             ).order_by('-created_at')
         elif user.role == 'manager':
@@ -187,7 +193,7 @@ def manager_employees(request):
     if user.role == "manager" and user.department:
         employees = CustomUser.objects.filter(
             department=user.department,
-            role__in=["employee", "team_leader"],
+            role__in=["employee", "team_leader", "account_executive"],
             is_active=True
         )
 
@@ -205,7 +211,7 @@ def manager_employees(request):
     # ------------------------------
     elif user.role in ["admin", "hr"] or user.is_superuser:
         employees = CustomUser.objects.filter(
-            role__in=["employee", "manager", "team_leader"],
+            role__in=["employee", "manager", "team_leader", "account_executive"],
             is_active=True
         )
 
