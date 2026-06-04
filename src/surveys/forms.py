@@ -29,7 +29,7 @@ ROLE_ADD_CHOICES = [
     ("manager", "Manager"),
     ("employee", "Pracownik"),
     ("team_leader", "Team Leader"),
-    ("account_executive", "Account Executive"),
+    ("account_executive", "Leader"),
 ]
 
 

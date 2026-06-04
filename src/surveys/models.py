@@ -20,7 +20,7 @@ class Question(models.Model):
         ("manager", "Manager"),
         ("employee", "Pracownik"),
         ("team_leader", "Team Leader"),
-        ("account_executive", "Account Executive"),
+        ("account_executive", "Leader"),
     ]
 
     SCALE = "scale"
@@ -65,7 +65,7 @@ class Survey(models.Model):
         ("manager", "Manager"),
         ("employee", "Pracownik"),
         ("team_leader", "Team Leader"),
-        ("account_executive", "Account Executive"),
+        ("account_executive", "Leader"),
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="both")
 

@@ -243,7 +243,7 @@ def questions_list(request):
             ('manager', 'Manager'),
             ('employee', 'Pracownik'),
             ('team_leader', 'Team Leader'),
-            ('account_executive', 'Account Executive'),
+            ('account_executive', 'Leader'),
         ],
         'selected_role': selected_role or '',
     }
