@@ -27,7 +27,7 @@ class CustomUser(AbstractUser):
         ('manager', 'MANAGER'),
         ('team_leader', 'TEAM LEADER'),
         ('employee', 'PRACOWNIK'),
-        ('account_executive', 'ACCOUNT EXECUTIVE'),
+        ('account_executive', 'LEADER'),
         ('hr', 'HR'),
     ]
 
