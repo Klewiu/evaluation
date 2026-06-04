@@ -128,7 +128,7 @@
   {% if manager_user %}
   <div class="card shadow-sm mt-4 mb-4">
     <div class="card-body">
-      <h5>Komentarz HR:</h5>
+      <h5>Komentarz podsumowujący:</h5>
       <form method="post">
         {% csrf_token %}
         <textarea name="hr_comment" class="form-control" rows="5">{{ hr_comment }}</textarea>
